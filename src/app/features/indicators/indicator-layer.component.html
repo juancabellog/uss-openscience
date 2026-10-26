@@ -1,0 +1,28 @@
+<h2>{{ titleKey() | translate }}</h2>
+<os-demo-banner [text]="'indicators.demo' | translate" />
+
+@if (layer() !== 2) {
+  <os-empty-state
+    [title]="'indicators.unavailableTitle' | translate"
+    [message]="'indicators.unavailableMessage' | translate"
+  />
+} @else if (items().length === 0) {
+  <os-empty-state />
+} @else {
+  @for (group of ['resultado', 'proceso', 'formacion']; track group) {
+    <section class="group">
+      <h3>{{ 'indicators.group.' + group | translate }}</h3>
+      <ul>
+        @for (item of items(); track item.id) {
+          @if (item.group === group) {
+            <li>
+              <strong>{{ item.code }}</strong>
+              <span>{{ 'indicators.' + item.code + '.name' | translate }}</span>
+              <os-status-badge [label]="indicatorValueKey(item.valueState) | translate" tone="pending" />
+            </li>
+          }
+        }
+      </ul>
+    </section>
+  }
+}

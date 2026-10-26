@@ -1,0 +1,142 @@
+<os-page-header
+  [title]="'dashboard.title' | translate"
+  [subtitle]="'dashboard.subtitle' | translate"
+  [eyebrow]="'dashboard.eyebrow' | translate"
+>
+  @if (vm().status === 'success' && vm().lastUpdated) {
+    <p class="updated">
+      {{ 'common.lastUpdated' | translate: { value: (vm().lastUpdated | localeDate) } }}
+    </p>
+  }
+</os-page-header>
+
+@if (vm().status === 'loading') {
+  <os-loading-state />
+} @else if (vm().status === 'error') {
+  <os-error-state
+    [title]="'dashboard.errorTitle' | translate"
+    [message]="'dashboard.errorMessage' | translate"
+    [actionLabel]="'common.retry' | translate"
+    (action)="reload()"
+  />
+} @else {
+  <section aria-labelledby="ops-title">
+    <h2 id="ops-title" class="section-title">{{ 'dashboard.operationalTitle' | translate }}</h2>
+    <p class="section-copy">{{ 'dashboard.operationalCopy' | translate }}</p>
+    <div class="metric-grid">
+      @for (metric of visibleMetrics(); track metric.id) {
+        <os-metric-card
+          [label]="'dashboard.metrics.' + metric.id + '.label' | translate"
+          [value]="metric.available ? (metricValue(metric) | localeNumber) : ('common.dash' | translate)"
+          [hint]="
+            hasCoverage(metric)
+              ? ('dashboard.metrics.' + metric.id + '.coverageHint' | translate: {
+                  value: (metric.coveragePercent | localeNumber)
+                })
+              : ('dashboard.metrics.' + metric.id + '.hint' | translate)
+          "
+          [detail]="
+            hasCoverage(metric)
+              ? ('dashboard.metrics.' + metric.id + '.coverageBase' | translate: {
+                  total: (metric.coverageDenominator | localeNumber)
+                })
+              : ''
+          "
+          [infoText]="showsResearcherDefinition(metric) ? ('researchers.definition' | translate) : ''"
+          [infoAriaLabel]="showsResearcherDefinition(metric) ? ('researchers.definitionAriaLabel' | translate) : ''"
+          [tooltip]="metric.id === 'findings' ? ('dashboard.metrics.findings.tooltip' | translate) : ''"
+          [demo]="false"
+        />
+      }
+    </div>
+  </section>
+
+  <div class="split">
+    @if (canSeeQuality()) {
+    <os-section-card
+      [title]="'dashboard.qualityTitle' | translate"
+      [description]="'dashboard.qualityDescription' | translate"
+    >
+      @if (vm().dataQuality.available) {
+        @let total = qualityTotal(vm().dataQuality);
+        <div class="bars" role="img" [attr.aria-label]="'dashboard.qualityChart' | translate">
+          <div class="bars__item">
+            <span>{{ 'dashboard.open' | translate }}: {{ vm().dataQuality.open | localeNumber }}</span>
+            <i class="bars__fill bars__fill--open" [style.width.%]="qualityWidth(vm().dataQuality.open, total)"></i>
+          </div>
+          <div class="bars__item">
+            <span>{{ 'dashboard.inReview' | translate }}: {{ vm().dataQuality.inReview | localeNumber }}</span>
+            <i class="bars__fill bars__fill--review" [style.width.%]="qualityWidth(vm().dataQuality.inReview, total)"></i>
+          </div>
+          <div class="bars__item">
+            <span>{{ 'dashboard.validated' | translate }}: {{ vm().dataQuality.validated | localeNumber }}</span>
+            <i class="bars__fill bars__fill--ok" [style.width.%]="qualityWidth(vm().dataQuality.validated, total)"></i>
+          </div>
+          <div class="bars__item bars__item--ok">
+            <span>{{ 'dashboard.corrected' | translate }}: {{ vm().dataQuality.corrected | localeNumber }}</span>
+            <i class="bars__fill bars__fill--ok" [style.width.%]="qualityWidth(vm().dataQuality.corrected, total)"></i>
+          </div>
+        </div>
+        <p class="chart-note">{{ 'dashboard.chartNote' | translate }}</p>
+      } @else {
+        <p class="unavailable">{{ 'dashboard.qualityUnavailable' | translate }}</p>
+      }
+      <a routerLink="/data-quality">{{ 'dashboard.viewFindings' | translate }}</a>
+    </os-section-card>
+    }
+
+    @if (canSeeIntegrations()) {
+    <os-section-card
+      [title]="'dashboard.integrationsTitle' | translate"
+      [description]="'dashboard.integrationsDescription' | translate"
+    >
+      @if (vm().integrations.length === 0) {
+        <p class="unavailable">{{ 'dashboard.integrationsUnavailable' | translate }}</p>
+      } @else {
+        <ul class="chips">
+          @for (item of vm().integrations; track item.id) {
+            <li>
+              <os-status-badge
+                [label]="item.name + ' · ' + (integrationKey(item.health) | translate)"
+                [tone]="integrationTone(item.health)"
+                [icon]="integrationIcon(item.health)"
+              />
+            </li>
+          }
+        </ul>
+      }
+      <a routerLink="/integrations">{{ 'dashboard.viewIntegrations' | translate }}</a>
+    </os-section-card>
+    }
+  </div>
+
+  @if (canSeeIndicators()) {
+  <section class="monitoring" aria-labelledby="mon-title">
+    <h2 id="mon-title" class="section-title">{{ 'dashboard.monitoringTitle' | translate }}</h2>
+    <p class="section-copy">{{ 'dashboard.monitoringCopy' | translate }}</p>
+    <div class="layers">
+      <article>
+        <h3>{{ 'dashboard.layer1Title' | translate }}</h3>
+        <p>{{ 'dashboard.layer1Copy' | translate }}</p>
+        <os-status-badge [label]="'status.unavailable' | translate" tone="pending" />
+        <p class="muted">{{ 'dashboard.layer1Note' | translate }}</p>
+        <a routerLink="/indicators/layer-1">{{ 'dashboard.openLayer1' | translate }}</a>
+      </article>
+      <article>
+        <h3>{{ 'dashboard.layer2Title' | translate }}</h3>
+        <p>{{ 'dashboard.layer2Copy' | translate }}</p>
+        <os-status-badge [label]="'status.pending_measurement' | translate" tone="pending" />
+        <p class="muted">{{ 'dashboard.layer2Note' | translate }}</p>
+        <a routerLink="/indicators/layer-2">{{ 'dashboard.openLayer2' | translate }}</a>
+      </article>
+      <article>
+        <h3>{{ 'dashboard.layer3Title' | translate }}</h3>
+        <p>{{ 'dashboard.layer3Copy' | translate }}</p>
+        <os-status-badge [label]="'status.unavailable' | translate" tone="pending" />
+        <p class="muted">{{ 'dashboard.layer3Note' | translate }}</p>
+        <a routerLink="/indicators/layer-3">{{ 'dashboard.openLayer3' | translate }}</a>
+      </article>
+    </div>
+  </section>
+  }
+}

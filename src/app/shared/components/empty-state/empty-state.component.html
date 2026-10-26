@@ -1,0 +1,18 @@
+<section class="state-box" role="status">
+  @if (icon()) {
+    <os-icon class="state-box__icon" [name]="icon()" />
+  }
+  <h2>{{ displayTitle() }}</h2>
+  <p>{{ displayMessage() }}</p>
+  @if (actionLabel()) {
+    <button
+      type="button"
+      class="state-box__action"
+      [class.state-box__action--primary]="actionVariant() === 'primary'"
+      [class.state-box__action--link]="actionVariant() === 'link'"
+      (click)="action.emit()"
+    >
+      {{ actionLabel() }}
+    </button>
+  }
+</section>

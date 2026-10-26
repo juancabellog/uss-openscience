@@ -1,0 +1,44 @@
+:host {
+  display: flex;
+  height: 100%;
+  min-width: 0;
+}
+
+.section-card {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  width: 100%;
+  background: var(--os-surface);
+  border: 1px solid var(--os-border);
+  border-radius: var(--os-radius-md);
+  padding: var(--os-space-lg);
+  box-shadow: var(--os-shadow-sm);
+}
+
+header {
+  margin-bottom: var(--os-space-md);
+}
+
+h2 {
+  font-size: var(--os-fs-lg);
+}
+
+p {
+  color: var(--os-text-secondary);
+  margin-top: 0.25rem;
+}
+
+.section-card__body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+:host ::ng-deep .section-card__body > a:last-child {
+  margin-top: auto;
+  padding-top: var(--os-space-md);
+  font-weight: 600;
+  text-decoration: none;
+}

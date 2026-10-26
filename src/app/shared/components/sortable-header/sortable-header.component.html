@@ -1,0 +1,11 @@
+<button
+  type="button"
+  class="sort-button"
+  [class.is-active]="isActive()"
+  [class.is-numeric]="numeric()"
+  [attr.aria-label]="'table.sortBy' | translate: { column: label() }"
+  (click)="onClick()"
+>
+  <span class="sort-label">{{ label() }}</span>
+  <os-icon class="sort-icon" [name]="iconName()" [label]="iconLabel() ? (iconLabel() | translate) : ''" />
+</button>

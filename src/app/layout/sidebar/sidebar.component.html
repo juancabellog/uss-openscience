@@ -1,0 +1,34 @@
+<aside class="sidebar" [class.sidebar--collapsed]="layout.sidebarCollapsed()">
+  <nav class="sidebar__nav" [attr.aria-label]="'navigation.main' | translate">
+    <ul>
+      @for (item of items(); track item.path) {
+        <li>
+          <a
+            [routerLink]="item.path"
+            routerLinkActive="is-active"
+            [attr.title]="item.labelKey | translate"
+            [attr.aria-label]="item.labelKey | translate"
+            [routerLinkActiveOptions]="{ exact: item.path === '/dashboard' }"
+            ariaCurrentWhenActive="page"
+          >
+            <os-icon [name]="item.icon" />
+            <span>{{ item.labelKey | translate }}</span>
+          </a>
+        </li>
+      }
+    </ul>
+  </nav>
+
+  <div class="sidebar__footer">
+    <p
+      class="sidebar__meta"
+      [attr.title]="'sidebar.footer' | translate: { version: version }"
+    >
+      @if (layout.sidebarCollapsed()) {
+        {{ 'sidebar.footerShort' | translate: { short: shortVersion } }}
+      } @else {
+        {{ 'sidebar.footer' | translate: { version: version } }}
+      }
+    </p>
+  </div>
+</aside>

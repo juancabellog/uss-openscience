@@ -1,0 +1,264 @@
+<p>
+  @if (editing) {
+    <a [routerLink]="['/admin/eventos', id()]">{{ 'form.backToEvent' | translate }}</a>
+  } @else {
+    <a routerLink="/admin/eventos">{{ 'form.back' | translate }}</a>
+  }
+</p>
+<section class="panel event-form">
+  <h1>{{ (editing ? 'form.editTitle' : 'form.createTitle') | translate }}</h1>
+  <p class="required-note">{{ 'common.requiredNote' | translate }}</p>
+  @if (!editing) {
+    <p class="muted">{{ 'form.draftHint' | translate }}</p>
+  }
+  @if (saved(); as event) {
+    <p>
+      <span class="badge">{{ event.publicationStatus | catalog:'statuses' }}</span>
+    </p>
+  }
+  @if (statusLocked) {
+    <p class="alert">{{ 'form.lockedHint' | translate }}</p>
+  }
+
+  <form [formGroup]="form" (ngSubmit)="editing ? saveChanges() : saveDraft()">
+    <fieldset [disabled]="statusLocked">
+    <section class="form-section">
+      <h2>{{ 'form.sectionGeneral' | translate }}</h2>
+      <label [class.invalid]="invalid('title')">
+        <span class="label-caption">{{ 'form.title' | translate }} <span class="req" aria-hidden="true">*</span></span>
+        <input type="text" formControlName="title" maxlength="255" required aria-required="true" (blur)="markTouched('title')" />
+        @if (fieldError('title'); as message) {
+          <span class="field-error">{{ message }}</span>
+        }
+      </label>
+      <label>
+        <span class="label-caption">{{ 'form.titleEn' | translate }}</span>
+        <input type="text" formControlName="titleEn" maxlength="255" />
+      </label>
+      <label [class.invalid]="invalid('description')">
+        <span class="label-caption">{{ 'form.description' | translate }} <span class="req" aria-hidden="true">*</span></span>
+        <textarea formControlName="description" rows="5" maxlength="20000" aria-required="true" (blur)="markTouched('description')"></textarea>
+        <span class="hint">{{ 'form.requiredToPublish' | translate }}</span>
+        @if (fieldError('description'); as message) {
+          <span class="field-error">{{ message }}</span>
+        }
+      </label>
+      <label>
+        <span class="label-caption">{{ 'form.descriptionEn' | translate }}</span>
+        <textarea formControlName="descriptionEn" rows="4" maxlength="20000"></textarea>
+      </label>
+      <div class="grid-2">
+        <label [class.invalid]="invalid('eventType')">
+          <span class="label-caption">{{ 'form.eventType' | translate }} <span class="req" aria-hidden="true">*</span></span>
+          <select formControlName="eventType" aria-required="true" (blur)="markTouched('eventType')">
+            <option value="">{{ 'common.select' | translate }}</option>
+            @for (type of types; track type.value) {
+              <option [value]="type.value">{{ type.value | catalog:'types' }}</option>
+            }
+          </select>
+          @if (fieldError('eventType'); as message) {
+            <span class="field-error">{{ message }}</span>
+          }
+        </label>
+        <label [class.invalid]="invalid('modality')">
+          <span class="label-caption">{{ 'form.modality' | translate }} <span class="req" aria-hidden="true">*</span></span>
+          <select formControlName="modality" aria-required="true" (blur)="markTouched('modality')">
+            <option value="">{{ 'common.select' | translate }}</option>
+            @for (modality of modalities; track modality.value) {
+              <option [value]="modality.value">{{ modality.value | catalog:'modalities' }}</option>
+            }
+          </select>
+          @if (fieldError('modality'); as message) {
+            <span class="field-error">{{ message }}</span>
+          }
+        </label>
+      </div>
+      <label [class.invalid]="invalid('organizingUnitCode')">
+        <span class="label-caption">{{ 'form.organizingUnit' | translate }} <span class="req" aria-hidden="true">*</span></span>
+        <select formControlName="organizingUnitCode" aria-required="true" (blur)="markTouched('organizingUnitCode')">
+          <option value="">{{ 'form.selectUnit' | translate }}</option>
+          @for (unit of units(); track unit.code) {
+            <option [value]="unit.code">{{ lang() === 'en' ? unit.nameEn : unit.nameEs }}</option>
+          }
+        </select>
+        <span class="hint">{{ 'form.requiredToPublish' | translate }}</span>
+        @if (fieldError('organizingUnitCode'); as message) {
+          <span class="field-error">{{ message }}</span>
+        }
+      </label>
+      @if (showOtherUnit(formTick())) {
+        <label [class.invalid]="invalid('organizingUnit')">
+          <span class="label-caption">{{ 'form.otherUnit' | translate }} <span class="req" aria-hidden="true">*</span></span>
+          <input type="text" formControlName="organizingUnitOther" maxlength="255" aria-required="true" (blur)="markTouched('organizingUnitOther')" />
+          <span class="hint">{{ 'form.otherUnitHint' | translate }}</span>
+          @if (fieldError('organizingUnit'); as message) {
+            <span class="field-error">{{ message }}</span>
+          }
+        </label>
+      }
+      <label>
+        <span class="label-caption">{{ 'form.primaryLanguage' | translate }}</span>
+        <select formControlName="primaryLanguage">
+          <option value="es">{{ 'catalogs.languages.es' | translate }}</option>
+          <option value="en">{{ 'catalogs.languages.en' | translate }}</option>
+        </select>
+        <span class="hint">{{ 'form.primaryLanguageHint' | translate }}</span>
+      </label>
+    </section>
+
+    <section class="form-section">
+      <h2>{{ 'form.sectionWhenWhere' | translate }}</h2>
+      <div class="grid-2">
+        <label [class.invalid]="invalid('startsAt')">
+          <span class="label-caption">{{ 'form.startsAt' | translate }} <span class="req" aria-hidden="true">*</span></span>
+          <input type="datetime-local" formControlName="startsAt" aria-required="true" (blur)="markTouched('startsAt')" />
+          @if (fieldError('startsAt'); as message) {
+            <span class="field-error">{{ message }}</span>
+          }
+        </label>
+        <label [class.invalid]="invalid('endsAt')">
+          <span class="label-caption">{{ 'form.endsAt' | translate }} <span class="req" aria-hidden="true">*</span></span>
+          <input type="datetime-local" formControlName="endsAt" aria-required="true" (blur)="markTouched('endsAt')" />
+          @if (fieldError('endsAt'); as message) {
+            <span class="field-error">{{ message }}</span>
+          }
+        </label>
+      </div>
+      <label [class.invalid]="invalid('timezone')">
+        <span class="label-caption">{{ 'form.timezone' | translate }} <span class="req" aria-hidden="true">*</span></span>
+        <input type="text" formControlName="timezone" maxlength="64" aria-required="true" (blur)="markTouched('timezone')" />
+        <span class="hint">{{ 'form.timezoneHint' | translate }}</span>
+        @if (fieldError('timezone'); as message) {
+          <span class="field-error">{{ message }}</span>
+        }
+      </label>
+      @if (showPlaceField(formTick())) {
+        <label [class.invalid]="invalid('locationName') || invalid('campusName')">
+          <span class="label-caption">{{ 'form.place' | translate }} <span class="req" aria-hidden="true">*</span></span>
+          <select formControlName="campusSelect" aria-required="true" (blur)="markTouched('locationName')">
+            <option value="">{{ 'common.select' | translate }}</option>
+            @for (campus of campusOptions(); track campus) {
+              <option [value]="campus">{{ campus }}</option>
+            }
+            <option [value]="otherCampus">{{ 'form.otherPlace' | translate }}</option>
+          </select>
+          <span class="hint">{{ 'form.placeHint' | translate }}</span>
+        </label>
+        @if (showCustomPlace(formTick())) {
+          <label [class.invalid]="invalid('locationName')">
+            <span class="label-caption">{{ 'form.placeName' | translate }}</span>
+            <input type="text" formControlName="locationName" maxlength="255" (blur)="markTouched('locationName')" />
+          </label>
+        } @else {
+          <label>
+            <span class="label-caption">{{ 'form.room' | translate }}</span>
+            <input type="text" formControlName="locationName" maxlength="255" (blur)="markTouched('locationName')" />
+            <span class="hint">{{ 'form.roomHint' | translate }}</span>
+          </label>
+        }
+        @if (fieldError('locationName'); as message) {
+          <span class="field-error">{{ message }}</span>
+        }
+      }
+      @if (showVirtualField(formTick())) {
+        <label [class.invalid]="invalid('virtualAccess')">
+          <span class="label-caption">{{ 'form.virtualAccess' | translate }} <span class="req" aria-hidden="true">*</span></span>
+          <textarea formControlName="virtualAccess" rows="3" maxlength="1000" aria-required="true" (blur)="markTouched('virtualAccess')"></textarea>
+          @if (fieldError('virtualAccess'); as message) {
+            <span class="field-error">{{ message }}</span>
+          }
+        </label>
+      }
+    </section>
+
+    <section class="form-section">
+      <h2>{{ 'form.sectionRegistration' | translate }}</h2>
+      <div class="grid-2">
+        <label [class.invalid]="invalid('registrationOpensAt')">
+          <span class="label-caption">{{ 'form.registrationOpensAt' | translate }} <span class="req" aria-hidden="true">*</span></span>
+          <input type="datetime-local" formControlName="registrationOpensAt" aria-required="true" (blur)="markTouched('registrationOpensAt')" />
+          @if (fieldError('registrationOpensAt'); as message) {
+            <span class="field-error">{{ message }}</span>
+          }
+        </label>
+        <label [class.invalid]="invalid('registrationClosesAt')">
+          <span class="label-caption">{{ 'form.registrationClosesAt' | translate }} <span class="req" aria-hidden="true">*</span></span>
+          <input type="datetime-local" formControlName="registrationClosesAt" aria-required="true" (blur)="markTouched('registrationClosesAt')" />
+          @if (fieldError('registrationClosesAt'); as message) {
+            <span class="field-error">{{ message }}</span>
+          }
+        </label>
+      </div>
+      <label class="check">
+        <input type="checkbox" formControlName="allowRegistrationDuringEvent" />
+        {{ 'form.allowDuring' | translate }}
+      </label>
+      <label [class.invalid]="invalid('capacity')">
+        <span class="label-caption">{{ 'form.capacity' | translate }}</span>
+        <input type="number" min="1" formControlName="capacity" (blur)="markTouched('capacity')" />
+        <span class="hint">{{ 'form.capacityHint' | translate }}</span>
+        @if (fieldError('capacity'); as message) {
+          <span class="field-error">{{ message }}</span>
+        }
+      </label>
+    </section>
+
+    <section class="form-section">
+      <h2>{{ 'form.sectionMinutes' | translate }}</h2>
+      <div class="grid-2">
+        <label [class.invalid]="invalid('blankSignatureRows')">
+          <span class="label-caption">{{ 'form.blankRows' | translate }}</span>
+          <input type="number" min="0" max="200" formControlName="blankSignatureRows" (blur)="markTouched('blankSignatureRows')" />
+          <span class="hint">{{ 'form.blankRowsHint' | translate }}</span>
+          @if (fieldError('blankSignatureRows'); as message) {
+            <span class="field-error">{{ message }}</span>
+          }
+        </label>
+        <label [class.invalid]="invalid('publicSlug')">
+          <span class="label-caption">{{ 'form.publicSlug' | translate }}</span>
+          <input type="text" formControlName="publicSlug" maxlength="80" [placeholder]="'form.publicSlugPlaceholder' | translate" (blur)="markTouched('publicSlug')" />
+          <span class="hint">{{ 'form.publicSlugHint' | translate }}</span>
+          @if (fieldError('publicSlug'); as message) {
+            <span class="field-error">{{ message }}</span>
+          }
+        </label>
+      </div>
+    </section>
+
+    </fieldset>
+
+    @if (errorKey(); as key) {
+      <p class="error" role="alert">{{ key | translate }}</p>
+    }
+    @if (successKey(); as key) {
+      <p class="success" role="status">{{ key | translate }}</p>
+    }
+
+    @if (confirmPublish()) {
+      <div class="confirm-box">
+        <p>{{ 'form.confirmPublish' | translate }}</p>
+        <p class="muted">{{ 'form.confirmPublishHint' | translate }}</p>
+        <div class="actions">
+          <button type="button" [disabled]="busy()" (click)="confirmPublishNow()">{{ 'form.confirmPublishAction' | translate }}</button>
+          <button type="button" class="secondary" [disabled]="busy()" (click)="dismissConfirm()">{{ 'form.keepEditing' | translate }}</button>
+        </div>
+      </div>
+    }
+
+    <div class="form-actions">
+      <div class="actions">
+        @if (canSaveChanges) {
+          <button type="submit" [disabled]="busy()">{{ (busy() ? 'form.saving' : 'form.saveChanges') | translate }}</button>
+          <button type="button" class="secondary" [disabled]="busy()" (click)="cancel()">{{ 'form.discardChanges' | translate }}</button>
+        }
+        @if (canSaveDraft) {
+          <button type="submit" [disabled]="busy()">{{ (busy() ? 'form.saving' : 'form.saveDraft') | translate }}</button>
+        }
+        @if (canPublishNew) {
+          <button type="button" [disabled]="busy()" (click)="askPublish()">{{ (busy() ? 'form.publishing' : 'form.publish') | translate }}</button>
+          <button type="button" class="secondary" [disabled]="busy()" (click)="cancel()">{{ 'common.cancel' | translate }}</button>
+        }
+      </div>
+    </div>
+  </form>
+</section>

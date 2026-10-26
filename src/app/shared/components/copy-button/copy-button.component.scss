@@ -1,0 +1,33 @@
+.copy-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.7rem;
+  height: 1.7rem;
+  border: 0;
+  border-radius: var(--os-radius-sm);
+  background: transparent;
+  color: var(--os-text-secondary);
+  cursor: pointer;
+}
+
+.copy-button:hover,
+.copy-button:focus-visible {
+  background: var(--os-surface-muted);
+  color: var(--os-primary);
+}
+
+.copy-button:focus-visible {
+  outline: none;
+  box-shadow: var(--os-focus);
+}
+
+.copy-button__feedback {
+  position: absolute;
+  left: calc(100% + 0.35rem);
+  white-space: nowrap;
+  font-size: var(--os-fs-xs);
+  font-weight: 600;
+  color: var(--os-primary);
+}

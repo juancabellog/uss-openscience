@@ -1,0 +1,74 @@
+:host {
+  display: block;
+}
+
+.upw-stats {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(8rem, 1fr));
+  gap: var(--os-space-sm);
+  margin-bottom: var(--os-space-sm);
+}
+
+.crx-note {
+  color: var(--os-text-secondary);
+  font-size: var(--os-fs-sm);
+  margin-bottom: var(--os-space-md);
+}
+
+.filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: var(--os-fs-sm);
+}
+
+.crx-multi {
+  border: 0;
+  background: transparent;
+  color: var(--os-link);
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+}
+
+.crx-retraction {
+  color: var(--os-danger, #b42318);
+  font-weight: 600;
+}
+
+.crx-update {
+  color: var(--os-text-primary);
+  font-weight: 600;
+}
+
+.upw-drawer__backdrop {
+  position: fixed;
+  inset: 0;
+  border: 0;
+  background: rgba(15, 23, 42, 0.35);
+}
+
+.upw-drawer__panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: min(40rem, 100%);
+  height: 100%;
+  overflow: auto;
+  background: var(--os-surface);
+  padding: var(--os-space-lg);
+  box-shadow: -8px 0 24px rgba(15, 23, 42, 0.12);
+}
+
+.crx-raw {
+  white-space: pre-wrap;
+  font-size: 0.75rem;
+  max-height: 12rem;
+  overflow: auto;
+}
+
+@media (max-width: 72rem) {
+  .upw-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

@@ -1,0 +1,90 @@
+:host {
+  display: block;
+  background: var(--os-surface);
+}
+
+.brand-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--os-space-2xl);
+  min-height: var(--institutional-header-height);
+  padding: var(--os-space-md) var(--os-space-xl);
+  background: var(--os-surface);
+  border-bottom: 1px solid var(--os-border);
+  box-shadow: inset 0 -2px 0 var(--uss-secondary);
+}
+
+.brand-bar__uss,
+.brand-bar__openscience {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  text-decoration: none;
+}
+
+.brand-bar__uss {
+  justify-content: flex-start;
+  padding-right: var(--os-space-lg);
+}
+
+.brand-bar__openscience {
+  justify-content: flex-end;
+  padding-left: var(--os-space-lg);
+}
+
+.brand-bar__logo {
+  display: block;
+  width: auto;
+  height: 3.25rem;
+  max-width: 100%;
+  object-fit: contain;
+  object-position: left center;
+}
+
+.brand-bar__logo--openscience {
+  height: 3.1rem;
+  object-position: right center;
+}
+
+@media (max-width: 1100px) {
+  .brand-bar {
+    gap: var(--os-space-xl);
+    padding: var(--os-space-sm) var(--os-space-lg);
+  }
+
+  .brand-bar__logo {
+    height: 2.7rem;
+  }
+
+  .brand-bar__logo--openscience {
+    height: 2.55rem;
+  }
+}
+
+@media (max-width: 720px) {
+  .brand-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--os-space-md);
+    padding: var(--os-space-md);
+  }
+
+  .brand-bar__uss,
+  .brand-bar__openscience {
+    padding: 0;
+  }
+
+  .brand-bar__uss {
+    justify-content: flex-start;
+  }
+
+  .brand-bar__openscience {
+    justify-content: flex-end;
+  }
+
+  .brand-bar__logo,
+  .brand-bar__logo--openscience {
+    height: 2.35rem;
+  }
+}

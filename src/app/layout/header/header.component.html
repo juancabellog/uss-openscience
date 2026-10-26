@@ -1,0 +1,31 @@
+<header class="header">
+  <div class="header__start">
+    <button
+      type="button"
+      class="header__menu"
+      (click)="toggleSidebar()"
+      [attr.aria-label]="'header.menu' | translate"
+    >
+      <os-icon name="menu" />
+    </button>
+
+    <p class="header__crumb" [attr.aria-label]="'header.breadcrumb' | translate">
+      {{ pageTitleKey() | translate }}
+    </p>
+  </div>
+
+  <div class="header__end">
+    <os-language-switcher />
+    <os-user-menu />
+    <os-environment-badge />
+    <button
+      type="button"
+      class="header__logout"
+      (click)="signOut()"
+      [attr.aria-label]="'header.signOut' | translate"
+      [attr.title]="'header.signOut' | translate"
+    >
+      <os-icon name="logout" />
+    </button>
+  </div>
+</header>

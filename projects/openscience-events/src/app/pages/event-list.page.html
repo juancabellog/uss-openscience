@@ -1,0 +1,42 @@
+<section class="panel">
+  <h1>{{ 'catalog.title' | translate }}</h1>
+  <p>{{ 'catalog.intro' | translate }}</p>
+</section>
+
+@if (view().state === 'loading') {
+  <p>{{ 'catalog.loading' | translate }}</p>
+} @else if (view().state === 'error') {
+  <p class="error">{{ 'catalog.error' | translate }}</p>
+} @else {
+  @let catalog = view().catalog!;
+  @if (!catalog.module.tablesAvailable) {
+    <section class="panel">
+      <p>{{ 'catalog.tablesMissing' | translate }}</p>
+    </section>
+  }
+  @if (catalog.items.length === 0) {
+    <section class="panel">
+      <p>{{ 'catalog.empty' | translate }}</p>
+    </section>
+  } @else {
+    <ul class="event-list">
+      @for (event of catalog.items; track event.slug) {
+        <li>
+          <a [routerLink]="['/eventos', event.slug]">
+            <strong>{{ titleOf(event) }}</strong>
+            <div class="muted">
+              {{ event.eventType | catalog:'types' }}
+              @if (event.startsAt) {
+                · {{ event.startsAt | localeDate: event.timezone }}
+              }
+              @if (event.locationName) {
+                · {{ event.locationName }}
+              }
+            </div>
+            <div>{{ (event.registrationOpen ? 'catalog.open' : 'catalog.closed') | translate }}</div>
+          </a>
+        </li>
+      }
+    </ul>
+  }
+}

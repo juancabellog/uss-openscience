@@ -1,0 +1,229 @@
+<os-page-header
+  [eyebrow]="'indicators.identity.title' | translate"
+  [title]="titleKey() | translate"
+  [subtitle]="'indicators.identity.casesSubtitle' | translate"
+>
+  <button
+    type="button"
+    class="page-action page-action--secondary"
+    [disabled]="exportBusy() || result().status !== 'success' || result().data.total === 0"
+    (click)="exportExcel()"
+  >
+    {{ 'indicators.identity.exportExcel' | translate }}
+  </button>
+</os-page-header>
+
+<p>
+  <a routerLink="/indicators/identity">{{ 'indicators.identity.back' | translate }}</a>
+</p>
+
+<os-filter-bar>
+  <os-search-box
+    [control]="search"
+    [placeholder]="'indicators.identity.searchPlaceholder' | translate"
+    [label]="'indicators.identity.search' | translate"
+  />
+  @if (isOrcid()) {
+    <label class="filter-field">
+      <span>{{ 'indicators.identity.classificationFilter' | translate }}</span>
+      <select class="os-control" [formControl]="classification">
+        <option value="ALL">{{ 'indicators.identity.classification.ALL' | translate }}</option>
+        <option value="NORMALIZED">{{ 'indicators.identity.classification.NORMALIZED' | translate }}</option>
+        <option value="USS_VARIANT">{{ 'indicators.identity.classification.USS_VARIANT' | translate }}</option>
+        <option value="USS_NOT_FOUND">{{ 'indicators.identity.classification.USS_NOT_FOUND' | translate }}</option>
+        <option value="NOT_EVALUABLE">{{ 'indicators.identity.classification.NOT_EVALUABLE' | translate }}</option>
+      </select>
+    </label>
+  }
+</os-filter-bar>
+
+@if (result().status === 'loading') {
+  <os-loading-state />
+} @else if (result().status === 'error') {
+  <os-error-state />
+} @else if (result().data.items.length === 0) {
+  <os-empty-state
+    [title]="'indicators.identity.emptyCasesTitle' | translate"
+    [message]="'indicators.identity.emptyCasesMessage' | translate"
+  />
+} @else {
+  <os-data-table-shell [caption]="'indicators.identity.casesCaption' | translate">
+    <table>
+      <thead>
+        <tr>
+          <th>
+            <os-sortable-header
+              field="name"
+              [label]="'indicators.identity.colPerson' | translate"
+              [activeField]="sortField()"
+              [direction]="sortDirection()"
+              (sortChange)="onSort($event)"
+            />
+          </th>
+          <th>
+            <os-sortable-header
+              field="position"
+              [label]="'indicators.identity.colPosition' | translate"
+              [activeField]="sortField()"
+              [direction]="sortDirection()"
+              (sortChange)="onSort($event)"
+            />
+          </th>
+          @if (isSignature()) {
+            <th>
+              <os-sortable-header
+                field="evaluatedPublications"
+                [label]="'indicators.identity.colPublications' | translate"
+                [activeField]="sortField()"
+                [direction]="sortDirection()"
+                (sortChange)="onSort($event)"
+              />
+            </th>
+            <th>
+              <os-sortable-header
+                field="distinctSignatureCount"
+                [label]="'indicators.identity.colSignatures' | translate"
+                [activeField]="sortField()"
+                [direction]="sortDirection()"
+                (sortChange)="onSort($event)"
+              />
+            </th>
+            <th>{{ 'indicators.identity.colFoundSignature' | translate }}</th>
+          }
+          @if (isOrcid()) {
+            <th>
+              <os-sortable-header
+                field="orcid"
+                [label]="'indicators.identity.colOrcid' | translate"
+                [activeField]="sortField()"
+                [direction]="sortDirection()"
+                (sortChange)="onSort($event)"
+              />
+            </th>
+            <th>{{ 'indicators.identity.colEmployment' | translate }}</th>
+            <th>
+              <os-sortable-header
+                field="classification"
+                [label]="'indicators.identity.colClassification' | translate"
+                [activeField]="sortField()"
+                [direction]="sortDirection()"
+                (sortChange)="onSort($event)"
+              />
+            </th>
+            <th>{{ 'indicators.identity.colAction' | translate }}</th>
+          }
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of result().data.items; track row.personId) {
+          <tr>
+            <td>
+              <a [routerLink]="['/people', row.personId]">{{ row.fullName }}</a>
+            </td>
+            <td>{{ row.position || ('common.dash' | translate) }}</td>
+            @if (isSignature()) {
+              <td>{{ row.evaluatedPublications | localeNumber }}</td>
+              <td>
+                <button type="button" class="link-button" (click)="openSignatures(row, $event)">
+                  {{ row.distinctSignatureCount | localeNumber }}
+                </button>
+              </td>
+              <td>{{ row.primarySignature || ('common.dash' | translate) }}</td>
+            }
+            @if (isOrcid()) {
+              <td>
+                @if (orcidHref(row.orcid); as href) {
+                  <a [href]="href" target="_blank" rel="noopener noreferrer">{{ row.orcid }}</a>
+                } @else {
+                  {{ 'common.dash' | translate }}
+                }
+              </td>
+              <td>
+                @if (row.classification === 'USS_NOT_FOUND' && row.employmentOrganizationNames.length > 1) {
+                  <button type="button" class="link-button" (click)="openEmployments(row, $event)">
+                    {{ 'indicators.identity.employmentCount' | translate: { count: row.employmentOrganizationNames.length } }}
+                  </button>
+                } @else {
+                  {{ row.employmentOrganizationName || ('common.dash' | translate) }}
+                }
+              </td>
+              <td>
+                <os-status-badge
+                  [label]="classificationKey(row.classification) | translate"
+                  [tone]="classificationTone(row.classification)"
+                />
+              </td>
+              <td>
+                @if (orcidHref(row.orcid); as href) {
+                  <a [href]="href" target="_blank" rel="noopener noreferrer">
+                    {{ 'indicators.identity.openOrcid' | translate }}
+                  </a>
+                } @else {
+                  {{ 'common.dash' | translate }}
+                }
+              </td>
+            }
+          </tr>
+        }
+      </tbody>
+    </table>
+  </os-data-table-shell>
+  <os-pagination
+    [page]="result().data.page"
+    [pageSize]="result().data.pageSize"
+    [total]="result().data.total"
+    (pageChange)="onPageChange($event)"
+  />
+}
+
+@if (employmentDetail(); as item) {
+  <div class="discovery-drawer" role="dialog" aria-modal="true" [attr.aria-labelledby]="'identity-employment-title'">
+    <button type="button" class="discovery-drawer__backdrop" (click)="closeDetail()" tabindex="-1" aria-hidden="true"></button>
+    <aside class="discovery-drawer__panel">
+      <header class="discovery-drawer__header">
+        <h2 id="identity-employment-title">{{ item.fullName }}</h2>
+        <button type="button" class="page-action page-action--secondary" (click)="closeDetail()">
+          {{ 'common.close' | translate }}
+        </button>
+      </header>
+      <p>{{ 'indicators.identity.drawerEmployments' | translate }}</p>
+      <p>
+        <os-status-badge
+          [label]="classificationKey(item.classification) | translate"
+          [tone]="classificationTone(item.classification)"
+        />
+      </p>
+      <ul class="signature-list">
+        @for (name of item.employmentOrganizationNames; track $index) {
+          <li>
+            <span>{{ name }}</span>
+          </li>
+        }
+      </ul>
+    </aside>
+  </div>
+}
+
+@if (detail(); as item) {
+  <div class="discovery-drawer" role="dialog" aria-modal="true" [attr.aria-labelledby]="'identity-signature-title'">
+    <button type="button" class="discovery-drawer__backdrop" (click)="closeDetail()" tabindex="-1" aria-hidden="true"></button>
+    <aside class="discovery-drawer__panel">
+      <header class="discovery-drawer__header">
+        <h2 id="identity-signature-title">{{ item.fullName }}</h2>
+        <button type="button" class="page-action page-action--secondary" (click)="closeDetail()">
+          {{ 'common.close' | translate }}
+        </button>
+      </header>
+      <p>{{ 'indicators.identity.drawerPublications' | translate: { count: item.evaluatedPublications } }}</p>
+      <p>{{ 'indicators.identity.drawerSignatures' | translate: { count: item.distinctSignatureCount } }}</p>
+      <ul class="signature-list">
+        @for (variant of item.variants; track variant.normalizedSignature) {
+          <li>
+            <span>{{ variant.displaySignature }}</span>
+            <span>{{ 'indicators.identity.drawerVariantCount' | translate: { count: variant.publicationCount } }}</span>
+          </li>
+        }
+      </ul>
+    </aside>
+  </div>
+}

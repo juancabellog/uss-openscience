@@ -1,0 +1,96 @@
+<os-institutional-header />
+<main class="auth-page">
+  <section class="auth-card">
+    <header class="auth-card__intro">
+      <h1>{{ (created() ? 'auth.registerSuccessTitle' : 'auth.registerTitle') | translate }}</h1>
+      <p>
+        {{
+          (created() ? 'auth.registerSuccessHelp' : 'auth.registerSubtitle') | translate
+        }}
+      </p>
+    </header>
+
+    @if (created()) {
+      @if (result()?.maskedEmail; as email) {
+        <p class="auth-banner auth-banner--success" role="status">
+          {{ 'auth.registerSuccessEmail' | translate }}
+          <strong>{{ email }}</strong>
+        </p>
+      }
+      @if (result()?.emailSent === false) {
+        <p class="auth-banner auth-banner--error" role="alert">{{ 'auth.registerMailFailed' | translate }}</p>
+      }
+      @if (canResend()) {
+        <button type="button" class="page-action" [disabled]="resendBusy() || resendDone()" (click)="resend()">
+          {{ (resendDone() ? 'auth.registerResent' : resendBusy() ? 'auth.registerResending' : 'auth.resendInvite') | translate }}
+        </button>
+      }
+      <a routerLink="/login" class="auth-secondary-link">{{ 'auth.backToLogin' | translate }}</a>
+    } @else {
+      <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+        <label class="filter-field">
+          <span>{{ 'auth.firstName' | translate }}</span>
+          <input
+            class="os-control"
+            type="text"
+            name="firstName"
+            formControlName="firstName"
+            autocomplete="given-name"
+          />
+          @if (firstNameError(); as key) {
+            <span class="auth-field-error">{{ key | translate }}</span>
+          }
+        </label>
+        <label class="filter-field">
+          <span>{{ 'auth.lastName' | translate }}</span>
+          <input
+            class="os-control"
+            type="text"
+            name="lastName"
+            formControlName="lastName"
+            autocomplete="family-name"
+          />
+          @if (lastNameError(); as key) {
+            <span class="auth-field-error">{{ key | translate }}</span>
+          }
+        </label>
+        <label class="filter-field">
+          <span>{{ emailLabelKey() | translate }}</span>
+          <input
+            class="os-control"
+            type="email"
+            name="email"
+            formControlName="email"
+            autocomplete="email"
+            inputmode="email"
+            [attr.placeholder]="emailPlaceholderKey() | translate"
+          />
+          @if (emailError(); as key) {
+            <span class="auth-field-error">{{ key | translate }}</span>
+          }
+        </label>
+        @if (error(); as key) {
+          <p class="auth-banner auth-banner--error" role="alert">{{ key | translate }}</p>
+        }
+        @if (resultKey(); as key) {
+          <p class="auth-banner auth-banner--error" role="alert">{{ key | translate }}</p>
+        }
+        @if (canResend() && !created()) {
+          <button type="button" class="page-action" [disabled]="resendBusy() || resendDone()" (click)="resend()">
+            {{ (resendDone() ? 'auth.registerResent' : resendBusy() ? 'auth.registerResending' : 'auth.resendInvite') | translate }}
+          </button>
+        }
+        <button type="submit" class="page-action page-action--primary auth-submit" [disabled]="busy()">
+          @if (busy()) {
+            <os-icon name="sync" class="auth-submit__spin" />
+          }
+          {{ (busy() ? 'auth.registering' : 'auth.registerAction') | translate }}
+        </button>
+      </form>
+      <p class="auth-switch">
+        {{ 'auth.hasAccount' | translate }}
+        <a routerLink="/login" class="auth-secondary-link">{{ 'auth.goToLogin' | translate }}</a>
+      </p>
+    }
+  </section>
+</main>

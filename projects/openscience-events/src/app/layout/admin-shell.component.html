@@ -1,0 +1,25 @@
+<header class="ose-admin-header">
+  <a routerLink="/admin" class="brand">{{ 'brand.admin' | translate }}</a>
+  <div class="header-tools">
+    <ose-language-switcher />
+    <div class="header-controls">
+      <nav class="header-nav" [attr.aria-label]="'nav.adminAria' | translate">
+        <a routerLink="/admin" routerLinkActive="is-active" [routerLinkActiveOptions]="{ exact: true }">{{ 'nav.panel' | translate }}</a>
+        <a routerLink="/admin/eventos" routerLinkActive="is-active">{{ 'nav.events' | translate }}</a>
+        <a routerLink="/admin/indicadores" routerLinkActive="is-active">{{ 'nav.indicators' | translate }}</a>
+        <a routerLink="/">{{ 'nav.publicSite' | translate }}</a>
+      </nav>
+      <div class="header-session">
+        @if (email(); as user) {
+          <span class="user">{{ user }}</span>
+          <button type="button" class="linkish" (click)="logout()">{{ 'common.logout' | translate }}</button>
+        } @else {
+          <a routerLink="/admin/login" routerLinkActive="is-active">{{ 'nav.session' | translate }}</a>
+        }
+      </div>
+    </div>
+  </div>
+</header>
+<main class="ose-admin-main">
+  <router-outlet />
+</main>

@@ -1,0 +1,40 @@
+.case-lead {
+  margin-bottom: 1rem;
+}
+
+.case-lead p {
+  margin: 0 0 0.45rem;
+}
+
+.case-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 0.8rem;
+}
+
+.case-title-row h1 {
+  margin: 0;
+}
+
+.section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.section-head h2 {
+  margin: 0;
+}
+
+.obs-text {
+  min-height: 8rem;
+}
+
+.case-page .panel + .panel,
+.case-page .panel + .grid-2,
+.case-page .grid-2 + .panel {
+  margin-top: 0.9rem;
+}

@@ -1,0 +1,43 @@
+{
+  "name": "openscience-uss",
+  "version": "0.1.0",
+  "description": "OPENSCIENCE-USS y OPENSCIENCE Events — dos frontends Angular, un backend Java",
+  "private": true,
+  "engines": {
+    "node": ">=22.22.0"
+  },
+  "scripts": {
+    "ng": "ng",
+    "start": "ng serve openscience-uss",
+    "start:uss": "ng serve openscience-uss",
+    "start:events": "ng serve openscience-events",
+    "start:ethics": "ng serve ethics-uss",
+    "build": "ng build openscience-uss",
+    "build:uss": "ng build openscience-uss",
+    "build:events": "ng build openscience-events",
+    "build:ethics": "ng build ethics-uss",
+    "build:all": "ng build openscience-uss && ng build openscience-events && ng build ethics-uss",
+    "watch": "ng build openscience-uss --watch --configuration development",
+    "watch:events": "ng build openscience-events --watch --configuration development",
+    "watch:ethics": "ng build ethics-uss --watch --configuration development",
+    "check:ethics-i18n": "node projects/ethics-uss/scripts/check-i18n.mjs",
+    "build:events-i18n": "node projects/openscience-events/scripts/build-i18n.mjs",
+    "check:events-i18n": "node projects/openscience-events/scripts/check-i18n.mjs"
+  },
+  "dependencies": {
+    "@angular/common": "^22.1.0",
+    "@angular/compiler": "^22.1.0",
+    "@angular/core": "^22.1.0",
+    "@angular/forms": "^22.1.0",
+    "@angular/platform-browser": "^22.1.0",
+    "@angular/router": "^22.1.0",
+    "rxjs": "~7.8.2",
+    "tslib": "^2.8.1"
+  },
+  "devDependencies": {
+    "@angular/build": "^22.1.0",
+    "@angular/cli": "^22.1.0",
+    "@angular/compiler-cli": "^22.1.0",
+    "typescript": "~6.0.3"
+  }
+}

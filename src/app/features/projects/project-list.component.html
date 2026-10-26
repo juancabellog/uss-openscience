@@ -1,0 +1,341 @@
+<os-page-header
+  [title]="'projects.title' | translate"
+  [subtitle]="'projects.subtitle' | translate"
+>
+  <os-sync-export-bar
+    entity="PROJECTS"
+    [projectQuery]="currentQuery()"
+    (completed)="reload()"
+  />
+</os-page-header>
+
+<nav class="tabs" [attr.aria-label]="'projects.tabs' | translate">
+  <button type="button" [class.is-active]="tab() === 'catalog'" (click)="tab.set('catalog')">
+    {{ 'projects.tabCatalog' | translate }}
+  </button>
+  <button type="button" [class.is-active]="tab() === 'history'" (click)="tab.set('history')">
+    {{ 'projects.tabHistory' | translate }}
+  </button>
+</nav>
+
+@if (tab() === 'history') {
+  @let historyVm = historyState();
+  @if (historyVm.status === 'loading') {
+    <os-loading-state />
+  } @else if (historyVm.status === 'error') {
+    <os-error-state
+      [title]="'projects.historyErrorTitle' | translate"
+      [message]="'projects.historyErrorMessage' | translate"
+      [actionLabel]="'common.retry' | translate"
+      (action)="reload()"
+    />
+  } @else if (historyVm.items.length === 0) {
+    <os-empty-state
+      [title]="'projects.emptyHistory' | translate"
+      [message]="'projects.emptyHistoryMessage' | translate"
+    />
+  } @else {
+    <os-data-table-shell [caption]="'projects.historyCaption' | translate" [fluid]="true" [stickyEnd]="true">
+      <table>
+        <thead>
+          <tr>
+            <th>{{ 'projects.historyId' | translate }}</th>
+            <th>{{ 'projects.historyMode' | translate }}</th>
+            <th>{{ 'projects.historyStatus' | translate }}</th>
+            <th>{{ 'projects.historyStarted' | translate }}</th>
+            <th>{{ 'projects.historyFinished' | translate }}</th>
+            <th>{{ 'projects.historyProcessed' | translate }}</th>
+            <th>{{ 'projects.historyCreated' | translate }}</th>
+            <th>{{ 'projects.historyUpdated' | translate }}</th>
+            <th>{{ 'projects.historyUnchanged' | translate }}</th>
+            <th>{{ 'projects.historyErrors' | translate }}</th>
+            <th>{{ 'projects.actions' | translate }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of historyVm.items; track row.syncId) {
+            <tr>
+              <td>{{ row.syncId }}</td>
+              <td>{{ modeKey(row.syncMode) | translate }}</td>
+              <td>{{ statusKey(row.status) | translate }}</td>
+              <td>{{ row.startedAt ? (row.startedAt | localeDate) : ('common.dash' | translate) }}</td>
+              <td>{{ row.finishedAt ? (row.finishedAt | localeDate) : ('common.dash' | translate) }}</td>
+              <td>{{ row.processed | localeNumber }}</td>
+              <td>{{ row.created | localeNumber }}</td>
+              <td>{{ row.updated | localeNumber }}</td>
+              <td>{{ row.unchanged | localeNumber }}</td>
+              <td>{{ row.errors | localeNumber }}</td>
+              <td>
+                <button type="button" class="link-button" (click)="openHistoryDetail(row.syncId)">
+                  {{ 'projects.viewDetail' | translate }}
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </os-data-table-shell>
+  }
+} @else {
+<section
+  class="project-summary"
+  [class.is-updating]="statsUpdating()"
+  [attr.aria-busy]="statsUpdating()"
+  [attr.aria-label]="'projects.stats.title' | translate"
+>
+  <os-mini-stat
+    [label]="'projects.stats.total' | translate"
+    [value]="(stats()?.total | localeNumber) || ('common.dash' | translate)"
+  />
+  <os-mini-stat
+    [label]="'projects.stats.withProjectId' | translate"
+    [value]="(stats()?.withProjectId | localeNumber) || ('common.dash' | translate)"
+    [tooltip]="'projects.stats.withProjectIdTooltip' | translate"
+  />
+  <os-mini-stat
+    [label]="'projects.stats.withFunderReference' | translate"
+    [value]="(stats()?.withFunderReference | localeNumber) || ('common.dash' | translate)"
+    [tooltip]="'projects.stats.withFunderReferenceTooltip' | translate"
+  />
+  <os-mini-stat
+    [label]="'projects.stats.withPrincipalInvestigator' | translate"
+    [value]="(stats()?.withPrincipalInvestigator | localeNumber) || ('common.dash' | translate)"
+    [tooltip]="'projects.stats.withPrincipalInvestigatorTooltip' | translate"
+  />
+</section>
+@if (hasActiveFilters()) {
+  <p class="filtered-summary">
+    {{ 'projects.filteredSummary' | translate: { count: (stats()?.total | localeNumber) || 0 } }}
+    <button type="button" class="link-button" (click)="clearFilters()">{{ 'projects.clearFilters' | translate }}</button>
+  </p>
+}
+
+<div class="project-filters">
+  <os-filter-bar>
+    <os-search-box
+      [control]="search"
+      [placeholder]="'projects.searchPlaceholder' | translate"
+      [label]="'projects.search' | translate"
+      [hint]="'projects.searchHint' | translate"
+    />
+    <label class="filter-field">
+      <span>{{ 'projects.type' | translate }}</span>
+      <select class="os-control" [formControl]="typeUri">
+        <option value="">{{ 'projects.allTypes' | translate }}</option>
+        @for (type of filters().types; track type.uri) {
+          <option [value]="type.uri">{{ typeLabel(type) || type.uri }}</option>
+        }
+      </select>
+    </label>
+    <label class="filter-field">
+      <span>{{ 'projects.workflow' | translate }}</span>
+      <select class="os-control" [formControl]="workflowStep">
+        <option value="">{{ 'projects.allWorkflows' | translate }}</option>
+        @for (workflow of filters().workflows; track workflow.step) {
+          <option [value]="workflow.step">{{ workflowLabel(workflow) || workflow.step }}</option>
+        }
+      </select>
+    </label>
+    <label class="filter-field">
+      <span>{{ 'projects.visibility' | translate }}</span>
+      <select class="os-control" [formControl]="visibilityKey">
+        <option value="">{{ 'projects.allVisibilities' | translate }}</option>
+        @for (visibility of filters().visibilities; track visibility.key) {
+          <option [value]="visibility.key">{{ visibilityLabel(visibility) || visibility.key }}</option>
+        }
+      </select>
+    </label>
+    <label class="filter-field">
+      <span>{{ 'projects.startYear' | translate }}</span>
+      <select class="os-control" [formControl]="startYear">
+        <option value="">{{ 'projects.allYears' | translate }}</option>
+        @for (year of filters().startYears; track year) {
+          <option [value]="year">{{ year }}</option>
+        }
+      </select>
+    </label>
+    <label class="filter-field">
+      <span>{{ 'projects.presence' | translate }}</span>
+      <select class="os-control" [formControl]="presence">
+        <option value="ACTIVE">{{ 'projects.activeInPure' | translate }}</option>
+        <option value="INACTIVE">{{ 'projects.inactiveInPure' | translate }}</option>
+        <option value="ALL">{{ 'projects.allPresence' | translate }}</option>
+      </select>
+    </label>
+  </os-filter-bar>
+</div>
+
+@let vm = result();
+@if (vm.status === 'loading') {
+  <os-loading-state />
+} @else if (vm.status === 'error') {
+  <os-error-state
+    [title]="'projects.errorTitle' | translate"
+    [message]="'projects.errorMessage' | translate"
+    [actionLabel]="'common.retry' | translate"
+    (action)="reload()"
+  />
+} @else if (vm.data.total === 0) {
+  <os-empty-state
+    [title]="(hasActiveFilters() ? 'projects.filteredTitle' : 'projects.emptyTitle') | translate"
+    [message]="(hasActiveFilters() ? 'projects.filteredMessage' : 'projects.emptyMessage') | translate"
+    [actionLabel]="hasActiveFilters() ? ('projects.clearFilters' | translate) : ''"
+    (action)="clearFilters()"
+  />
+} @else {
+  <os-data-table-shell [caption]="'projects.caption' | translate" [fluid]="true" [stickyStart]="true" [stickyEnd]="true">
+    <table class="project-table">
+      <colgroup>
+        <col class="col-title" />
+        <col class="col-acronym" />
+        <col class="col-project-id" />
+        <col class="col-type" />
+        <col class="col-date" />
+        <col class="col-date" />
+        <col class="col-pi" />
+        <col class="col-org" />
+        <col class="col-workflow" />
+        <col class="col-status" />
+        <col class="col-actions" />
+      </colgroup>
+      <thead>
+        <tr>
+          <th scope="col" class="col-title col-sticky-start" [attr.aria-sort]="ariaSort('title')">
+            <os-sortable-header
+              field="title"
+              [label]="'projects.projectTitle' | translate"
+              [activeField]="visualSortField()"
+              [direction]="sortDirection()"
+              (sortChange)="onSort($event)"
+            />
+          </th>
+          <th scope="col" class="col-acronym" [attr.aria-sort]="ariaSort('acronym')">
+            <os-sortable-header
+              field="acronym"
+              [label]="'projects.acronym' | translate"
+              [activeField]="visualSortField()"
+              [direction]="sortDirection()"
+              (sortChange)="onSort($event)"
+            />
+          </th>
+          <th scope="col" class="col-project-id" [attr.aria-sort]="ariaSort('projectId')">
+            <os-sortable-header
+              field="projectId"
+              [label]="'projects.projectId' | translate"
+              [activeField]="visualSortField()"
+              [direction]="sortDirection()"
+              (sortChange)="onSort($event)"
+            />
+          </th>
+          <th scope="col" class="col-type" [attr.aria-sort]="ariaSort('type')">
+            <os-sortable-header
+              field="type"
+              [label]="'projects.type' | translate"
+              [activeField]="visualSortField()"
+              [direction]="sortDirection()"
+              (sortChange)="onSort($event)"
+            />
+          </th>
+          <th scope="col" class="col-date" [attr.aria-sort]="ariaSort('periodStart')">
+            <os-sortable-header
+              field="periodStart"
+              [label]="'projects.periodStart' | translate"
+              [activeField]="visualSortField()"
+              [direction]="sortDirection()"
+              (sortChange)="onSort($event)"
+            />
+          </th>
+          <th scope="col" class="col-date" [attr.aria-sort]="ariaSort('periodEnd')">
+            <os-sortable-header
+              field="periodEnd"
+              [label]="'projects.periodEnd' | translate"
+              [activeField]="visualSortField()"
+              [direction]="sortDirection()"
+              (sortChange)="onSort($event)"
+            />
+          </th>
+          <th scope="col" class="col-pi" [attr.aria-sort]="ariaSort('principalInvestigator')">
+            <os-sortable-header
+              field="principalInvestigator"
+              [label]="'projects.principalInvestigator' | translate"
+              [activeField]="visualSortField()"
+              [direction]="sortDirection()"
+              (sortChange)="onSort($event)"
+            />
+          </th>
+          <th scope="col" class="col-org">{{ 'projects.managingOrganization' | translate }}</th>
+          <th scope="col" class="col-workflow" [attr.aria-sort]="ariaSort('workflow')">
+            <os-sortable-header
+              field="workflow"
+              [label]="'projects.workflow' | translate"
+              [activeField]="visualSortField()"
+              [direction]="sortDirection()"
+              (sortChange)="onSort($event)"
+            />
+          </th>
+          <th scope="col" class="col-status">{{ 'projects.pureStatus' | translate }}</th>
+          <th scope="col" class="col-actions">{{ 'projects.actions' | translate }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of vm.data.items; track item.id) {
+          <tr>
+            <td class="col-title col-sticky-start">
+              <a [routerLink]="['/projects', item.id]" class="project-link">
+                {{ displayTitle(item) }}
+              </a>
+            </td>
+            <td>{{ item.acronym || ('common.dash' | translate) }}</td>
+            <td>{{ item.projectId || ('common.dash' | translate) }}</td>
+            <td>{{ typeLabel(item) || ('common.dash' | translate) }}</td>
+            <td>{{ item.periodStartDate || ('common.dash' | translate) }}</td>
+            <td>{{ item.periodEndDate || ('common.dash' | translate) }}</td>
+            <td>
+              @if (item.principalInvestigatorPersonId) {
+                <a [routerLink]="['/people', item.principalInvestigatorPersonId]" class="project-link">
+                  {{ item.principalInvestigatorName || ('common.dash' | translate) }}
+                </a>
+              } @else {
+                {{ item.principalInvestigatorName || ('common.dash' | translate) }}
+              }
+            </td>
+            <td class="col-org" [title]="item.managingOrganizationUuid || ''">
+              @if (item.managingOrganizationResolved && item.managingOrganizationId) {
+                <a [routerLink]="['/organizations', item.managingOrganizationId]" class="project-link">
+                  {{ managingOrganizationLabel(item) || ('common.dash' | translate) }}
+                </a>
+              } @else {
+                {{ managingOrganizationLabel(item) || ('common.dash' | translate) }}
+              }
+            </td>
+            <td>
+              @let projectStatus = workflowLabel(item);
+              @if (projectStatus) {
+                <span class="workflow-badge" [title]="projectStatus">{{ projectStatus }}</span>
+              } @else {
+                {{ 'common.dash' | translate }}
+              }
+            </td>
+            <td>
+              @if (item.activeInPure === false) {
+                {{ 'sync.inactiveBadge' | translate }}
+              } @else {
+                {{ 'projects.activeInPure' | translate }}
+              }
+            </td>
+            <td>
+              <a [routerLink]="['/projects', item.id]" class="project-link">{{ 'projects.view' | translate }}</a>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </os-data-table-shell>
+  <os-pagination
+    [page]="vm.data.page"
+    [pageSize]="vm.data.pageSize"
+    [total]="vm.data.total"
+    (pageChange)="onPageChange($event)"
+  />
+}
+}

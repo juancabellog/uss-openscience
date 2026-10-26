@@ -1,0 +1,8 @@
+<div
+  class="mini-stat"
+  [attr.title]="tooltip() || null"
+  [attr.aria-label]="tooltip() ? label() + '. ' + tooltip() : null"
+>
+  <p class="mini-stat__label">{{ label() }}</p>
+  <p class="mini-stat__value">{{ value() }}</p>
+</div>

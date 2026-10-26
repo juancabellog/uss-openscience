@@ -1,0 +1,2747 @@
+EXPLORACIÓN TÉCNICA DE SOLO LECTURA
+Repositorio institucional Universidad San Sebastián
+Base URL: https://repositorio.uss.cl/server/api
+Fecha de consulta: 2026-10-08 (UTC)
+Método: únicamente GET (más una inspección HEAD del binario de bitstream para no descargar el PDF).
+Sin autenticación, sin credenciales, sin POST/PUT/PATCH/DELETE, sin seguimiento de cookies.
+Cliente: curl HTTP/2 contra Cloudflare (PoP SCL).
+Los valores de cookies, tokens XSRF y cabeceras Authorization no se registran.
+
+================================================================================
+CONCLUSIÓN TÉCNICA GLOBAL
+================================================================================
+El endpoint raíz expone DSpace 9.2 (HAL/JSON) con UI en https://repositorio.uss.cl
+y servidor https://repositorio.uss.cl/server. La API pública responde 200 a
+comunidades, colecciones, búsqueda discover, ítems por UUID, bundles/bitstreams
+de ítems abiertos, accessStatus, metadataschemas y OAI-PMH Identify.
+
+Hallazgos operativos:
+- Paginación Spring: page.size / totalElements / totalPages / number; default size=20.
+- size=2000 en bitstreamformats fue recortado a size=1000 (límite máximo observado).
+- GET /server/api/core/items (listado) = 401 Authentication is required.
+- GET ítem por UUID válido = 200 anónimo. UUID inexistente = 404. Path no-UUID = 401
+  (Spring trata la ruta como el listado protegido).
+- authn/status anónimo: okay=true, authenticated=false.
+- PID: /pid/find?id=uss/24032 responde 302 Location al ítem. find por doi: no resuelve (404, body vacío).
+- dso/find?uuid=... también 302 al self del ítem.
+- Access status observado: open.access, restricted, metadata.only, embargo.
+- El artículo de ejemplo con DOI es metadata.only y no tiene bundles.
+- La tesis de ejemplo es open.access y expone bitstream ORIGINAL PDF público
+  (content GET/HEAD 200, application/pdf, content-length 1455716).
+- dc.rights no está en todos los ítems; aparece p.ej. CC0 1.0 Universal en una
+  presentación open.access (uuid 16c1ec87-a909-4d15-a1ee-4259a9f3ed76).
+- Esquema institucional "uss" (uss.carrera, uss.facultad, uss.programa, uss.sede).
+- entityType=null en los ítems muestreados (ítems clásicos, no entidades configurables).
+- OAI-PMH 2.0 está en https://repositorio.uss.cl/server/oai/request (Identify 200 XML).
+  /oai y /oai/request devuelven el SPA Angular (text/html), no OAI.
+- Actuator /health público devuelve {"status":"DOWN"} (no usar como salud del repo).
+- /actuator/info = 401. /config/properties (colección) = 405.
+- Cloudflare delante; cada respuesta REST setea cookie XSRF. Los GET anónimos no
+  requieren enviar el token. No persistir esas cookies.
+
+Integración recomendada (detalle en docs/dspace-uss-integration-proposal.md):
+harvest de solo lectura vía discover + GET ítem/bundles; join por DOI normalizado
+cuando exista dc.identifier.doi; fallback handle/UUID/título; no escribir a DSpace
+ni a PURE; no almacenar PDF en MySQL.
+
+================================================================================
+CABECERAS COMUNES (SANITIZADAS)
+================================================================================
+
+HTTP/2 <código>
+content-type: (ver campo Content-Type de esta sección)
+server: cloudflare
+content-language: en
+x-content-type-options: nosniff
+x-xss-protection: 0
+cache-control: no-cache, no-store, max-age=0, must-revalidate (API REST); bitstream content usa private,no-cache
+pragma: no-cache
+expires: 0
+strict-transport-security: max-age=31536000 ; includeSubDomains
+x-frame-options: DENY
+cf-cache-status: DYNAMIC
+cf-ray: presente; PoP SCL (Santiago)
+NOTA: las respuestas incluyen Set-Cookie (DSPACE-XSRF-COOKIE, human, __cf_bm) y cabecera dspace-xsrf-token.
+Sus valores NO se reproducen en este informe.
+No se envió Authorization ni cookies de sesión.
+
+Redirecciones: las solicitudes GET a recursos HAL concretos (api, communities,
+collections, search, items/{uuid}) no redirigieron (num_redirects=0).
+Sí hay 302 en pid/find y dso/find (Location documentada; curl no siguió el redirect
+en esas pruebas, num_redirects=0, body vacío).
+
+Errores de conexión: ninguno. Todas las URLs de repositorio.uss.cl resolvieron
+y devolvieron HTTP. No hubo timeout ni TLS error en esta sesión.
+
+--------------------------------------------------------------------------------
+1) RAÍZ HAL
+--------------------------------------------------------------------------------
+URL: https://repositorio.uss.cl/server/api
+HTTP: 200
+Content-Type: application/hal+json;charset=UTF-8
+Redirecciones: 0
+Tamaño body: 8944 bytes
+Versión DSpace expuesta: "DSpace 9.2"
+dspaceName: Repositorio USS
+dspaceUI: https://repositorio.uss.cl
+dspaceServer: https://repositorio.uss.cl/server
+
+Body JSON completo:
+
+{
+  "dspaceUI": "https://repositorio.uss.cl",
+  "dspaceName": "Repositorio USS",
+  "dspaceServer": "https://repositorio.uss.cl/server",
+  "dspaceVersion": "DSpace 9.2",
+  "type": "root",
+  "_links": {
+    "actuator": {
+      "href": "https://repositorio.uss.cl/server/actuator"
+    },
+    "authn": {
+      "href": "https://repositorio.uss.cl/server/api/authn"
+    },
+    "authorizations": {
+      "href": "https://repositorio.uss.cl/server/api/authz/authorizations"
+    },
+    "bitstreamformats": {
+      "href": "https://repositorio.uss.cl/server/api/core/bitstreamformats"
+    },
+    "bitstreams": {
+      "href": "https://repositorio.uss.cl/server/api/core/bitstreams"
+    },
+    "browses": {
+      "href": "https://repositorio.uss.cl/server/api/discover/browses"
+    },
+    "bulkaccessconditionoptions": {
+      "href": "https://repositorio.uss.cl/server/api/config/bulkaccessconditionoptions"
+    },
+    "bundles": {
+      "href": "https://repositorio.uss.cl/server/api/core/bundles"
+    },
+    "captcha": {
+      "href": "https://repositorio.uss.cl/server/api/captcha"
+    },
+    "claimedtasks": {
+      "href": "https://repositorio.uss.cl/server/api/workflow/claimedtasks"
+    },
+    "claimedtasks-search": {
+      "href": "https://repositorio.uss.cl/server/api/workflow/claimedtasks/search"
+    },
+    "collections": {
+      "href": "https://repositorio.uss.cl/server/api/core/collections"
+    },
+    "communities": {
+      "href": "https://repositorio.uss.cl/server/api/core/communities"
+    },
+    "contentreport": {
+      "href": "https://repositorio.uss.cl/server/api/contentreport"
+    },
+    "correctiontypes": {
+      "href": "https://repositorio.uss.cl/server/api/config/correctiontypes"
+    },
+    "discover": {
+      "href": "https://repositorio.uss.cl/server/api/discover"
+    },
+    "dso": {
+      "href": "https://repositorio.uss.cl/server/api/dso/find{?uuid}",
+      "templated": true
+    },
+    "enqueueretry": {
+      "href": "https://repositorio.uss.cl/server/api/ldn/messages/{id}/enqueueretry",
+      "templated": true
+    },
+    "entitytypes": {
+      "href": "https://repositorio.uss.cl/server/api/core/entitytypes"
+    },
+    "eperson-registration": {
+      "href": "https://repositorio.uss.cl/server/api/eperson/registrations"
+    },
+    "epersons": {
+      "href": "https://repositorio.uss.cl/server/api/eperson/epersons"
+    },
+    "externalsources": {
+      "href": "https://repositorio.uss.cl/server/api/integration/externalsources"
+    },
+    "features": {
+      "href": "https://repositorio.uss.cl/server/api/authz/features"
+    },
+    "feedbacks": {
+      "href": "https://repositorio.uss.cl/server/api/tools/feedbacks"
+    },
+    "groups": {
+      "href": "https://repositorio.uss.cl/server/api/eperson/groups"
+    },
+    "identifiers": {
+      "href": "https://repositorio.uss.cl/server/api/pid/identifiers"
+    },
+    "itemfilters": {
+      "href": "https://repositorio.uss.cl/server/api/config/itemfilters"
+    },
+    "itemrequests": {
+      "href": "https://repositorio.uss.cl/server/api/tools/itemrequests"
+    },
+    "items": {
+      "href": "https://repositorio.uss.cl/server/api/core/items"
+    },
+    "itemtemplates": {
+      "href": "https://repositorio.uss.cl/server/api/core/itemtemplates"
+    },
+    "ldnservices": {
+      "href": "https://repositorio.uss.cl/server/api/ldn/ldnservices"
+    },
+    "messages": {
+      "href": "https://repositorio.uss.cl/server/api/ldn/messages"
+    },
+    "metadatafields": {
+      "href": "https://repositorio.uss.cl/server/api/core/metadatafields"
+    },
+    "metadataschemas": {
+      "href": "https://repositorio.uss.cl/server/api/core/metadataschemas"
+    },
+    "notifyrequests": {
+      "href": "https://repositorio.uss.cl/server/api/ldn/notifyrequests"
+    },
+    "oidc": {
+      "href": "https://repositorio.uss.cl/server/api/authn"
+    },
+    "pid": {
+      "href": "https://repositorio.uss.cl/server/api/pid/find{?id}",
+      "templated": true
+    },
+    "pooltasks": {
+      "href": "https://repositorio.uss.cl/server/api/workflow/pooltasks"
+    },
+    "pooltasks-search": {
+      "href": "https://repositorio.uss.cl/server/api/workflow/pooltasks/search"
+    },
+    "processes": {
+      "href": "https://repositorio.uss.cl/server/api/system/processes"
+    },
+    "properties": {
+      "href": "https://repositorio.uss.cl/server/api/config/properties"
+    },
+    "qualityassuranceevents": {
+      "href": "https://repositorio.uss.cl/server/api/integration/qualityassuranceevents"
+    },
+    "qualityassurancesources": {
+      "href": "https://repositorio.uss.cl/server/api/integration/qualityassurancesources"
+    },
+    "qualityassurancetopics": {
+      "href": "https://repositorio.uss.cl/server/api/integration/qualityassurancetopics"
+    },
+    "registrations": {
+      "href": "https://repositorio.uss.cl/server/api/eperson/registrations"
+    },
+    "relationships": {
+      "href": "https://repositorio.uss.cl/server/api/core/relationships"
+    },
+    "relationshiptypes": {
+      "href": "https://repositorio.uss.cl/server/api/core/relationshiptypes"
+    },
+    "resourcepolicies": {
+      "href": "https://repositorio.uss.cl/server/api/authz/resourcepolicies"
+    },
+    "resourcepolicies-search": {
+      "href": "https://repositorio.uss.cl/server/api/authz/resourcepolicies/search"
+    },
+    "scripts": {
+      "href": "https://repositorio.uss.cl/server/api/system/scripts"
+    },
+    "self": {
+      "href": "https://repositorio.uss.cl/server/api"
+    },
+    "sites": {
+      "href": "https://repositorio.uss.cl/server/api/core/sites"
+    },
+    "statistics": {
+      "href": "https://repositorio.uss.cl/server/api/statistics"
+    },
+    "submissionaccessoptions": {
+      "href": "https://repositorio.uss.cl/server/api/config/submissionaccessoptions"
+    },
+    "submissioncclicenseUrls": {
+      "href": "https://repositorio.uss.cl/server/api/config/submissioncclicenseUrls"
+    },
+    "submissioncclicenseUrls-search": {
+      "href": "https://repositorio.uss.cl/server/api/config/submissioncclicenseUrls/search"
+    },
+    "submissioncclicenses": {
+      "href": "https://repositorio.uss.cl/server/api/config/submissioncclicenses"
+    },
+    "submissioncoarnotifyconfigs": {
+      "href": "https://repositorio.uss.cl/server/api/config/submissioncoarnotifyconfigs"
+    },
+    "submissiondefinitions": {
+      "href": "https://repositorio.uss.cl/server/api/config/submissiondefinitions"
+    },
+    "submissionforms": {
+      "href": "https://repositorio.uss.cl/server/api/config/submissionforms"
+    },
+    "submissionsections": {
+      "href": "https://repositorio.uss.cl/server/api/config/submissionsections"
+    },
+    "submissionuploads": {
+      "href": "https://repositorio.uss.cl/server/api/config/submissionuploads"
+    },
+    "subscriptions": {
+      "href": "https://repositorio.uss.cl/server/api/core/subscriptions"
+    },
+    "subscriptions-search": {
+      "href": "https://repositorio.uss.cl/server/api/core/subscriptions/search"
+    },
+    "suggestions": {
+      "href": "https://repositorio.uss.cl/server/api/integration/suggestions"
+    },
+    "suggestionsources": {
+      "href": "https://repositorio.uss.cl/server/api/integration/suggestionsources"
+    },
+    "suggestiontargets": {
+      "href": "https://repositorio.uss.cl/server/api/integration/suggestiontargets"
+    },
+    "supervisionorders": {
+      "href": "https://repositorio.uss.cl/server/api/core/supervisionorders"
+    },
+    "systemwidealerts": {
+      "href": "https://repositorio.uss.cl/server/api/system/systemwidealerts"
+    },
+    "usagereports": {
+      "href": "https://repositorio.uss.cl/server/api/statistics/usagereports"
+    },
+    "versionhistories": {
+      "href": "https://repositorio.uss.cl/server/api/versioning/versionhistories"
+    },
+    "versions": {
+      "href": "https://repositorio.uss.cl/server/api/versioning/versions"
+    },
+    "vocabularies": {
+      "href": "https://repositorio.uss.cl/server/api/submission/vocabularies"
+    },
+    "vocabularyEntryDetails": {
+      "href": "https://repositorio.uss.cl/server/api/submission/vocabularyEntryDetails"
+    },
+    "vocabularyEntryDetails-search": {
+      "href": "https://repositorio.uss.cl/server/api/submission/vocabularyEntryDetails/search"
+    },
+    "workflowactions": {
+      "href": "https://repositorio.uss.cl/server/api/config/workflowactions"
+    },
+    "workflowdefinitions": {
+      "href": "https://repositorio.uss.cl/server/api/config/workflowdefinitions"
+    },
+    "workflowitems": {
+      "href": "https://repositorio.uss.cl/server/api/workflow/workflowitems"
+    },
+    "workflowsteps": {
+      "href": "https://repositorio.uss.cl/server/api/config/workflowsteps"
+    },
+    "workspaceitems": {
+      "href": "https://repositorio.uss.cl/server/api/submission/workspaceitems"
+    }
+  }
+}
+
+
+Conclusión: catálogo HAL típico de DSpace 7/8/9. Enlaces relevantes para harvest:
+communities, collections, items (listado protegido), discover, pid, dso,
+bitstreamformats, metadataschemas, authn, sites. También aparecen workflow,
+submission, epersons, actuator: no usarlos sin autenticación.
+
+--------------------------------------------------------------------------------
+2) COMUNIDADES
+--------------------------------------------------------------------------------
+URL: https://repositorio.uss.cl/server/api/core/communities
+HTTP: 200
+Content-Type: application/hal+json;charset=UTF-8
+Redirecciones: 0
+Tamaño body original: 29145 bytes
+Paginación observada: size=20, totalElements=17, totalPages=1, number=0
+archivedItemsCount: -1 (no expuesto anónimamente)
+
+Body JSON truncado a 2 comunidades:
+
+{
+  "_embedded": {
+    "communities": [
+      {
+        "id": "de1a96e1-d3a7-490b-b393-3e43dbe9ea9a",
+        "uuid": "de1a96e1-d3a7-490b-b393-3e43dbe9ea9a",
+        "name": "Ciencias",
+        "handle": "uss/7904",
+        "metadata": {
+          "dc.identifier.uri": [
+            {
+              "value": "https://repositorio.uss.cl/handle/uss/7904",
+              "language": null,
+              "authority": null,
+              "confidence": -1,
+              "place": 0
+            }
+          ],
+          "dc.title": [
+            {
+              "value": "Ciencias",
+              "language": null,
+              "authority": null,
+              "confidence": -1,
+              "place": 0
+            }
+          ]
+        },
+        "archivedItemsCount": -1,
+        "type": "community",
+        "_links": {
+          "collections": {
+            "href": "https://repositorio.uss.cl/server/api/core/communities/de1a96e1-d3a7-490b-b393-3e43dbe9ea9a/collections"
+          },
+          "logo": {
+            "href": "https://repositorio.uss.cl/server/api/core/communities/de1a96e1-d3a7-490b-b393-3e43dbe9ea9a/logo"
+          },
+          "subcommunities": {
+            "href": "https://repositorio.uss.cl/server/api/core/communities/de1a96e1-d3a7-490b-b393-3e43dbe9ea9a/subcommunities"
+          },
+          "parentCommunity": {
+            "href": "https://repositorio.uss.cl/server/api/core/communities/de1a96e1-d3a7-490b-b393-3e43dbe9ea9a/parentCommunity"
+          },
+          "adminGroup": {
+            "href": "https://repositorio.uss.cl/server/api/core/communities/de1a96e1-d3a7-490b-b393-3e43dbe9ea9a/adminGroup"
+          },
+          "self": {
+            "href": "https://repositorio.uss.cl/server/api/core/communities/de1a96e1-d3a7-490b-b393-3e43dbe9ea9a"
+          }
+        }
+      },
+      {
+        "id": "50b814af-695b-4fbf-ab0f-8f05c83af4e0",
+        "uuid": "50b814af-695b-4fbf-ab0f-8f05c83af4e0",
+        "name": "Ciencias de la Rehabilitación y Calidad de Vida",
+        "handle": "uss/7913",
+        "metadata": {
+          "dc.identifier.uri": [
+            {
+              "value": "https://repositorio.uss.cl/handle/uss/7913",
+              "language": null,
+              "authority": null,
+              "confidence": -1,
+              "place": 0
+            }
+          ],
+          "dc.title": [
+            {
+              "value": "Ciencias de la Rehabilitación y Calidad de Vida",
+              "language": null,
+              "authority": null,
+              "confidence": -1,
+              "place": 0
+            }
+          ]
+        },
+        "archivedItemsCount": -1,
+        "type": "community",
+        "_links": {
+          "collections": {
+            "href": "https://repositorio.uss.cl/server/api/core/communities/50b814af-695b-4fbf-ab0f-8f05c83af4e0/collections"
+          },
+          "logo": {
+            "href": "https://repositorio.uss.cl/server/api/core/communities/50b814af-695b-4fbf-ab0f-8f05c83af4e0/logo"
+          },
+          "subcommunities": {
+            "href": "https://repositorio.uss.cl/server/api/core/communities/50b814af-695b-4fbf-ab0f-8f05c83af4e0/subcommunities"
+          },
+          "parentCommunity": {
+            "href": "https://repositorio.uss.cl/server/api/core/communities/50b814af-695b-4fbf-ab0f-8f05c83af4e0/parentCommunity"
+          },
+          "adminGroup": {
+            "href": "https://repositorio.uss.cl/server/api/core/communities/50b814af-695b-4fbf-ab0f-8f05c83af4e0/adminGroup"
+          },
+          "self": {
+            "href": "https://repositorio.uss.cl/server/api/core/communities/50b814af-695b-4fbf-ab0f-8f05c83af4e0"
+          }
+        }
+      }
+    ]
+  },
+  "_links": {
+    "self": {
+      "href": "https://repositorio.uss.cl/server/api/core/communities"
+    },
+    "search": {
+      "href": "https://repositorio.uss.cl/server/api/core/communities/search"
+    }
+  },
+  "page": {
+    "size": 20,
+    "totalElements": 17,
+    "totalPages": 1,
+    "number": 0
+  },
+  "_truncation": {
+    "note": "Colección truncada a 2 elementos de 17 embebidos en esta página.",
+    "embedded_key": "communities",
+    "embedded_in_this_page": 17,
+    "shown": 2
+  }
+}
+
+
+Conclusión: 17 comunidades de primer nivel (facultades / unidades). Handle
+prefijo "uss/...". Metadata mínima dc.title + dc.identifier.uri. Recorrer
+subcommunities y collections por ítem si se necesita el árbol completo.
+
+--------------------------------------------------------------------------------
+3) COLECCIONES
+--------------------------------------------------------------------------------
+URL: https://repositorio.uss.cl/server/api/core/collections
+HTTP: 200
+Content-Type: application/hal+json;charset=UTF-8
+Redirecciones: 0
+Tamaño body original (size default 20): 62152 bytes
+Paginación: size=20, totalElements=85, totalPages=5, number=0
+Prueba size=100: HTTP 200, page.size=100, 85 embebidas, 1 página.
+Prueba size=200: HTTP 200, page.size=200, 85 embebidas (no hay más de 85).
+_links.last: https://repositorio.uss.cl/server/api/core/collections?page=4&size=20
+_links.search: https://repositorio.uss.cl/server/api/core/collections/search
+
+Body JSON truncado a 2 colecciones:
+
+{
+  "_embedded": {
+    "collections": [
+      {
+        "id": "93c7cd28-8462-4150-8ae2-d1628c8e6973",
+        "uuid": "93c7cd28-8462-4150-8ae2-d1628c8e6973",
+        "name": "Acceso Abierto USS",
+        "handle": "uss/1785",
+        "metadata": {
+          "dc.identifier.uri": [
+            {
+              "value": "https://repositorio.uss.cl/handle/uss/1785",
+              "language": null,
+              "authority": null,
+              "confidence": -1,
+              "place": 0
+            }
+          ],
+          "dc.title": [
+            {
+              "value": "Acceso Abierto USS",
+              "language": null,
+              "authority": null,
+              "confidence": -1,
+              "place": 0
+            }
+          ]
+        },
+        "archivedItemsCount": -1,
+        "type": "collection",
+        "_links": {
+          "harvester": {
+            "href": "https://repositorio.uss.cl/server/api/core/collections/93c7cd28-8462-4150-8ae2-d1628c8e6973/harvester"
+          },
+          "itemtemplate": {
+            "href": "https://repositorio.uss.cl/server/api/core/collections/93c7cd28-8462-4150-8ae2-d1628c8e6973/itemtemplate"
+          },
+          "license": {
+            "href": "https://repositorio.uss.cl/server/api/core/collections/93c7cd28-8462-4150-8ae2-d1628c8e6973/license"
+          },
+          "logo": {
+            "href": "https://repositorio.uss.cl/server/api/core/collections/93c7cd28-8462-4150-8ae2-d1628c8e6973/logo"
+          },
+          "mappedItems": {
+            "href": "https://repositorio.uss.cl/server/api/core/collections/93c7cd28-8462-4150-8ae2-d1628c8e6973/mappedItems"
+          },
+          "parentCommunity": {
+            "href": "https://repositorio.uss.cl/server/api/core/collections/93c7cd28-8462-4150-8ae2-d1628c8e6973/parentCommunity"
+          },
+          "adminGroup": {
+            "href": "https://repositorio.uss.cl/server/api/core/collections/93c7cd28-8462-4150-8ae2-d1628c8e6973/adminGroup"
+          },
+          "submittersGroup": {
+            "href": "https://repositorio.uss.cl/server/api/core/collections/93c7cd28-8462-4150-8ae2-d1628c8e6973/submittersGroup"
+          },
+          "itemReadGroup": {
+            "href": "https://repositorio.uss.cl/server/api/core/collections/93c7cd28-8462-4150-8ae2-d1628c8e6973/itemReadGroup"
+          },
+          "bitstreamReadGroup": {
+            "href": "https://repositorio.uss.cl/server/api/core/collections/93c7cd28-8462-4150-8ae2-d1628c8e6973/bitstreamReadGroup"
+          },
+          "self": {
+            "href": "https://repositorio.uss.cl/server/api/core/collections/93c7cd28-8462-4150-8ae2-d1628c8e6973"
+          },
+          "workflowGroups": [
+            {
+              "href": "https://repositorio.uss.cl/server/api/core/collections/93c7cd28-8462-4150-8ae2-d1628c8e6973/workflowGroups/reviewer",
+              "name": "reviewer"
+            },
+            {
+              "href": "https://repositorio.uss.cl/server/api/core/collections/93c7cd28-8462-4150-8ae2-d1628c8e6973/workflowGroups/editor",
+              "name": "editor"
+            },
+            {
+              "href": "https://repositorio.uss.cl/server/api/core/collections/93c7cd28-8462-4150-8ae2-d1628c8e6973/workflowGroups/finaleditor",
+              "name": "finaleditor"
+            }
+          ]
+        }
+      },
+      {
+        "id": "35a8d6aa-758e-4348-8417-14cf3603e880",
+        "uuid": "35a8d6aa-758e-4348-8417-14cf3603e880",
+        "name": "Acreditación Nacional e Internacional",
+        "handle": "uss/8382",
+        "metadata": {
+          "dc.identifier.uri": [
+            {
+              "value": "https://repositorio.uss.cl/handle/uss/8382",
+              "language": null,
+              "authority": null,
+              "confidence": -1,
+              "place": 0
+            }
+          ],
+          "dc.title": [
+            {
+              "value": "Acreditación Nacional e Internacional",
+              "language": null,
+              "authority": null,
+              "confidence": -1,
+              "place": 0
+            }
+          ]
+        },
+        "archivedItemsCount": -1,
+        "type": "collection",
+        "_links": {
+          "harvester": {
+            "href": "https://repositorio.uss.cl/server/api/core/collections/35a8d6aa-758e-4348-8417-14cf3603e880/harvester"
+          },
+          "itemtemplate": {
+            "href": "https://repositorio.uss.cl/server/api/core/collections/35a8d6aa-758e-4348-8417-14cf3603e880/itemtemplate"
+          },
+          "license": {
+            "href": "https://repositorio.uss.cl/server/api/core/collections/35a8d6aa-758e-4348-8417-14cf3603e880/license"
+          },
+          "logo": {
+            "href": "https://repositorio.uss.cl/server/api/core/collections/35a8d6aa-758e-4348-8417-14cf3603e880/logo"
+          },
+          "mappedItems": {
+            "href": "https://repositorio.uss.cl/server/api/core/collections/35a8d6aa-758e-4348-8417-14cf3603e880/mappedItems"
+          },
+          "parentCommunity": {
+            "href": "https://repositorio.uss.cl/server/api/core/collections/35a8d6aa-758e-4348-8417-14cf3603e880/parentCommunity"
+          },
+          "adminGroup": {
+            "href": "https://repositorio.uss.cl/server/api/core/collections/35a8d6aa-758e-4348-8417-14cf3603e880/adminGroup"
+          },
+          "submittersGroup": {
+            "href": "https://repositorio.uss.cl/server/api/core/collections/35a8d6aa-758e-4348-8417-14cf3603e880/submittersGroup"
+          },
+          "itemReadGroup": {
+            "href": "https://repositorio.uss.cl/server/api/core/collections/35a8d6aa-758e-4348-8417-14cf3603e880/itemReadGroup"
+          },
+          "bitstreamReadGroup": {
+            "href": "https://repositorio.uss.cl/server/api/core/collections/35a8d6aa-758e-4348-8417-14cf3603e880/bitstreamReadGroup"
+          },
+          "self": {
+            "href": "https://repositorio.uss.cl/server/api/core/collections/35a8d6aa-758e-4348-8417-14cf3603e880"
+          },
+          "workflowGroups": [
+            {
+              "href": "https://repositorio.uss.cl/server/api/core/collections/35a8d6aa-758e-4348-8417-14cf3603e880/workflowGroups/reviewer",
+              "name": "reviewer"
+            },
+            {
+              "href": "https://repositorio.uss.cl/server/api/core/collections/35a8d6aa-758e-4348-8417-14cf3603e880/workflowGroups/editor",
+              "name": "editor"
+            },
+            {
+              "href": "https://repositorio.uss.cl/server/api/core/collections/35a8d6aa-758e-4348-8417-14cf3603e880/workflowGroups/finaleditor",
+              "name": "finaleditor"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "_links": {
+    "first": {
+      "href": "https://repositorio.uss.cl/server/api/core/collections?page=0&size=20"
+    },
+    "self": {
+      "href": "https://repositorio.uss.cl/server/api/core/collections"
+    },
+    "next": {
+      "href": "https://repositorio.uss.cl/server/api/core/collections?page=1&size=20"
+    },
+    "last": {
+      "href": "https://repositorio.uss.cl/server/api/core/collections?page=4&size=20"
+    },
+    "search": {
+      "href": "https://repositorio.uss.cl/server/api/core/collections/search"
+    }
+  },
+  "page": {
+    "size": 20,
+    "totalElements": 85,
+    "totalPages": 5,
+    "number": 0
+  },
+  "_truncation": {
+    "note": "Colección truncada a 2 elementos de 20 embebidos en esta página.",
+    "embedded_key": "collections",
+    "embedded_in_this_page": 20,
+    "shown": 2
+  }
+}
+
+
+Conclusión: 85 colecciones públicas. Primera colección "Acceso Abierto USS"
+(handle uss/1785, uuid 93c7cd28-8462-4150-8ae2-d1628c8e6973). El artículo con DOI
+de esta exploración pertenece a esa colección. archivedItemsCount=-1.
+
+--------------------------------------------------------------------------------
+4) DISCOVER SEARCH
+--------------------------------------------------------------------------------
+URL: https://repositorio.uss.cl/server/api/discover/search/objects?query=investigacion&dsoType=item&size=2
+HTTP: 200
+Content-Type: application/hal+json;charset=UTF-8
+Redirecciones: 0
+Tamaño body original: 48297 bytes
+Paginación searchResult: number=0, size=2, totalPages=924, totalElements=1848
+next: .../objects?query=investigacion&dsoType=item&page=1&size=2
+
+Facetas access_status (query=investigacion, dsoType=item):
+  open.access=1011, restricted=434, metadata.only=386, embargo=17
+
+Hits:
+  1) uuid 524e69d4-8dfd-450a-a8cd-a8fe174b26e8  handle uss/8571  dc.type=Tesis
+     sin dc.identifier.doi
+  2) uuid 80012200-d875-4257-968d-b59a2c2abbb4  handle uss/24032  dc.type=Artículo de revisión
+     dc.identifier.doi=10.4067/s0034-98872019000901144
+     dc.identifier.issn=0034-9887  dc.source=Revista Medica de Chile
+
+Búsqueda adicional (no pedida, para derechos y volumen OA):
+URL: https://repositorio.uss.cl/server/api/discover/search/objects?query=*&dsoType=item&f.access_status=open.access,equals&size=1
+HTTP: 200  Content-Type: application/hal+json;charset=UTF-8  size=40802
+page: size=1, totalElements=1207, totalPages=1207
+Ítem: uuid 16c1ec87-a909-4d15-a1ee-4259a9f3ed76 handle uss/19968
+dc.type=Presentación  dc.date.issued=2025
+dc.rights=CC0 1.0 Universal
+dc.rights.uri=http://creativecommons.org/publicdomain/zero/1.0/
+uss.facultad=Facultad de Medicina
+(body completo omitido por tamaño de facetas; metadata de derechos extraída del hit)
+
+Body JSON de la búsqueda solicitada (2 hits completos; facetas truncadas a access_status):
+
+{
+  "id": null,
+  "scope": null,
+  "query": "investigacion",
+  "appliedFilters": null,
+  "sort": null,
+  "configuration": null,
+  "type": "discover",
+  "_links": {
+    "self": {
+      "href": "https://repositorio.uss.cl/server/api/discover/search/objects?query=investigacion&dsoType=item"
+    }
+  },
+  "_embedded": {
+    "searchResult": {
+      "_embedded": {
+        "objects": [
+          {
+            "hitHighlights": {
+              "dc.title": [
+                "Criterios e indicadores de acreditación de la dimensión de <em>investigación</em>, creación e innovación como diagnóstico para una futura acreditación según la Ley 21.091 en el contexto institucional de la Academia Politécnica Naval"
+              ]
+            },
+            "type": "discover",
+            "_links": {
+              "indexableObject": {
+                "href": "https://repositorio.uss.cl/server/api/core/items/524e69d4-8dfd-450a-a8cd-a8fe174b26e8"
+              }
+            },
+            "_embedded": {
+              "indexableObject": {
+                "id": "524e69d4-8dfd-450a-a8cd-a8fe174b26e8",
+                "uuid": "524e69d4-8dfd-450a-a8cd-a8fe174b26e8",
+                "name": "Criterios e indicadores de acreditación de la dimensión de investigación, creación e innovación como diagnóstico para una futura acreditación según la Ley 21.091 en el contexto institucional de la Academia Politécnica Naval",
+                "handle": "uss/8571",
+                "metadata": {
+                  "dc.contributor": [
+                    {
+                      "value": "Universidad San Sebastián. Facultad de Ciencias de la Educación",
+                      "language": null,
+                      "authority": null,
+                      "confidence": -1,
+                      "place": 0
+                    }
+                  ],
+                  "dc.contributor.author": [
+                    {
+                      "value": "Cáceres Escobar, Cynthia",
+                      "language": "",
+                      "authority": null,
+                      "confidence": -1,
+                      "place": 0
+                    },
+                    {
+                      "value": "Carrasco Ortega, Luis",
+                      "language": "",
+                      "authority": null,
+                      "confidence": -1,
+                      "place": 1
+                    }
+                  ],
+                  "dc.contributor.guide": [
+                    {
+                      "value": "Durán Báez, Ana Luz",
+                      "language": "",
+                      "authority": null,
+                      "confidence": -1,
+                      "place": 0
+                    }
+                  ],
+                  "dc.coverage.location": [
+                    {
+                      "value": "Santiago",
+                      "language": "",
+                      "authority": null,
+                      "confidence": -1,
+                      "place": 0
+                    }
+                  ],
+                  "dc.date": [
+                    {
+                      "value": "2018",
+                      "language": null,
+                      "authority": null,
+                      "confidence": -1,
+                      "place": 0
+                    }
+                  ],
+                  "dc.date.accessioned": [
+                    {
+                      "value": "2023-06-30T03:43:01Z",
+                      "language": null,
+                      "authority": null,
+                      "confidence": -1,
+                      "place": 0
+                    }
+                  ],
+                  "dc.date.available": [
+                    {
+                      "value": "2023-06-30T03:43:01Z",
+                      "language": null,
+                      "authority": null,
+                      "confidence": -1,
+                      "place": 0
+                    }
+                  ],
+                  "dc.date.issued": [
+                    {
+                      "value": "2018",
+                      "language": null,
+                      "authority": null,
+                      "confidence": -1,
+                      "place": 0
+                    }
+                  ],
+                  "dc.description.abstract": [
+                    {
+                      "value": "El sistema de aseguramiento de la calidad que se ha desarrollado en Chile busca garantizar la calidad de la educación que ofrecen las diversas Instituciones de Educación Superior (IES). La apertura de los procesos de acreditación ha significado un desafío",
+                      "language": "",
+                      "authority": null,
+                      "confidence": -1,
+                      "place": 0
+                    },
+                    {
+                      "value": "The quality assurance system that has been developing in Chile has been looking to guarantee the educational quality that offer the varied institutions of Higher Education (IES). The opening of the accreditation processes have meant a challenge to said in",
+                      "language": "",
+                      "authority": null,
+                      "confidence": -1,
+                      "place": 1
+                    }
+                  ],
+                  "dc.identifier.local": [
+                    {
+                      "value": "TE MAGI CEDU C3867c 2018",
+                      "language": "",
+                      "authority": null,
+                      "confidence": -1,
+                      "place": 0
+                    }
+                  ],
+                  "dc.identifier.uri": [
+                    {
+                      "value": "https://repositorio.uss.cl/handle/uss/8571",
+                      "language": null,
+                      "authority": null,
+                      "confidence": -1,
+                      "place": 0
+                    }
+                  ],
+                  "dc.language.iso": [
+                    {
+                      "value": "es",
+                      "language": "",
+                      "authority": null,
+                      "confidence": -1,
+                      "place": 0
+                    }
+                  ],
+                  "dc.publisher": [
+                    {
+                      "value": "Universidad San Sebastián",
+                      "language": null,
+                      "authority": null,
+                      "confidence": -1,
+                      "place": 0
+                    }
+                  ],
+                  "dc.subject": [
+                    {
+                      "value": "TESIS MAGISTER EN GESTION PARA LA EDUCACION SUPERIOR",
+                      "language": "",
+                      "authority": null,
+                      "confidence": -1,
+                      "place": 0
+                    },
+                    {
+                      "value": "ACREDITACION EDUCACION",
+                      "language": "",
+                      "authority": null,
+                      "confidence": -1,
+                      "place": 1
+                    },
+                    {
+                      "value": "EDUCACION SUPERIOR CHILE",
+                      "language": "",
+                      "authority": null,
+                      "confidence": -1,
+                      "place": 2
+                    },
+                    {
+                      "value": "INVESTIGACIONES",
+                      "language": "",
+                      "authority": null,
+                      "confidence": -1,
+                      "place": 3
+                    },
+                    {
+                      "value": "CIENCIA NAVAL ENSEÑANZA",
+                      "language": "",
+                      "authority": null,
+                      "confidence": -1,
+                      "place": 4
+                    }
+                  ],
+                  "dc.title": [
+                    {
+                      "value": "Criterios e indicadores de acreditación de la dimensión de investigación, creación e innovación como diagnóstico para una futura acreditación según la Ley 21.091 en el contexto institucional de la Academia Politécnica Naval",
+                      "language": "",
+                      "authority": null,
+                      "confidence": -1,
+                      "place": 0
+                    }
+                  ],
+                  "dc.type": [
+                    {
+                      "value": "Tesis",
+                      "language": "",
+                      "authority": null,
+                      "confidence": -1,
+                      "place": 0
+                    }
+                  ],
+                  "uss.carrera": [
+                    {
+                      "value": "Magíster en Gestión para la Educación Superior",
+                      "language": null,
+                      "authority": null,
+                      "confidence": -1,
+                      "place": 0
+                    }
+                  ],
+                  "uss.facultad": [
+                    {
+                      "value": "Facultad de Educación",
+                      "language": null,
+                      "authority": null,
+                      "confidence": -1,
+                      "place": 0
+                    }
+                  ],
+                  "uss.programa": [
+                    {
+                      "value": "Postgrado",
+                      "language": "",
+                      "authority": null,
+                      "confidence": -1,
+                      "place": 0
+                    }
+                  ],
+                  "uss.sede": [
+                    {
+                      "value": "Bellavista",
+                      "language": null,
+                      "authority": null,
+                      "confidence": -1,
+                      "place": 0
+                    }
+                  ]
+                },
+                "inArchive": true,
+                "discoverable": true,
+                "withdrawn": false,
+                "lastModified": "2026-09-24T14:20:50.881835Z",
+                "entityType": null,
+                "type": "item",
+                "_links": {
+                  "accessStatus": {
+                    "href": "https://repositorio.uss.cl/server/api/core/items/524e69d4-8dfd-450a-a8cd-a8fe174b26e8/accessStatus"
+                  },
+                  "bundles": {
+                    "href": "https://repositorio.uss.cl/server/api/core/items/524e69d4-8dfd-450a-a8cd-a8fe174b26e8/bundles"
+                  },
+                  "identifiers": {
+                    "href": "https://repositorio.uss.cl/server/api/core/items/524e69d4-8dfd-450a-a8cd-a8fe174b26e8/identifiers"
+                  },
+                  "mappedCollections": {
+                    "href": "https://repositorio.uss.cl/server/api/core/items/524e69d4-8dfd-450a-a8cd-a8fe174b26e8/mappedCollections"
+                  },
+                  "owningCollection": {
+                    "href": "https://repositorio.uss.cl/server/api/core/items/524e69d4-8dfd-450a-a8cd-a8fe174b26e8/owningCollection"
+                  },
+                  "relationships": {
+                    "href": "https://repositorio.uss.cl/server/api/core/items/524e69d4-8dfd-450a-a8cd-a8fe174b26e8/relationships"
+                  },
+                  "version": {
+                    "href": "https://repositorio.uss.cl/server/api/core/items/524e69d4-8dfd-450a-a8cd-a8fe174b26e8/version"
+                  },
+                  "templateItemOf": {
+                    "href": "https://repositorio.uss.cl/server/api/core/items/524e69d4-8dfd-450a-a8cd-a8fe174b26e8/templateItemOf"
+                  },
+                  "thumbnail": {
+                    "href": "https://repositorio.uss.cl/server/api/core/items/524e69d4-8dfd-450a-a8cd-a8fe174b26e8/thumbnail"
+                  },
+                  "submitter": {
+                    "href": "https://repositorio.uss.cl/server/api/core/items/524e69d4-8dfd-450a-a8cd-a8fe174b26e8/submitter"
+                  },
+                  "self": {
+                    "href": "https://repositorio.uss.cl/server/api/core/items/524e69d4-8dfd-450a-a8cd-a8fe174b26e8"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "hitHighlights": {
+              "dc.contributor.author": [
+                "en representación del Grupo de <em>Investigación</em> ELHOC"
+              ]
+            },
+            "type": "discover",
+            "_links": {
+              "indexableObject": {
+                "href": "https://repositorio.uss.cl/server/api/core/items/80012200-d875-4257-968d-b59a2c2abbb4"
+              }
+            },
+            "_embedded": {
+              "indexableObject": {
+                "id": "80012200-d875-4257-968d-b59a2c2abbb4",
+                "uuid": "80012200-d875-4257-968d-b59a2c2abbb4",
+                "name": "Caracterización de los estilos de vida en dueñas de casa chilenas. Análisis de la Encuesta Nacional de Salud 2009-2010",
+                "handle": "uss/24032",
+                "metadata": {
+                  "dc.contributor.author": [
+                    {
+                      "value": "en representación del Grupo de Investigación ELHOC",
+                      "language": null,
+                      "authority": null,
+                      "confidence": -1,
+                      "place": 0
+                    }
+                  ],
+                  "dc.date.accessioned": [
+                    {
+                      "value": "2026-06-18T07:55:51Z",
+                      "language": null,
+                      "authority": null,
+                      "confidence": -1,
+                      "place": 0
+                    }
+                  ],
+                  "dc.date.issued": [
+                    {
+                      "value": "2019",
+                      "language": null,
+                      "authority": null,
+                      "confidence": -1,
+                      "place": 0
+                    }
+                  ],
+                  "dc.description": [
+                    {
+                      "value": "Publisher Copyright: © 2019 Sociedad Medica de Santiago. All rights reserved.",
+                      "language": null,
+                      "authority": null,
+                      "confidence": -1,
+                      "place": 0
+                    }
+                  ],
+                  "dc.description.abstract": [
+                    {
+                      "value": "Background: Housewives represent a important proportion of the Chilean population. However, there is limited evidence about their lifestyles. Aim: To characterize lifestyles and determine the level of compliance with healthy lifestyles guidelines of housewives in Chile. Material and Methods: Housewives from the 2009-2010 National Health Survey were included. The variables studied included levels of physical activity (PA), sedentary behavior, diet, hours of sleep and smoking. Compliance with healthy lifestyle behaviors was evaluated through logistic regression, granting a value of 1 for compliance and 0 for non-compliance. A healthy lifestyle was defined as meeting at least four healthy behaviors. Results: Housewives aged > 55 years had a higher BMI and waist circumference compared to those aged < 40 years. Housewives were also more likely to report moderate alcohol consumption and were more likely to meet a healthier lifestyle score (Odds ratio = 1.52 [95% confidence intervals: 1.09 to 2.11], p = 0.013). No significant age trends were observed for other lifestyle behaviors. Conclusions: Housewives had high levels of central obesity, excess body weight and high levels of salt intake but low alcohol intake. Their healthy lifestyles behaviors increased along with increasing age.",
+                      "language": "en",
+                      "authority": null,
+                      "confidence": -1,
+                      "place": 0
+                    }
+                  ],
+                  "dc.identifier.doi": [
+                    {
+                      "value": "10.4067/s0034-98872019000901144",
+                      "language": null,
+                      "authority": null,
+                      "confidence": -1,
+                      "place": 0
+                    }
+                  ],
+                  "dc.identifier.issn": [
+                    {
+                      "value": "0034-9887",
+                      "language": null,
+                      "authority": null,
+                      "confidence": -1,
+                      "place": 0
+                    }
+                  ],
+                  "dc.identifier.uri": [
+                    {
+                      "value": "https://repositorio.uss.cl/handle/uss/24032",
+                      "language": null,
+                      "authority": null,
+                      "confidence": -1,
+                      "place": 0
+                    }
+                  ],
+                  "dc.language.iso": [
+                    {
+                      "value": "spa",
+                      "language": null,
+                      "authority": null,
+                      "confidence": -1,
+                      "place": 0
+                    }
+                  ],
+                  "dc.publisher.department": [
+                    {
+                      "value": "Facultad de Educación",
+                      "language": null,
+                      "authority": null,
+                      "confidence": -1,
+                      "place": 0
+                    }
+                  ],
+                  "dc.relation.ispartof": [
+                    {
+                      "value": "vol. 147 Issue: no. 9 Pages: 1146-1155",
+                      "language": null,
+                      "authority": null,
+                      "confidence": -1,
+                      "place": 0
+                    }
+                  ],
+                  "dc.source": [
+                    {
+                      "value": "Revista Medica de Chile",
+                      "language": null,
+                      "authority": null,
+                      "confidence": -1,
+                      "place": 0
+                    }
+                  ],
+                  "dc.title": [
+                    {
+                      "value": "Caracterización de los estilos de vida en dueñas de casa chilenas. Análisis de la Encuesta Nacional de Salud 2009-2010",
+                      "language": "es",
+                      "authority": null,
+                      "confidence": -1,
+                      "place": 0
+                    }
+                  ],
+                  "dc.title.alternative": [
+                    {
+                      "value": "Lifestyles of Chilean housewives. Analysis of the 2009-2020 Chilean Health survey",
+                      "language": "en",
+                      "authority": null,
+                      "confidence": -1,
+                      "place": 0
+                    }
+                  ],
+                  "dc.type": [
+                    {
+                      "value": "Artículo de revisión",
+                      "language": null,
+                      "authority": null,
+                      "confidence": -1,
+                      "place": 0
+                    }
+                  ]
+                },
+                "inArchive": true,
+                "discoverable": true,
+                "withdrawn": false,
+                "lastModified": "2026-06-18T07:55:51.017865Z",
+                "entityType": null,
+                "type": "item",
+                "_links": {
+                  "accessStatus": {
+                    "href": "https://repositorio.uss.cl/server/api/core/items/80012200-d875-4257-968d-b59a2c2abbb4/accessStatus"
+                  },
+                  "bundles": {
+                    "href": "https://repositorio.uss.cl/server/api/core/items/80012200-d875-4257-968d-b59a2c2abbb4/bundles"
+                  },
+                  "identifiers": {
+                    "href": "https://repositorio.uss.cl/server/api/core/items/80012200-d875-4257-968d-b59a2c2abbb4/identifiers"
+                  },
+                  "mappedCollections": {
+                    "href": "https://repositorio.uss.cl/server/api/core/items/80012200-d875-4257-968d-b59a2c2abbb4/mappedCollections"
+                  },
+                  "owningCollection": {
+                    "href": "https://repositorio.uss.cl/server/api/core/items/80012200-d875-4257-968d-b59a2c2abbb4/owningCollection"
+                  },
+                  "relationships": {
+                    "href": "https://repositorio.uss.cl/server/api/core/items/80012200-d875-4257-968d-b59a2c2abbb4/relationships"
+                  },
+                  "version": {
+                    "href": "https://repositorio.uss.cl/server/api/core/items/80012200-d875-4257-968d-b59a2c2abbb4/version"
+                  },
+                  "templateItemOf": {
+                    "href": "https://repositorio.uss.cl/server/api/core/items/80012200-d875-4257-968d-b59a2c2abbb4/templateItemOf"
+                  },
+                  "thumbnail": {
+                    "href": "https://repositorio.uss.cl/server/api/core/items/80012200-d875-4257-968d-b59a2c2abbb4/thumbnail"
+                  },
+                  "submitter": {
+                    "href": "https://repositorio.uss.cl/server/api/core/items/80012200-d875-4257-968d-b59a2c2abbb4/submitter"
+                  },
+                  "self": {
+                    "href": "https://repositorio.uss.cl/server/api/core/items/80012200-d875-4257-968d-b59a2c2abbb4"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "page": {
+        "number": 0,
+        "size": 2,
+        "totalPages": 924,
+        "totalElements": 1848
+      },
+      "_links": {
+        "next": {
+          "href": "https://repositorio.uss.cl/server/api/discover/search/objects?query=investigacion&dsoType=item&page=1&size=2"
+        },
+        "last": {
+          "href": "https://repositorio.uss.cl/server/api/discover/search/objects?query=investigacion&dsoType=item&page=923&size=2"
+        },
+        "self": {
+          "href": "https://repositorio.uss.cl/server/api/discover/search/objects?query=investigacion&dsoType=item&size=2"
+        }
+      }
+    },
+    "facets": [
+      {
+        "name": "access_status",
+        "facetType": "text",
+        "facetLimit": 10,
+        "openByDefault": false,
+        "page": {
+          "number": 0,
+          "size": 10
+        },
+        "_links": {
+          "self": {
+            "href": "https://repositorio.uss.cl/server/api/discover/facets/access_status?query=investigacion&dsoType=item&size=10"
+          }
+        },
+        "_embedded": {
+          "values": [
+            {
+              "label": "open.access",
+              "count": 1011,
+              "authorityKey": null,
+              "type": "discover",
+              "_links": {
+                "search": {
+                  "href": "https://repositorio.uss.cl/server/api/discover/search/objects?query=investigacion&dsoType=item&f.access_status=open.access,equals"
+                }
+              }
+            },
+            {
+              "label": "restricted",
+              "count": 434,
+              "authorityKey": null,
+              "type": "discover",
+              "_links": {
+                "search": {
+                  "href": "https://repositorio.uss.cl/server/api/discover/search/objects?query=investigacion&dsoType=item&f.access_status=restricted,equals"
+                }
+              }
+            },
+            {
+              "label": "metadata.only",
+              "count": 386,
+              "authorityKey": null,
+              "type": "discover",
+              "_links": {
+                "search": {
+                  "href": "https://repositorio.uss.cl/server/api/discover/search/objects?query=investigacion&dsoType=item&f.access_status=metadata.only,equals"
+                }
+              }
+            },
+            {
+              "label": "embargo",
+              "count": 17,
+              "authorityKey": null,
+              "type": "discover",
+              "_links": {
+                "search": {
+                  "href": "https://repositorio.uss.cl/server/api/discover/search/objects?query=investigacion&dsoType=item&f.access_status=embargo,equals"
+                }
+              }
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "_truncation": {
+    "note": "La respuesta original incluía múltiples facetas (author, etc.). Se conservan los 2 hits solicitados y solo la faceta access_status. Tamaño original del body: 48297 bytes.",
+    "original_facet_count": 14,
+    "shown_facets": [
+      "access_status"
+    ]
+  }
+}
+
+
+Conclusión: discover es el único listado anónimo de ítems. No usar GET /core/items.
+Solr indexa dc.* y uss.*. El join con PURE/OpenAlex debe usar DOI cuando exista;
+muchas tesis y presentaciones no tienen DOI. Filtrar f.access_status=open.access,equals
+cuando se necesiten bitstreams públicos (~1207 ítems OA globales con query=*).
+
+--------------------------------------------------------------------------------
+5) ÍTEM PÚBLICO CON DOI (metadata.only)
+--------------------------------------------------------------------------------
+URL: https://repositorio.uss.cl/server/api/core/items/80012200-d875-4257-968d-b59a2c2abbb4
+HTTP: 200
+Content-Type: application/hal+json;charset=UTF-8
+Redirecciones: 0
+Tamaño: 6169 bytes
+UUID: 80012200-d875-4257-968d-b59a2c2abbb4
+handle: uss/24032
+dc.identifier.uri: https://repositorio.uss.cl/handle/uss/24032
+inArchive=true discoverable=true withdrawn=false entityType=null
+lastModified: 2026-06-18T07:55:51.017865Z
+
+Campos inspeccionados:
+- dc.contributor.author: "en representación del Grupo de Investigación ELHOC" (no lista de personas)
+- dc.date.issued: 2019
+- dc.date.accessioned: 2026-06-18T07:55:51Z
+- dc.identifier.doi: 10.4067/s0034-98872019000901144
+- dc.identifier.issn: 0034-9887
+- dc.relation.ispartof: vol. 147 Issue: no. 9 Pages: 1146-1155
+- dc.source: Revista Medica de Chile
+- dc.type: Artículo de revisión
+- dc.language.iso: spa
+- dc.rights: AUSENTE en este ítem
+- DOI no aparece en /identifiers (solo handle)
+
+Body JSON completo:
+
+{
+  "id": "80012200-d875-4257-968d-b59a2c2abbb4",
+  "uuid": "80012200-d875-4257-968d-b59a2c2abbb4",
+  "name": "Caracterización de los estilos de vida en dueñas de casa chilenas. Análisis de la Encuesta Nacional de Salud 2009-2010",
+  "handle": "uss/24032",
+  "metadata": {
+    "dc.contributor.author": [
+      {
+        "value": "en representación del Grupo de Investigación ELHOC",
+        "language": null,
+        "authority": null,
+        "confidence": -1,
+        "place": 0
+      }
+    ],
+    "dc.date.accessioned": [
+      {
+        "value": "2026-06-18T07:55:51Z",
+        "language": null,
+        "authority": null,
+        "confidence": -1,
+        "place": 0
+      }
+    ],
+    "dc.date.issued": [
+      {
+        "value": "2019",
+        "language": null,
+        "authority": null,
+        "confidence": -1,
+        "place": 0
+      }
+    ],
+    "dc.description": [
+      {
+        "value": "Publisher Copyright: © 2019 Sociedad Medica de Santiago. All rights reserved.",
+        "language": null,
+        "authority": null,
+        "confidence": -1,
+        "place": 0
+      }
+    ],
+    "dc.description.abstract": [
+      {
+        "value": "Background: Housewives represent a important proportion of the Chilean population. However, there is limited evidence about their lifestyles. Aim: To characterize lifestyles and determine the level of compliance with healthy lifestyles guidelines of housewives in Chile. Material and Methods: Housewives from the 2009-2010 National Health Survey were included. The variables studied included levels of physical activity (PA), sedentary behavior, diet, hours of sleep and smoking. Compliance with healthy lifestyle behaviors was evaluated through logistic regression, granting a value of 1 for compliance and 0 for non-compliance. A healthy lifestyle was defined as meeting at least four healthy behaviors. Results: Housewives aged > 55 years had a higher BMI and waist circumference compared to those aged < 40 years. Housewives were also more likely to report moderate alcohol consumption and were more likely to meet a healthier lifestyle score (Odds ratio = 1.52 [95% confidence intervals: 1.09 to 2.11], p = 0.013). No significant age trends were observed for other lifestyle behaviors. Conclusions: Housewives had high levels of central obesity, excess body weight and high levels of salt intake but low alcohol intake. Their healthy lifestyles behaviors increased along with increasing age.",
+        "language": "en",
+        "authority": null,
+        "confidence": -1,
+        "place": 0
+      }
+    ],
+    "dc.identifier.doi": [
+      {
+        "value": "10.4067/s0034-98872019000901144",
+        "language": null,
+        "authority": null,
+        "confidence": -1,
+        "place": 0
+      }
+    ],
+    "dc.identifier.issn": [
+      {
+        "value": "0034-9887",
+        "language": null,
+        "authority": null,
+        "confidence": -1,
+        "place": 0
+      }
+    ],
+    "dc.identifier.uri": [
+      {
+        "value": "https://repositorio.uss.cl/handle/uss/24032",
+        "language": null,
+        "authority": null,
+        "confidence": -1,
+        "place": 0
+      }
+    ],
+    "dc.language.iso": [
+      {
+        "value": "spa",
+        "language": null,
+        "authority": null,
+        "confidence": -1,
+        "place": 0
+      }
+    ],
+    "dc.publisher.department": [
+      {
+        "value": "Facultad de Educación",
+        "language": null,
+        "authority": null,
+        "confidence": -1,
+        "place": 0
+      }
+    ],
+    "dc.relation.ispartof": [
+      {
+        "value": "vol. 147 Issue: no. 9 Pages: 1146-1155",
+        "language": null,
+        "authority": null,
+        "confidence": -1,
+        "place": 0
+      }
+    ],
+    "dc.source": [
+      {
+        "value": "Revista Medica de Chile",
+        "language": null,
+        "authority": null,
+        "confidence": -1,
+        "place": 0
+      }
+    ],
+    "dc.title": [
+      {
+        "value": "Caracterización de los estilos de vida en dueñas de casa chilenas. Análisis de la Encuesta Nacional de Salud 2009-2010",
+        "language": "es",
+        "authority": null,
+        "confidence": -1,
+        "place": 0
+      }
+    ],
+    "dc.title.alternative": [
+      {
+        "value": "Lifestyles of Chilean housewives. Analysis of the 2009-2020 Chilean Health survey",
+        "language": "en",
+        "authority": null,
+        "confidence": -1,
+        "place": 0
+      }
+    ],
+    "dc.type": [
+      {
+        "value": "Artículo de revisión",
+        "language": null,
+        "authority": null,
+        "confidence": -1,
+        "place": 0
+      }
+    ]
+  },
+  "inArchive": true,
+  "discoverable": true,
+  "withdrawn": false,
+  "lastModified": "2026-06-18T07:55:51.017865Z",
+  "entityType": null,
+  "type": "item",
+  "_links": {
+    "accessStatus": {
+      "href": "https://repositorio.uss.cl/server/api/core/items/80012200-d875-4257-968d-b59a2c2abbb4/accessStatus"
+    },
+    "bundles": {
+      "href": "https://repositorio.uss.cl/server/api/core/items/80012200-d875-4257-968d-b59a2c2abbb4/bundles"
+    },
+    "identifiers": {
+      "href": "https://repositorio.uss.cl/server/api/core/items/80012200-d875-4257-968d-b59a2c2abbb4/identifiers"
+    },
+    "mappedCollections": {
+      "href": "https://repositorio.uss.cl/server/api/core/items/80012200-d875-4257-968d-b59a2c2abbb4/mappedCollections"
+    },
+    "owningCollection": {
+      "href": "https://repositorio.uss.cl/server/api/core/items/80012200-d875-4257-968d-b59a2c2abbb4/owningCollection"
+    },
+    "relationships": {
+      "href": "https://repositorio.uss.cl/server/api/core/items/80012200-d875-4257-968d-b59a2c2abbb4/relationships"
+    },
+    "version": {
+      "href": "https://repositorio.uss.cl/server/api/core/items/80012200-d875-4257-968d-b59a2c2abbb4/version"
+    },
+    "templateItemOf": {
+      "href": "https://repositorio.uss.cl/server/api/core/items/80012200-d875-4257-968d-b59a2c2abbb4/templateItemOf"
+    },
+    "thumbnail": {
+      "href": "https://repositorio.uss.cl/server/api/core/items/80012200-d875-4257-968d-b59a2c2abbb4/thumbnail"
+    },
+    "submitter": {
+      "href": "https://repositorio.uss.cl/server/api/core/items/80012200-d875-4257-968d-b59a2c2abbb4/submitter"
+    },
+    "self": {
+      "href": "https://repositorio.uss.cl/server/api/core/items/80012200-d875-4257-968d-b59a2c2abbb4"
+    }
+  }
+}
+
+
+5.1 accessStatus
+URL: https://repositorio.uss.cl/server/api/core/items/80012200-d875-4257-968d-b59a2c2abbb4/accessStatus
+HTTP: 200  Content-Type: application/hal+json;charset=UTF-8
+
+{
+  "status": "metadata.only",
+  "embargoDate": null,
+  "type": "accessStatus",
+  "_links": {
+    "self": {
+      "href": "https://repositorio.uss.cl/server/api/core/items/80012200-d875-4257-968d-b59a2c2abbb4/accessStatus"
+    }
+  }
+}
+
+
+5.2 identifiers
+URL: https://repositorio.uss.cl/server/api/core/items/80012200-d875-4257-968d-b59a2c2abbb4/identifiers
+HTTP: 200  Content-Type: application/hal+json;charset=UTF-8
+
+{
+  "id": null,
+  "identifiers": [
+    {
+      "id": "https://repositorio.uss.cl/handle/uss/24032",
+      "value": "https://repositorio.uss.cl/handle/uss/24032",
+      "identifierType": "handle",
+      "identifierStatus": null,
+      "type": "identifier"
+    }
+  ],
+  "type": "identifiers",
+  "_links": {
+    "self": {
+      "href": "https://repositorio.uss.cl/server/api/core/items/80012200-d875-4257-968d-b59a2c2abbb4/identifiers"
+    }
+  }
+}
+
+
+5.3 owningCollection
+URL: https://repositorio.uss.cl/server/api/core/items/80012200-d875-4257-968d-b59a2c2abbb4/owningCollection
+HTTP: 200  Content-Type: application/hal+json;charset=UTF-8
+
+{
+  "id": "93c7cd28-8462-4150-8ae2-d1628c8e6973",
+  "uuid": "93c7cd28-8462-4150-8ae2-d1628c8e6973",
+  "name": "Acceso Abierto USS",
+  "handle": "uss/1785",
+  "metadata": {
+    "dc.identifier.uri": [
+      {
+        "value": "https://repositorio.uss.cl/handle/uss/1785",
+        "language": null,
+        "authority": null,
+        "confidence": -1,
+        "place": 0
+      }
+    ],
+    "dc.title": [
+      {
+        "value": "Acceso Abierto USS",
+        "language": null,
+        "authority": null,
+        "confidence": -1,
+        "place": 0
+      }
+    ]
+  },
+  "archivedItemsCount": -1,
+  "type": "collection",
+  "_links": {
+    "harvester": {
+      "href": "https://repositorio.uss.cl/server/api/core/collections/93c7cd28-8462-4150-8ae2-d1628c8e6973/harvester"
+    },
+    "itemtemplate": {
+      "href": "https://repositorio.uss.cl/server/api/core/collections/93c7cd28-8462-4150-8ae2-d1628c8e6973/itemtemplate"
+    },
+    "license": {
+      "href": "https://repositorio.uss.cl/server/api/core/collections/93c7cd28-8462-4150-8ae2-d1628c8e6973/license"
+    },
+    "logo": {
+      "href": "https://repositorio.uss.cl/server/api/core/collections/93c7cd28-8462-4150-8ae2-d1628c8e6973/logo"
+    },
+    "mappedItems": {
+      "href": "https://repositorio.uss.cl/server/api/core/collections/93c7cd28-8462-4150-8ae2-d1628c8e6973/mappedItems"
+    },
+    "parentCommunity": {
+      "href": "https://repositorio.uss.cl/server/api/core/collections/93c7cd28-8462-4150-8ae2-d1628c8e6973/parentCommunity"
+    },
+    "adminGroup": {
+      "href": "https://repositorio.uss.cl/server/api/core/collections/93c7cd28-8462-4150-8ae2-d1628c8e6973/adminGroup"
+    },
+    "submittersGroup": {
+      "href": "https://repositorio.uss.cl/server/api/core/collections/93c7cd28-8462-4150-8ae2-d1628c8e6973/submittersGroup"
+    },
+    "itemReadGroup": {
+      "href": "https://repositorio.uss.cl/server/api/core/collections/93c7cd28-8462-4150-8ae2-d1628c8e6973/itemReadGroup"
+    },
+    "bitstreamReadGroup": {
+      "href": "https://repositorio.uss.cl/server/api/core/collections/93c7cd28-8462-4150-8ae2-d1628c8e6973/bitstreamReadGroup"
+    },
+    "self": {
+      "href": "https://repositorio.uss.cl/server/api/core/collections/93c7cd28-8462-4150-8ae2-d1628c8e6973"
+    },
+    "workflowGroups": [
+      {
+        "href": "https://repositorio.uss.cl/server/api/core/collections/93c7cd28-8462-4150-8ae2-d1628c8e6973/workflowGroups/reviewer",
+        "name": "reviewer"
+      },
+      {
+        "href": "https://repositorio.uss.cl/server/api/core/collections/93c7cd28-8462-4150-8ae2-d1628c8e6973/workflowGroups/editor",
+        "name": "editor"
+      },
+      {
+        "href": "https://repositorio.uss.cl/server/api/core/collections/93c7cd28-8462-4150-8ae2-d1628c8e6973/workflowGroups/finaleditor",
+        "name": "finaleditor"
+      }
+    ]
+  }
+}
+
+
+5.4 bundles (vacío: metadata.only)
+URL: https://repositorio.uss.cl/server/api/core/items/80012200-d875-4257-968d-b59a2c2abbb4/bundles
+HTTP: 200  Content-Type: application/hal+json;charset=UTF-8
+
+{
+  "_embedded": {
+    "bundles": []
+  },
+  "page": {
+    "number": 0,
+    "size": 20,
+    "totalPages": 0,
+    "totalElements": 0
+  },
+  "_links": {
+    "self": {
+      "href": "https://repositorio.uss.cl/server/api/core/items/80012200-d875-4257-968d-b59a2c2abbb4/bundles"
+    }
+  }
+}
+
+
+Conclusión: el DOI vive en metadata dc.identifier.doi, no en el recurso identifiers
+ni en pid/find?id=doi:... . Sin archivos. Útil para consistencia bibliográfica
+(EXT-01..08) pero no como evidencia de full-text institucional.
+
+--------------------------------------------------------------------------------
+6) ÍTEM PÚBLICO TESIS (open.access + bitstream)
+--------------------------------------------------------------------------------
+URL: https://repositorio.uss.cl/server/api/core/items/524e69d4-8dfd-450a-a8cd-a8fe174b26e8
+HTTP: 200
+Content-Type: application/hal+json;charset=UTF-8
+Redirecciones: 0
+Tamaño: 7123 bytes
+handle: uss/8571
+dc.type: Tesis
+dc.date / dc.date.issued: 2018
+dc.date.accessioned / dc.date.available: 2023-06-30T03:43:01Z
+Autores: Cáceres Escobar, Cynthia; Carrasco Ortega, Luis
+dc.contributor.guide: Durán Báez, Ana Luz
+dc.publisher: Universidad San Sebastián
+uss.carrera / uss.facultad / uss.programa / uss.sede presentes
+dc.identifier.doi: AUSENTE
+dc.rights: AUSENTE
+authority de autores: null (sin ORCID en metadata)
+
+Body JSON completo:
+
+{
+  "id": "524e69d4-8dfd-450a-a8cd-a8fe174b26e8",
+  "uuid": "524e69d4-8dfd-450a-a8cd-a8fe174b26e8",
+  "name": "Criterios e indicadores de acreditación de la dimensión de investigación, creación e innovación como diagnóstico para una futura acreditación según la Ley 21.091 en el contexto institucional de la Academia Politécnica Naval",
+  "handle": "uss/8571",
+  "metadata": {
+    "dc.contributor": [
+      {
+        "value": "Universidad San Sebastián. Facultad de Ciencias de la Educación",
+        "language": null,
+        "authority": null,
+        "confidence": -1,
+        "place": 0
+      }
+    ],
+    "dc.contributor.author": [
+      {
+        "value": "Cáceres Escobar, Cynthia",
+        "language": "",
+        "authority": null,
+        "confidence": -1,
+        "place": 0
+      },
+      {
+        "value": "Carrasco Ortega, Luis",
+        "language": "",
+        "authority": null,
+        "confidence": -1,
+        "place": 1
+      }
+    ],
+    "dc.contributor.guide": [
+      {
+        "value": "Durán Báez, Ana Luz",
+        "language": "",
+        "authority": null,
+        "confidence": -1,
+        "place": 0
+      }
+    ],
+    "dc.coverage.location": [
+      {
+        "value": "Santiago",
+        "language": "",
+        "authority": null,
+        "confidence": -1,
+        "place": 0
+      }
+    ],
+    "dc.date": [
+      {
+        "value": "2018",
+        "language": null,
+        "authority": null,
+        "confidence": -1,
+        "place": 0
+      }
+    ],
+    "dc.date.accessioned": [
+      {
+        "value": "2023-06-30T03:43:01Z",
+        "language": null,
+        "authority": null,
+        "confidence": -1,
+        "place": 0
+      }
+    ],
+    "dc.date.available": [
+      {
+        "value": "2023-06-30T03:43:01Z",
+        "language": null,
+        "authority": null,
+        "confidence": -1,
+        "place": 0
+      }
+    ],
+    "dc.date.issued": [
+      {
+        "value": "2018",
+        "language": null,
+        "authority": null,
+        "confidence": -1,
+        "place": 0
+      }
+    ],
+    "dc.description.abstract": [
+      {
+        "value": "El sistema de aseguramiento de la calidad que se ha desarrollado en Chile busca garantizar la calidad de la educación que ofrecen las diversas Instituciones de Educación Superior (IES). La apertura de los procesos de acreditación ha significado un desafío",
+        "language": "",
+        "authority": null,
+        "confidence": -1,
+        "place": 0
+      },
+      {
+        "value": "The quality assurance system that has been developing in Chile has been looking to guarantee the educational quality that offer the varied institutions of Higher Education (IES). The opening of the accreditation processes have meant a challenge to said in",
+        "language": "",
+        "authority": null,
+        "confidence": -1,
+        "place": 1
+      }
+    ],
+    "dc.identifier.local": [
+      {
+        "value": "TE MAGI CEDU C3867c 2018",
+        "language": "",
+        "authority": null,
+        "confidence": -1,
+        "place": 0
+      }
+    ],
+    "dc.identifier.uri": [
+      {
+        "value": "https://repositorio.uss.cl/handle/uss/8571",
+        "language": null,
+        "authority": null,
+        "confidence": -1,
+        "place": 0
+      }
+    ],
+    "dc.language.iso": [
+      {
+        "value": "es",
+        "language": "",
+        "authority": null,
+        "confidence": -1,
+        "place": 0
+      }
+    ],
+    "dc.publisher": [
+      {
+        "value": "Universidad San Sebastián",
+        "language": null,
+        "authority": null,
+        "confidence": -1,
+        "place": 0
+      }
+    ],
+    "dc.subject": [
+      {
+        "value": "TESIS MAGISTER EN GESTION PARA LA EDUCACION SUPERIOR",
+        "language": "",
+        "authority": null,
+        "confidence": -1,
+        "place": 0
+      },
+      {
+        "value": "ACREDITACION EDUCACION",
+        "language": "",
+        "authority": null,
+        "confidence": -1,
+        "place": 1
+      },
+      {
+        "value": "EDUCACION SUPERIOR CHILE",
+        "language": "",
+        "authority": null,
+        "confidence": -1,
+        "place": 2
+      },
+      {
+        "value": "INVESTIGACIONES",
+        "language": "",
+        "authority": null,
+        "confidence": -1,
+        "place": 3
+      },
+      {
+        "value": "CIENCIA NAVAL ENSEÑANZA",
+        "language": "",
+        "authority": null,
+        "confidence": -1,
+        "place": 4
+      }
+    ],
+    "dc.title": [
+      {
+        "value": "Criterios e indicadores de acreditación de la dimensión de investigación, creación e innovación como diagnóstico para una futura acreditación según la Ley 21.091 en el contexto institucional de la Academia Politécnica Naval",
+        "language": "",
+        "authority": null,
+        "confidence": -1,
+        "place": 0
+      }
+    ],
+    "dc.type": [
+      {
+        "value": "Tesis",
+        "language": "",
+        "authority": null,
+        "confidence": -1,
+        "place": 0
+      }
+    ],
+    "uss.carrera": [
+      {
+        "value": "Magíster en Gestión para la Educación Superior",
+        "language": null,
+        "authority": null,
+        "confidence": -1,
+        "place": 0
+      }
+    ],
+    "uss.facultad": [
+      {
+        "value": "Facultad de Educación",
+        "language": null,
+        "authority": null,
+        "confidence": -1,
+        "place": 0
+      }
+    ],
+    "uss.programa": [
+      {
+        "value": "Postgrado",
+        "language": "",
+        "authority": null,
+        "confidence": -1,
+        "place": 0
+      }
+    ],
+    "uss.sede": [
+      {
+        "value": "Bellavista",
+        "language": null,
+        "authority": null,
+        "confidence": -1,
+        "place": 0
+      }
+    ]
+  },
+  "inArchive": true,
+  "discoverable": true,
+  "withdrawn": false,
+  "lastModified": "2026-09-24T14:20:50.881835Z",
+  "entityType": null,
+  "type": "item",
+  "_links": {
+    "accessStatus": {
+      "href": "https://repositorio.uss.cl/server/api/core/items/524e69d4-8dfd-450a-a8cd-a8fe174b26e8/accessStatus"
+    },
+    "bundles": {
+      "href": "https://repositorio.uss.cl/server/api/core/items/524e69d4-8dfd-450a-a8cd-a8fe174b26e8/bundles"
+    },
+    "identifiers": {
+      "href": "https://repositorio.uss.cl/server/api/core/items/524e69d4-8dfd-450a-a8cd-a8fe174b26e8/identifiers"
+    },
+    "mappedCollections": {
+      "href": "https://repositorio.uss.cl/server/api/core/items/524e69d4-8dfd-450a-a8cd-a8fe174b26e8/mappedCollections"
+    },
+    "owningCollection": {
+      "href": "https://repositorio.uss.cl/server/api/core/items/524e69d4-8dfd-450a-a8cd-a8fe174b26e8/owningCollection"
+    },
+    "relationships": {
+      "href": "https://repositorio.uss.cl/server/api/core/items/524e69d4-8dfd-450a-a8cd-a8fe174b26e8/relationships"
+    },
+    "version": {
+      "href": "https://repositorio.uss.cl/server/api/core/items/524e69d4-8dfd-450a-a8cd-a8fe174b26e8/version"
+    },
+    "templateItemOf": {
+      "href": "https://repositorio.uss.cl/server/api/core/items/524e69d4-8dfd-450a-a8cd-a8fe174b26e8/templateItemOf"
+    },
+    "thumbnail": {
+      "href": "https://repositorio.uss.cl/server/api/core/items/524e69d4-8dfd-450a-a8cd-a8fe174b26e8/thumbnail"
+    },
+    "submitter": {
+      "href": "https://repositorio.uss.cl/server/api/core/items/524e69d4-8dfd-450a-a8cd-a8fe174b26e8/submitter"
+    },
+    "self": {
+      "href": "https://repositorio.uss.cl/server/api/core/items/524e69d4-8dfd-450a-a8cd-a8fe174b26e8"
+    }
+  }
+}
+
+
+6.1 accessStatus
+URL: https://repositorio.uss.cl/server/api/core/items/524e69d4-8dfd-450a-a8cd-a8fe174b26e8/accessStatus
+HTTP: 200  Content-Type: application/hal+json;charset=UTF-8
+
+{
+  "status": "open.access",
+  "embargoDate": null,
+  "type": "accessStatus",
+  "_links": {
+    "self": {
+      "href": "https://repositorio.uss.cl/server/api/core/items/524e69d4-8dfd-450a-a8cd-a8fe174b26e8/accessStatus"
+    }
+  }
+}
+
+
+6.2 bundles
+URL: https://repositorio.uss.cl/server/api/core/items/524e69d4-8dfd-450a-a8cd-a8fe174b26e8/bundles
+HTTP: 200  Content-Type: application/hal+json;charset=UTF-8
+Bundles: TEXT, THUMBNAIL, ORIGINAL (totalElements=3)
+
+{
+  "_embedded": {
+    "bundles": [
+      {
+        "uuid": "4443ff21-315e-433b-b09c-e0ea54c13ee3",
+        "name": "TEXT",
+        "handle": null,
+        "metadata": {
+          "dc.title": [
+            {
+              "value": "TEXT",
+              "language": null,
+              "authority": null,
+              "confidence": -1,
+              "place": 0
+            }
+          ]
+        },
+        "type": "bundle",
+        "_links": {
+          "item": {
+            "href": "https://repositorio.uss.cl/server/api/core/bundles/4443ff21-315e-433b-b09c-e0ea54c13ee3/item"
+          },
+          "bitstreams": {
+            "href": "https://repositorio.uss.cl/server/api/core/bundles/4443ff21-315e-433b-b09c-e0ea54c13ee3/bitstreams"
+          },
+          "primaryBitstream": {
+            "href": "https://repositorio.uss.cl/server/api/core/bundles/4443ff21-315e-433b-b09c-e0ea54c13ee3/primaryBitstream"
+          },
+          "self": {
+            "href": "https://repositorio.uss.cl/server/api/core/bundles/4443ff21-315e-433b-b09c-e0ea54c13ee3"
+          }
+        }
+      },
+      {
+        "uuid": "6d571147-eb40-4d56-b0fa-eeb73f725ebe",
+        "name": "THUMBNAIL",
+        "handle": null,
+        "metadata": {
+          "dc.title": [
+            {
+              "value": "THUMBNAIL",
+              "language": null,
+              "authority": null,
+              "confidence": -1,
+              "place": 0
+            }
+          ]
+        },
+        "type": "bundle",
+        "_links": {
+          "item": {
+            "href": "https://repositorio.uss.cl/server/api/core/bundles/6d571147-eb40-4d56-b0fa-eeb73f725ebe/item"
+          },
+          "bitstreams": {
+            "href": "https://repositorio.uss.cl/server/api/core/bundles/6d571147-eb40-4d56-b0fa-eeb73f725ebe/bitstreams"
+          },
+          "primaryBitstream": {
+            "href": "https://repositorio.uss.cl/server/api/core/bundles/6d571147-eb40-4d56-b0fa-eeb73f725ebe/primaryBitstream"
+          },
+          "self": {
+            "href": "https://repositorio.uss.cl/server/api/core/bundles/6d571147-eb40-4d56-b0fa-eeb73f725ebe"
+          }
+        }
+      },
+      {
+        "uuid": "d5e463a7-baf8-45c6-b0db-4c6999566558",
+        "name": "ORIGINAL",
+        "handle": null,
+        "metadata": {
+          "dc.title": [
+            {
+              "value": "ORIGINAL",
+              "language": null,
+              "authority": null,
+              "confidence": -1,
+              "place": 0
+            }
+          ]
+        },
+        "type": "bundle",
+        "_links": {
+          "item": {
+            "href": "https://repositorio.uss.cl/server/api/core/bundles/d5e463a7-baf8-45c6-b0db-4c6999566558/item"
+          },
+          "bitstreams": {
+            "href": "https://repositorio.uss.cl/server/api/core/bundles/d5e463a7-baf8-45c6-b0db-4c6999566558/bitstreams"
+          },
+          "primaryBitstream": {
+            "href": "https://repositorio.uss.cl/server/api/core/bundles/d5e463a7-baf8-45c6-b0db-4c6999566558/primaryBitstream"
+          },
+          "self": {
+            "href": "https://repositorio.uss.cl/server/api/core/bundles/d5e463a7-baf8-45c6-b0db-4c6999566558"
+          }
+        }
+      }
+    ]
+  },
+  "page": {
+    "number": 0,
+    "size": 20,
+    "totalPages": 1,
+    "totalElements": 3
+  },
+  "_links": {
+    "self": {
+      "href": "https://repositorio.uss.cl/server/api/core/items/524e69d4-8dfd-450a-a8cd-a8fe174b26e8/bundles"
+    }
+  }
+}
+
+
+6.3 bitstreams ORIGINAL
+URL: https://repositorio.uss.cl/server/api/core/bundles/d5e463a7-baf8-45c6-b0db-4c6999566558/bitstreams
+HTTP: 200  Content-Type: application/hal+json;charset=UTF-8
+
+{
+  "_embedded": {
+    "bitstreams": [
+      {
+        "id": "7784e066-bbb4-4cdd-9b2b-ae3deb46d84d",
+        "uuid": "7784e066-bbb4-4cdd-9b2b-ae3deb46d84d",
+        "name": "te_55501.pdf",
+        "handle": null,
+        "metadata": {
+          "dc.title": [
+            {
+              "value": "te_55501.pdf",
+              "language": null,
+              "authority": null,
+              "confidence": -1,
+              "place": 0
+            }
+          ]
+        },
+        "bundleName": "ORIGINAL",
+        "sizeBytes": 1455716,
+        "checkSum": {
+          "checkSumAlgorithm": "MD5",
+          "value": "ec4265e2f5ad128cb0891a117cd497fa"
+        },
+        "sequenceId": 1,
+        "type": "bitstream",
+        "_links": {
+          "content": {
+            "href": "https://repositorio.uss.cl/server/api/core/bitstreams/7784e066-bbb4-4cdd-9b2b-ae3deb46d84d/content"
+          },
+          "bundle": {
+            "href": "https://repositorio.uss.cl/server/api/core/bitstreams/7784e066-bbb4-4cdd-9b2b-ae3deb46d84d/bundle"
+          },
+          "accessStatus": {
+            "href": "https://repositorio.uss.cl/server/api/core/bitstreams/7784e066-bbb4-4cdd-9b2b-ae3deb46d84d/accessStatus"
+          },
+          "format": {
+            "href": "https://repositorio.uss.cl/server/api/core/bitstreams/7784e066-bbb4-4cdd-9b2b-ae3deb46d84d/format"
+          },
+          "thumbnail": {
+            "href": "https://repositorio.uss.cl/server/api/core/bitstreams/7784e066-bbb4-4cdd-9b2b-ae3deb46d84d/thumbnail"
+          },
+          "self": {
+            "href": "https://repositorio.uss.cl/server/api/core/bitstreams/7784e066-bbb4-4cdd-9b2b-ae3deb46d84d"
+          }
+        }
+      }
+    ]
+  },
+  "page": {
+    "number": 0,
+    "size": 20,
+    "totalPages": 1,
+    "totalElements": 1
+  },
+  "_links": {
+    "self": {
+      "href": "https://repositorio.uss.cl/server/api/core/bundles/d5e463a7-baf8-45c6-b0db-4c6999566558/bitstreams"
+    }
+  }
+}
+
+
+6.4 bitstream accessStatus
+URL: https://repositorio.uss.cl/server/api/core/bitstreams/7784e066-bbb4-4cdd-9b2b-ae3deb46d84d/accessStatus
+HTTP: 200  Content-Type: application/hal+json;charset=UTF-8
+
+{
+  "status": "open.access",
+  "embargoDate": null,
+  "type": "accessStatus",
+  "_links": {
+    "self": {
+      "href": "https://repositorio.uss.cl/server/api/core/bitstreams/7784e066-bbb4-4cdd-9b2b-ae3deb46d84d/accessStatus"
+    }
+  }
+}
+
+
+6.5 bitstream format
+URL: https://repositorio.uss.cl/server/api/core/bitstreams/7784e066-bbb4-4cdd-9b2b-ae3deb46d84d/format
+HTTP: 200  Content-Type: application/hal+json;charset=UTF-8
+
+{
+  "id": 4,
+  "shortDescription": "Adobe PDF",
+  "description": "Adobe Portable Document Format",
+  "mimetype": "application/pdf",
+  "supportLevel": "KNOWN",
+  "internal": false,
+  "extensions": [
+    "pdf"
+  ],
+  "type": "bitstreamformat",
+  "_links": {
+    "self": {
+      "href": "https://repositorio.uss.cl/server/api/core/bitstreamformats/4"
+    }
+  }
+}
+
+
+6.6 contenido público (HEAD, para no descargar 1.4 MiB)
+URL: https://repositorio.uss.cl/server/api/core/bitstreams/7784e066-bbb4-4cdd-9b2b-ae3deb46d84d/content
+HTTP: 200
+Content-Type: application/pdf;charset=UTF-8
+content-length: 1455716
+content-disposition: inline; filename="te_55501.pdf"
+cache-control: private,no-cache
+Redirecciones: 0
+Body: no descargado (inspección HEAD). El enlace de contenido es público para este bitstream.
+
+6.7 submitter
+URL: https://repositorio.uss.cl/server/api/core/items/524e69d4-8dfd-450a-a8cd-a8fe174b26e8/submitter
+HTTP: 204
+Content-Type: (vacío)
+Body: vacío
+Conclusión: el submitter no se expone anónimamente (204).
+
+Bundles derivados (resumen, JSON completo no repetido):
+- THUMBNAIL uuid dc77dae6-2cf6-4523-ae91-5d592bea66d6  te_55501.pdf.jpg  32587 bytes
+  content: https://repositorio.uss.cl/server/api/core/bitstreams/dc77dae6-2cf6-4523-ae91-5d592bea66d6/content
+- TEXT uuid da93add9-37d3-41ad-998a-73c7d76e9b55  te_55501.pdf.txt  103689 bytes
+  content: https://repositorio.uss.cl/server/api/core/bitstreams/da93add9-37d3-41ad-998a-73c7d76e9b55/content
+  (texto extraído por Tika; no almacenar como fuente de verdad)
+
+Conclusión: cadena HAL item -> bundles -> bitstreams -> content funciona anónima
+en open.access. Guardar uuid, name, sizeBytes, MD5, bundleName y URL de content;
+no persistir el PDF en MySQL.
+
+--------------------------------------------------------------------------------
+7) PID Y DSO (RESOLUCIÓN)
+--------------------------------------------------------------------------------
+URL: https://repositorio.uss.cl/server/api/pid/find?id=uss/24032
+HTTP: 302
+Content-Type: (vacío)
+Location: https://repositorio.uss.cl/server/api/core/items/80012200-d875-4257-968d-b59a2c2abbb4
+num_redirects (sin -L): 0
+Body: vacío
+
+URL: https://repositorio.uss.cl/server/api/pid/find?id=doi:10.4067/s0034-98872019000901144
+HTTP: 404
+Content-Type: (vacío)
+Body: vacío
+Conclusión: el DOI no está registrado como PID resoluble. Buscar por metadata o discover.
+
+URL: https://repositorio.uss.cl/server/api/dso/find?uuid=80012200-d875-4257-968d-b59a2c2abbb4
+HTTP: 302
+Location: https://repositorio.uss.cl/server/api/core/items/80012200-d875-4257-968d-b59a2c2abbb4
+Body: vacío
+
+--------------------------------------------------------------------------------
+8) AUTENTICACIÓN (SOLO GET, SIN LOGIN)
+--------------------------------------------------------------------------------
+URL: https://repositorio.uss.cl/server/api/authn
+HTTP: 200  Content-Type: application/hal+json;charset=UTF-8
+
+{
+  "id": null,
+  "type": "authn",
+  "_links": {
+    "self": {
+      "href": "https://repositorio.uss.cl/server/api/authn"
+    },
+    "login": {
+      "href": "https://repositorio.uss.cl/server/api/authn/login"
+    },
+    "logout": {
+      "href": "https://repositorio.uss.cl/server/api/authn/logout"
+    },
+    "status": {
+      "href": "https://repositorio.uss.cl/server/api/authn/status"
+    }
+  }
+}
+
+
+URL: https://repositorio.uss.cl/server/api/authn/status
+HTTP: 200  Content-Type: application/hal+json;charset=UTF-8
+
+{
+  "id": null,
+  "okay": true,
+  "authenticated": false,
+  "authenticationMethod": null,
+  "type": "status",
+  "_links": {
+    "eperson": {
+      "href": "https://repositorio.uss.cl/server/api/authn/status/eperson"
+    },
+    "specialGroups": {
+      "href": "https://repositorio.uss.cl/server/api/authn/status/specialGroups"
+    },
+    "self": {
+      "href": "https://repositorio.uss.cl/server/api/authn/status"
+    }
+  }
+}
+
+
+Enlaces HAL: login, logout, status. No se invocó /authn/login.
+authenticated=false. No hay authenticationMethod.
+
+XSRF: DSpace emite DSPACE-XSRF-COOKIE + dspace-xsrf-token en GET. Para mutaciones
+haría falta el header; esta exploración no muta. No almacenar el token.
+
+--------------------------------------------------------------------------------
+9) ERRORES Y LÍMITES
+--------------------------------------------------------------------------------
+URL: https://repositorio.uss.cl/server/api/core/items?size=2
+HTTP: 401  Content-Type: application/json;charset=UTF-8
+
+{
+  "timestamp": "2026-10-08T18:24:58.049+00:00",
+  "status": 401,
+  "error": "Unauthorized",
+  "message": "Authentication is required",
+  "path": "/server/api/core/items"
+}
+
+
+URL: https://repositorio.uss.cl/server/api/core/items/00000000-0000-0000-0000-000000000000
+HTTP: 404  Content-Type: application/json;charset=UTF-8
+
+{
+  "timestamp": "2026-10-08T18:24:57.978+00:00",
+  "status": 404,
+  "error": "Not Found",
+  "message": "An exception has occurred",
+  "path": "/server/api/core/items/00000000-0000-0000-0000-000000000000"
+}
+
+
+URL: https://repositorio.uss.cl/server/api/core/items/not-a-uuid
+HTTP: 401  Content-Type: application/json;charset=UTF-8
+
+{
+  "timestamp": "2026-10-08T18:28:24.920+00:00",
+  "status": 401,
+  "error": "Unauthorized",
+  "message": "Authentication is required",
+  "path": "/server/api/core/items/not-a-uuid"
+}
+
+
+URL: https://repositorio.uss.cl/server/api/eperson/epersons?size=1
+HTTP: 401  Content-Type: application/json;charset=UTF-8
+
+{
+  "timestamp": "2026-10-08T18:25:53.974+00:00",
+  "status": 401,
+  "error": "Unauthorized",
+  "message": "Authentication is required",
+  "path": "/server/api/eperson/epersons"
+}
+
+
+URL: https://repositorio.uss.cl/server/api/config/properties
+HTTP: 405  Content-Type: application/json;charset=UTF-8
+
+{
+  "timestamp": "2026-10-08T18:25:53.871+00:00",
+  "status": 405,
+  "error": "Method Not Allowed",
+  "message": "An exception has occurred",
+  "path": "/server/api/config/properties"
+}
+
+
+URL: https://repositorio.uss.cl/server/actuator/info
+HTTP: 401  Content-Type: application/json;charset=UTF-8
+
+{
+  "timestamp": "2026-10-08T18:28:22.867+00:00",
+  "status": 401,
+  "error": "Unauthorized",
+  "message": "Authentication is required",
+  "path": "/server/actuator/info"
+}
+
+
+Formato de error Spring Boot: timestamp, status, error, message, path.
+Mensajes genéricos ("An exception has occurred", "Authentication is required").
+No hay stacktrace en cuerpo público.
+
+Límite de page size:
+- default 20
+- size=100 y size=200 aceptados en collections (85 elementos)
+- GET /core/bitstreamformats?size=2000 -> page.size efectivo 1000, totalElements=86
+  (máximo observado = 1000)
+
+--------------------------------------------------------------------------------
+10) RECURSOS AUXILIARES PÚBLICOS
+--------------------------------------------------------------------------------
+URL: https://repositorio.uss.cl/server/api/core/bitstreamformats?size=2
+HTTP: 200  Content-Type: application/hal+json;charset=UTF-8
+page: size=2, totalElements=86, totalPages=43
+
+{
+  "_embedded": {
+    "bitstreamformats": [
+      {
+        "id": 1,
+        "shortDescription": "Unknown",
+        "description": "Unknown data format",
+        "mimetype": "application/octet-stream",
+        "supportLevel": "UNKNOWN",
+        "internal": false,
+        "extensions": [],
+        "type": "bitstreamformat",
+        "_links": {
+          "self": {
+            "href": "https://repositorio.uss.cl/server/api/core/bitstreamformats/1"
+          }
+        }
+      },
+      {
+        "id": 2,
+        "shortDescription": "License",
+        "description": "Item-specific license agreed upon to submission",
+        "mimetype": "text/plain; charset=utf-8",
+        "supportLevel": "KNOWN",
+        "internal": true,
+        "extensions": [],
+        "type": "bitstreamformat",
+        "_links": {
+          "self": {
+            "href": "https://repositorio.uss.cl/server/api/core/bitstreamformats/2"
+          }
+        }
+      }
+    ]
+  },
+  "_links": {
+    "first": {
+      "href": "https://repositorio.uss.cl/server/api/core/bitstreamformats?page=0&size=2"
+    },
+    "self": {
+      "href": "https://repositorio.uss.cl/server/api/core/bitstreamformats?size=2"
+    },
+    "next": {
+      "href": "https://repositorio.uss.cl/server/api/core/bitstreamformats?page=1&size=2"
+    },
+    "last": {
+      "href": "https://repositorio.uss.cl/server/api/core/bitstreamformats?page=42&size=2"
+    }
+  },
+  "page": {
+    "size": 2,
+    "totalElements": 86,
+    "totalPages": 43,
+    "number": 0
+  }
+}
+
+
+URL: https://repositorio.uss.cl/server/api/core/sites
+HTTP: 200  Content-Type: application/hal+json;charset=UTF-8
+
+{
+  "_embedded": {
+    "sites": [
+      {
+        "id": "78de42db-b93f-4040-ab63-98f0a91b7cd4",
+        "uuid": "78de42db-b93f-4040-ab63-98f0a91b7cd4",
+        "name": "Repositorio USS",
+        "handle": "uss/0",
+        "metadata": {},
+        "type": "site",
+        "_links": {
+          "self": {
+            "href": "https://repositorio.uss.cl/server/api/core/sites/78de42db-b93f-4040-ab63-98f0a91b7cd4"
+          }
+        }
+      }
+    ]
+  },
+  "_links": {
+    "self": {
+      "href": "https://repositorio.uss.cl/server/api/core/sites"
+    }
+  },
+  "page": {
+    "size": 20,
+    "totalElements": 1,
+    "totalPages": 1,
+    "number": 0
+  }
+}
+
+
+URL: https://repositorio.uss.cl/server/api/core/metadataschemas?size=5
+HTTP: 200  Content-Type: application/hal+json;charset=UTF-8
+Esquemas: dc, eperson, dcterms, local, uss (totalElements=20, 4 páginas)
+
+{
+  "_embedded": {
+    "metadataschemas": [
+      {
+        "id": 1,
+        "prefix": "dc",
+        "namespace": "http://dublincore.org/documents/dcmi-terms/",
+        "type": "metadataschema",
+        "_links": {
+          "self": {
+            "href": "https://repositorio.uss.cl/server/api/core/metadataschemas/1"
+          }
+        }
+      },
+      {
+        "id": 2,
+        "prefix": "eperson",
+        "namespace": "http://dspace.org/eperson",
+        "type": "metadataschema",
+        "_links": {
+          "self": {
+            "href": "https://repositorio.uss.cl/server/api/core/metadataschemas/2"
+          }
+        }
+      },
+      {
+        "id": 3,
+        "prefix": "dcterms",
+        "namespace": "http://purl.org/dc/terms/",
+        "type": "metadataschema",
+        "_links": {
+          "self": {
+            "href": "https://repositorio.uss.cl/server/api/core/metadataschemas/3"
+          }
+        }
+      },
+      {
+        "id": 4,
+        "prefix": "local",
+        "namespace": "http://dspace.org/namespace/local/",
+        "type": "metadataschema",
+        "_links": {
+          "self": {
+            "href": "https://repositorio.uss.cl/server/api/core/metadataschemas/4"
+          }
+        }
+      },
+      {
+        "id": 5,
+        "prefix": "uss",
+        "namespace": "uss",
+        "type": "metadataschema",
+        "_links": {
+          "self": {
+            "href": "https://repositorio.uss.cl/server/api/core/metadataschemas/5"
+          }
+        }
+      }
+    ]
+  },
+  "_links": {
+    "first": {
+      "href": "https://repositorio.uss.cl/server/api/core/metadataschemas?page=0&size=5"
+    },
+    "self": {
+      "href": "https://repositorio.uss.cl/server/api/core/metadataschemas?size=5"
+    },
+    "next": {
+      "href": "https://repositorio.uss.cl/server/api/core/metadataschemas?page=1&size=5"
+    },
+    "last": {
+      "href": "https://repositorio.uss.cl/server/api/core/metadataschemas?page=3&size=5"
+    }
+  },
+  "page": {
+    "size": 5,
+    "totalElements": 20,
+    "totalPages": 4,
+    "number": 0
+  }
+}
+
+
+URL: https://repositorio.uss.cl/server/actuator
+HTTP: 200  Content-Type: application/vnd.spring-boot.actuator.v3+json;charset=UTF-8
+
+{
+  "_links": {
+    "self": {
+      "href": "https://repositorio.uss.cl/server/actuator",
+      "templated": false
+    },
+    "health": {
+      "href": "https://repositorio.uss.cl/server/actuator/health",
+      "templated": false
+    },
+    "health-path": {
+      "href": "https://repositorio.uss.cl/server/actuator/health/{*path}",
+      "templated": true
+    },
+    "info": {
+      "href": "https://repositorio.uss.cl/server/actuator/info",
+      "templated": false
+    }
+  }
+}
+
+
+URL: https://repositorio.uss.cl/server/actuator/health
+HTTP: 200  Content-Type: application/vnd.spring-boot.actuator.v3+json;charset=UTF-8
+
+{
+  "status": "DOWN"
+}
+
+Conclusión: health público DOWN no implica que la API REST esté caída (el resto
+respondió 200). No usar actuator como probe de harvest. info está protegido.
+
+--------------------------------------------------------------------------------
+11) OAI-PMH Identify
+--------------------------------------------------------------------------------
+URL: https://repositorio.uss.cl/server/oai/request?verb=Identify
+HTTP: 200
+Content-Type: text/xml;charset=UTF-8
+Redirecciones: 0
+Tamaño: 1290 bytes
+
+Body XML completo:
+
+<?xml version="1.0" encoding="UTF-8"?><?xml-stylesheet type="text/xsl" href="static/style.xsl"?><OAI-PMH xmlns="http://www.openarchives.org/OAI/2.0/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/ http://www.openarchives.org/OAI/2.0/OAI-PMH.xsd"><responseDate>2026-10-08T18:24:58Z</responseDate><request verb="Identify">https://repositorio.uss.cl/server/oai/request</request><Identify><repositoryName>Repositorio USS</repositoryName><baseURL>https://repositorio.uss.cl/server/oai/request</baseURL><protocolVersion>2.0</protocolVersion><adminEmail>dspace-help@myu.edu</adminEmail><earliestDatestamp>2020-11-12T22:26:40Z</earliestDatestamp><deletedRecord>transient</deletedRecord><granularity>YYYY-MM-DDThh:mm:ssZ</granularity><description><oai-identifier xmlns="http://www.openarchives.org/OAI/2.0/oai-identifier" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/oai-identifier http://www.openarchives.org/OAI/2.0/oai-identifier.xsd">
+<scheme>oai</scheme>
+<repositoryIdentifier>repositorio.uss.cl</repositoryIdentifier>
+<delimiter>:</delimiter>
+<sampleIdentifier>oai:repositorio.uss.cl:uss/1234</sampleIdentifier>
+</oai-identifier></description></Identify></OAI-PMH>
+
+
+URL: https://repositorio.uss.cl/oai/request?verb=Identify
+HTTP: 200
+Content-Type: text/html
+Redirecciones: 0
+Tamaño: 8116 bytes
+Body: SPA Angular "Repositorio USS" (index.html). No es OAI-PMH.
+Se omite el HTML completo.
+
+URL: https://repositorio.uss.cl/oai?verb=Identify
+HTTP: 200
+Content-Type: text/html
+Idéntico al anterior (SPA).
+
+Identify observado:
+  repositoryName: Repositorio USS
+  baseURL: https://repositorio.uss.cl/server/oai/request
+  protocolVersion: 2.0
+  adminEmail: dspace-help@myu.edu  (placeholder de plantilla DSpace; no usar como contacto)
+  earliestDatestamp: 2020-11-12T22:26:40Z
+  deletedRecord: transient
+  granularity: YYYY-MM-DDThh:mm:ssZ
+  sampleIdentifier: oai:repositorio.uss.cl:uss/1234
+
+No se ejecutaron ListRecords/ListIdentifiers (fuera del alcance Identify).
+
+--------------------------------------------------------------------------------
+12) MAPA DE CAMPOS PARA INTEGRACIÓN
+--------------------------------------------------------------------------------
+Identificadores:
+  uuid (id)           siempre
+  handle              siempre (prefijo uss/)
+  dc.identifier.uri   URL handle pública
+  dc.identifier.doi   presente en artículos; ausente en tesis muestreada
+  dc.identifier.issn  artículos de revista
+  dc.identifier.local signatura/local
+  identifiers HAL     solo handle en el ejemplo con DOI
+
+Tipos dc.type observados: Tesis, Artículo de revisión, Presentación
+(vocabulario controlado local, no COAR obligatorio en los samples)
+
+Fechas:
+  dc.date / dc.date.issued  año o fecha de publicación
+  dc.date.accessioned / dc.date.available  ISO-8601 Z
+  lastModified              ISO-8601 con nanos, útil para incremental
+
+Autores:
+  dc.contributor.author  repetible, place 0..n, authority=null
+  a veces nombre corporativo / grupo (ELHOC)
+  dc.contributor.guide   tesis
+  dc.contributor         unidad USS
+
+Derechos:
+  no universal; dc.rights + dc.rights.uri cuando existen (CC0 en presentación OA)
+  accessStatus.status es la señal operativa de acceso al archivo:
+    open.access | restricted | metadata.only | embargo (+ embargoDate)
+
+Bitstreams públicos:
+  HAL: .../core/bitstreams/{uuid}/content
+  metadatos: name, sizeBytes, checkSum MD5, bundleName ORIGINAL|THUMBNAIL|TEXT
+  format.mimetype application/pdf para el ORIGINAL de la tesis
+
+Esquema uss:
+  uss.carrera, uss.facultad, uss.programa, uss.sede
+
+--------------------------------------------------------------------------------
+13) IMPLICACIONES PARA EL CLIENTE JAVA
+--------------------------------------------------------------------------------
+- Accept: application/hal+json (o application/json; el servidor responde HAL).
+- Seguir _links; no hardcodear más allá de /server/api y patrones uuid.
+- Paginación page & size; tope 1000; default 20.
+- Timeouts y retry ante Cloudflare; no enviar cookies persistidas.
+- Tratar 401/404/405 con el JSON Spring; 302 en pid/dso (seguir Location o
+  construir GET al uuid).
+- Harvest de ítems: discover/search/objects, no /core/items.
+- Incremental: lastModified del ítem o OAI from= datestamp (si se habilita después).
+- Join primario: DoiNormalizer(dc.identifier.doi) vs PURE/OpenAlex/Crossref.
+- Join secundario: handle uss/{n} o uuid.
+- No login para el alcance de evidencia pública.
+
+Fin del informe.

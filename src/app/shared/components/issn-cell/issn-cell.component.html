@@ -1,0 +1,63 @@
+@if (count() === 0) {
+  <span class="issn-value">{{ 'common.dash' | translate }}</span>
+} @else if (!interactive()) {
+  <span class="issn-value">{{ displayValue() || ('common.dash' | translate) }}</span>
+} @else {
+  <button
+    type="button"
+    class="issn-count-trigger"
+    [attr.aria-expanded]="open()"
+    [attr.aria-controls]="panelId()"
+    [attr.aria-label]="'journals.issnPopover.viewCount' | translate: { count: count() }"
+    [title]="'journals.issnPopover.view' | translate"
+    (click)="toggle($event)"
+  >
+    {{ 'journals.issnCountLabel' | translate: { count: count() } }}
+  </button>
+}
+
+@if (open()) {
+  <div
+    #panel
+    class="issn-popover"
+    role="dialog"
+    tabindex="-1"
+    [id]="panelId()"
+    [attr.aria-label]="titleKey() | translate: { count: recordCount() }"
+    [style.top]="panelStyle()['top']"
+    [style.left]="panelStyle()['left']"
+    [style.width]="panelStyle()['width']"
+    [style.max-height]="panelStyle()['maxHeight']"
+  >
+    <header class="issn-popover__header">
+      <p>{{ titleKey() | translate: { count: recordCount() } }}</p>
+    </header>
+
+    @if (loading()) {
+      <p class="issn-popover__status" aria-live="polite">{{ 'common.loading' | translate }}</p>
+    } @else if (error()) {
+      <p class="issn-popover__status issn-popover__status--error" role="alert">
+        {{ 'journals.issnPopover.error' | translate }}
+      </p>
+    } @else {
+      <ul class="issn-popover__list">
+        @for (item of detail()?.items ?? []; track itemTrack(item, $index)) {
+          <li class="issn-popover__item">
+            <div class="issn-popover__value">
+              @if (item.issn) {
+                <span class="issn-id" [title]="item.issn">{{ item.issn }}</span>
+                <os-copy-button [value]="item.issn" labelKey="common.copyIssn" />
+              } @else {
+                <span class="issn-missing">{{ 'journals.issnPopover.missing' | translate }}</span>
+              }
+            </div>
+            <p class="issn-popover__pure-id" [attr.title]="'journals.issnPopover.issnPureId' | translate">
+              {{ 'common.pureId' | translate }}
+              {{ item.pureId == null ? ('common.dash' | translate) : item.pureId }}
+            </p>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+}

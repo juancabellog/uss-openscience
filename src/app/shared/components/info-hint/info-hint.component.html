@@ -1,0 +1,37 @@
+<span class="info-hint" [class.info-hint--embedded]="embedded()">
+  <button
+    type="button"
+    class="info-hint__trigger"
+    [class.info-hint__trigger--embedded]="embedded()"
+    [attr.aria-label]="ariaLabel()"
+    [attr.aria-expanded]="open()"
+    [attr.aria-controls]="open() ? panelId : null"
+    [attr.aria-describedby]="open() ? panelId : null"
+    (click)="toggle($event)"
+    (focus)="show()"
+    (blur)="onBlur()"
+    (mouseenter)="show()"
+    (mouseleave)="hide()"
+    (keydown)="onKeydown($event)"
+  >
+    <ng-content />
+    @if (showIcon()) {
+      <os-icon name="info" />
+    }
+  </button>
+  @if (open()) {
+    <span [id]="panelId" class="info-hint__panel" role="tooltip">
+      <span class="info-hint__text">{{ text() }}</span>
+      @if (actionLabel(); as label) {
+        <button
+          type="button"
+          class="info-hint__action"
+          (mousedown)="$event.preventDefault()"
+          (click)="runAction($event)"
+        >
+          {{ label }}
+        </button>
+      }
+    </span>
+  }
+</span>

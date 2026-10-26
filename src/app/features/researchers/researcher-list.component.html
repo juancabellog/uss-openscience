@@ -1,0 +1,82 @@
+<os-page-header
+  [title]="'researchers.title' | translate"
+  [subtitle]="'researchers.subtitle' | translate"
+/>
+<os-demo-banner [text]="'researchers.demo' | translate" />
+
+<os-filter-bar>
+  <os-search-box
+    [control]="search"
+    [placeholder]="'researchers.searchPlaceholder' | translate"
+    [label]="'researchers.search' | translate"
+  />
+  <label>
+    <span class="visually-hidden">{{ 'researchers.faculty' | translate }}</span>
+    <select [formControl]="faculty">
+      <option value="all">{{ 'researchers.allFaculties' | translate }}</option>
+      @for (facultyName of faculties; track facultyName) {
+        <option [value]="facultyName">{{ facultyName }}</option>
+      }
+    </select>
+  </label>
+  <label>
+    <span class="visually-hidden">{{ 'researchers.qualityStatus' | translate }}</span>
+    <select [formControl]="status">
+      <option value="all">{{ 'status.all' | translate }}</option>
+      <option value="ok">{{ 'status.ok' | translate }}</option>
+      <option value="review">{{ 'status.review' | translate }}</option>
+      <option value="pending">{{ 'status.pending' | translate }}</option>
+    </select>
+  </label>
+</os-filter-bar>
+
+@let vm = result();
+@if (vm.status === 'loading' && vm.data.items.length === 0) {
+  <os-loading-state />
+} @else if (vm.status === 'error') {
+  <os-error-state />
+} @else if (vm.data.items.length === 0) {
+  <os-empty-state
+    [title]="'researchers.emptyTitle' | translate"
+    [message]="'researchers.emptyMessage' | translate"
+  />
+} @else {
+  <os-data-table-shell [caption]="'researchers.caption' | translate">
+    <table>
+      <thead>
+        <tr>
+          <th>{{ 'researchers.name' | translate }}</th>
+          <th>{{ 'researchers.position' | translate }}</th>
+          <th>{{ 'researchers.faculty' | translate }}</th>
+          <th>{{ 'researchers.orcid' | translate }}</th>
+          <th>{{ 'researchers.scopusId' | translate }}</th>
+          <th>{{ 'researchers.publications' | translate }}</th>
+          <th>{{ 'researchers.status' | translate }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (person of vm.data.items; track person.id) {
+          <tr>
+            <td>
+              <a [routerLink]="['/researchers', person.id]">{{ person.lastName }}, {{ person.firstName }}</a>
+            </td>
+            <td>{{ person.position }}</td>
+            <td>{{ person.faculty }}</td>
+            <td>{{ person.orcid || ('common.dash' | translate) }}</td>
+            <td>{{ person.scopusIds.length ? person.scopusIds.join(', ') : ('common.dash' | translate) }}</td>
+            <td>{{ person.publicationCount | localeNumber }}</td>
+            <td>
+              <os-status-badge [label]="qualityKey(person.dataQualityStatus) | translate" [tone]="qualityTone(person.dataQualityStatus)" />
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </os-data-table-shell>
+  <os-pagination
+    [page]="vm.data.page"
+    [pageSize]="vm.data.pageSize"
+    [total]="vm.data.total"
+    (pageChange)="onPageChange($event)"
+  />
+}

@@ -1,0 +1,42 @@
+<section class="panel">
+  <h1>{{ definition.titleKey | translate }}</h1>
+  <div class="steps">
+    @for (section of definition.sections; track section.id; let i = $index) {
+      <span [class.on]="step() === i + 1">{{ i + 1 }}. {{ section.titleKey | translate }}</span>
+    }
+  </div>
+  <form [formGroup]="form">
+    @if (step() === 1) {
+      <h2>A. {{ 'forms.validation.sections.A' | translate }}</h2>
+      <eth-ethics-form-fields [questions]="questions('A')" [form]="form" mode="edit" />
+    }
+    @if (step() === 2) {
+      <h2>B. {{ 'forms.validation.sections.B' | translate }}</h2>
+      <eth-ethics-form-fields [questions]="questions('B')" [form]="form" mode="edit" />
+    }
+    @if (step() === 3) {
+      <h2>C. {{ 'forms.validation.sections.C' | translate }}</h2>
+      <eth-ethics-form-fields [questions]="questions('C')" [form]="form" mode="edit" />
+    }
+    @if (step() === 4) {
+      <h2>D. {{ 'forms.validation.sections.D' | translate }}</h2>
+      <eth-ethics-form-fields [questions]="questions('D')" [form]="form" mode="edit" />
+    }
+    @if (step() === 5) {
+      <h2>E. {{ 'forms.validation.sections.E' | translate }}</h2>
+      <eth-ethics-form-fields
+        [questions]="questions('E')"
+        [form]="form"
+        mode="edit"
+        (fileSelected)="onFile($event)"
+        (fileRemoved)="removeFile($event)"
+      />
+    }
+  </form>
+  @if (message(); as text) { <p class="alert danger">{{ text }}</p> }
+  <div class="actions">
+    @if (step() > 1) { <button type="button" class="ghost" (click)="back()">{{ 'common.back' | translate }}</button> }
+    @if (step() < 5) { <button type="button" class="btn" (click)="next()">{{ 'common.continue' | translate }}</button> }
+    @if (step() === 5) { <button type="button" class="btn" (click)="submit()">{{ 'submission.validation.submit' | translate }}</button> }
+  </div>
+</section>

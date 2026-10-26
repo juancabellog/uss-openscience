@@ -1,0 +1,131 @@
+:host {
+  display: inline-flex;
+  justify-content: center;
+  position: relative;
+}
+
+.issn-value {
+  display: inline-block;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.issn-count-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  margin: 0;
+  padding: 0.1rem 0.35rem;
+  border: 0;
+  border-radius: 2px;
+  background: transparent;
+  color: var(--os-info);
+  font: inherit;
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 0.16em;
+  cursor: pointer;
+}
+
+.issn-count-trigger:hover,
+.issn-count-trigger:focus-visible {
+  color: var(--os-primary);
+}
+
+.issn-count-trigger:focus-visible {
+  outline: none;
+  box-shadow: var(--os-focus);
+}
+
+.issn-popover {
+  position: fixed;
+  z-index: var(--os-z-dropdown);
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+  padding: 0.75rem 0.85rem;
+  background: var(--os-surface);
+  border: 1px solid var(--os-border);
+  border-radius: var(--os-radius-sm);
+  box-shadow: var(--os-shadow-sm);
+  color: var(--os-text-primary);
+  text-align: left;
+  text-transform: none;
+  letter-spacing: normal;
+  white-space: normal;
+}
+
+.issn-popover:focus-visible {
+  outline: none;
+  box-shadow: var(--os-focus);
+}
+
+.issn-popover__header {
+  margin-bottom: 0.65rem;
+}
+
+.issn-popover__header p,
+.issn-popover__status,
+.issn-popover__pure-id {
+  margin: 0;
+}
+
+.issn-popover__header p {
+  font-size: var(--os-fs-sm);
+  font-weight: 700;
+}
+
+.issn-popover__status,
+.issn-popover__pure-id {
+  color: var(--os-text-secondary);
+  font-size: var(--os-fs-xs);
+}
+
+.issn-popover__status {
+  padding: 0.4rem 0;
+}
+
+.issn-popover__status--error {
+  color: var(--os-text-primary);
+}
+
+.issn-popover__list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.issn-popover__item {
+  min-width: 0;
+  padding: 0.65rem 0;
+}
+
+.issn-popover__item + .issn-popover__item {
+  border-top: 1px solid var(--os-border);
+}
+
+.issn-popover__value {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.65rem;
+}
+
+.issn-id,
+.issn-missing {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+.issn-missing {
+  font-style: italic;
+  color: var(--os-text-secondary);
+}
+
+.issn-popover__pure-id {
+  margin-top: 0.35rem;
+}

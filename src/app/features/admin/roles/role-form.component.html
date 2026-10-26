@@ -1,0 +1,68 @@
+<div class="drawer" role="dialog" aria-modal="true">
+  <div class="drawer__panel">
+    <h2>{{ (role() ? 'admin.roles.edit' : 'admin.roles.new') | translate }}</h2>
+    <form [formGroup]="form" (ngSubmit)="requestSave()">
+      <label class="filter-field">
+        <span>{{ 'admin.roles.code' | translate }}</span>
+        <input class="os-control" formControlName="code" />
+      </label>
+      <label class="filter-field">
+        <span>{{ 'admin.roles.name' | translate }}</span>
+        <input class="os-control" formControlName="name" />
+      </label>
+      <label class="filter-field">
+        <span>{{ 'admin.roles.description' | translate }}</span>
+        <input class="os-control" formControlName="description" />
+      </label>
+      <label>
+        <input type="checkbox" formControlName="active" />
+        {{ 'admin.roles.active' | translate }}
+      </label>
+      <table>
+        <thead>
+          <tr>
+            <th>{{ 'admin.roles.module' | translate }}</th>
+            <th>{{ 'admin.roles.consult' | translate }}</th>
+            <th>{{ 'admin.roles.administer' | translate }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (module of modules; track module) {
+            <tr>
+              <td>{{ ('admin.modules.' + module) | translate }}</td>
+              <td>
+                <input
+                  type="checkbox"
+                  [checked]="has(module, 'CONSULT')"
+                  [disabled]="has(module, 'ADMINISTER')"
+                  (change)="toggle(module, 'CONSULT', $any($event.target).checked)"
+                />
+              </td>
+              <td>
+                <input
+                  type="checkbox"
+                  [checked]="has(module, 'ADMINISTER')"
+                  (change)="toggle(module, 'ADMINISTER', $any($event.target).checked)"
+                />
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+      @if (error(); as key) {
+        <p class="auth-error">{{ key | translate }}</p>
+      }
+      <div class="drawer__actions">
+        <button type="button" (click)="closed.emit()">{{ 'common.cancel' | translate }}</button>
+        <button type="submit" class="page-action page-action--primary" [disabled]="busy()">
+          {{ 'admin.roles.save' | translate }}
+        </button>
+      </div>
+    </form>
+    @if (confirm()) {
+      <p>{{ 'admin.roles.confirmUsers' | translate: { count: role()?.userCount || 0 } }}</p>
+      <button type="button" (click)="confirm.set(false)">{{ 'common.cancel' | translate }}</button>
+      <button type="button" class="page-action page-action--primary" (click)="save()">{{ 'admin.roles.save' | translate }}</button>
+    }
+  </div>
+</div>

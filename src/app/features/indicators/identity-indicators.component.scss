@@ -1,0 +1,108 @@
+.identity-group {
+  margin-bottom: var(--os-space-xl, 2rem);
+}
+
+.identity-group h2 {
+  font-size: var(--os-fs-md);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--os-text-secondary);
+  margin-bottom: var(--os-space-md);
+}
+
+.identity-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: var(--os-space-md);
+}
+
+.identity-card {
+  background: var(--os-surface);
+  border: 1px solid var(--os-border);
+  border-radius: var(--os-radius-md);
+  padding: var(--os-space-lg);
+  display: flex;
+  flex-direction: column;
+  min-height: 14rem;
+}
+
+.identity-card__value {
+  font-size: var(--os-fs-xl, 1.5rem);
+  font-weight: 700;
+  margin: 0 0 var(--os-space-sm);
+}
+
+.identity-card h3 {
+  font-size: var(--os-fs-lg);
+  margin: 0 0 0.35rem;
+}
+
+.identity-card p {
+  color: var(--os-text-secondary);
+  margin: 0;
+}
+
+.identity-card__base {
+  margin-top: var(--os-space-md) !important;
+  font-size: var(--os-fs-sm);
+}
+
+.identity-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: auto;
+  padding-top: var(--os-space-md);
+}
+
+.identity-card__action,
+.identity-card__secondary {
+  margin-top: auto;
+  padding-top: var(--os-space-md);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.identity-card__actions .identity-card__action,
+.identity-card__actions .identity-card__secondary {
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.identity-card__action:focus-visible,
+.identity-card__secondary:focus-visible {
+  outline: 2px solid var(--os-primary);
+  outline-offset: 2px;
+}
+
+.identity-card__secondary {
+  color: var(--os-text-secondary);
+  font-weight: 500;
+}
+
+.orcid-adoption__chart {
+  display: block;
+  width: min(100%, 40rem);
+  height: auto;
+  margin: var(--os-space-md) 0;
+  color: var(--os-primary, #1f4e79);
+}
+
+.orcid-adoption__table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: var(--os-space-md);
+}
+
+.orcid-adoption__table caption {
+  text-align: left;
+  font-weight: 600;
+  margin-bottom: var(--os-space-sm);
+}
+
+.orcid-adoption__table th,
+.orcid-adoption__table td {
+  text-align: left;
+  padding: 0.45rem 0.6rem;
+  border-bottom: 1px solid var(--os-border);
+}

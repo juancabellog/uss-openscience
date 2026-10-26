@@ -1,0 +1,771 @@
+<os-page-header
+  [eyebrow]="'integrations.title' | translate"
+  [title]="'dspace.title' | translate"
+  [subtitle]="'dspace.subtitle' | translate"
+>
+  @if (canAdminister()) {
+    <button
+      type="button"
+      class="page-action page-action--secondary"
+      [disabled]="!canRefreshFiles()"
+      (click)="openFilesConfirm()"
+    >
+      {{ 'dspace.files.action' | translate }}
+    </button>
+  }
+  @if (tab() === 'items' || tab() === 'matches') {
+    <button
+      type="button"
+      class="page-action page-action--secondary"
+      [disabled]="exportBusy()"
+      (click)="exportExcel()"
+    >
+      {{ 'dspace.exportExcel' | translate }}
+    </button>
+  }
+  <a routerLink="/integrations" class="page-action page-action--secondary">{{ 'dspace.backToIntegrations' | translate }}</a>
+</os-page-header>
+
+@if (filesProgress(); as progress) {
+  <section class="ds-files-progress" aria-live="polite">
+    <p>
+      <strong>{{ (progress.files ? 'dspace.files.phase' : 'sync.inProgress') | translate }}</strong>
+      ·
+      {{ 'dspace.files.progress' | translate: { processed: progress.processed, total: progress.total } }}
+      @if (progress.errors > 0) {
+        · {{ 'dspace.files.errors' | translate: { count: progress.errors } }}
+      }
+    </p>
+    @if (canCancelFiles() || (canAdminister() && dspaceRunning())) {
+      <button type="button" class="page-action page-action--secondary" [disabled]="filesBusy()" (click)="cancelFilesRefresh()">
+        {{ (filesBusy() ? 'sync.cancellingAction' : 'sync.cancelAction') | translate }}
+      </button>
+    }
+  </section>
+}
+
+@if (confirmFiles()) {
+  <div class="sync-dialog" role="dialog" aria-modal="true" [attr.aria-labelledby]="'dspace-files-confirm-title'">
+    <div class="sync-dialog__panel">
+      <h2 id="dspace-files-confirm-title" class="sync-dialog__title">{{ 'dspace.files.confirmTitle' | translate }}</h2>
+      <p>{{ 'dspace.files.confirmBody' | translate }}</p>
+      <div class="sync-dialog__actions">
+        <button type="button" class="page-action page-action--secondary" [disabled]="filesBusy()" (click)="closeFilesConfirm()">
+          {{ 'sync.cancel' | translate }}
+        </button>
+        <button type="button" class="page-action page-action--primary" [disabled]="filesBusy()" (click)="startFilesRefresh()">
+          {{ 'dspace.files.confirmAction' | translate }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<section
+  class="upw-stats"
+  [class.is-updating]="statsUpdating()"
+  [attr.aria-busy]="statsUpdating()"
+  [attr.aria-label]="'dspace.title' | translate"
+>
+  <os-mini-stat [label]="'dspace.stats.items' | translate" [value]="(stats()?.items | localeNumber) || ('common.dash' | translate)" />
+  <os-mini-stat [label]="'dspace.stats.openAccess' | translate" [value]="accessInventoryKnown() ? ((stats()?.openAccess | localeNumber) || ('common.dash' | translate)) : ('dspace.stats.undetermined' | translate)" />
+  <os-mini-stat [label]="'dspace.stats.metadataOnly' | translate" [value]="accessInventoryKnown() ? ((stats()?.metadataOnly | localeNumber) || ('common.dash' | translate)) : ('dspace.stats.undetermined' | translate)" />
+  <os-mini-stat [label]="'dspace.stats.linked' | translate" [value]="(stats()?.linkedItems | localeNumber) || ('common.dash' | translate)" />
+  <os-mini-stat [label]="'dspace.stats.unmatched' | translate" [value]="(stats()?.unmatchedItems | localeNumber) || ('common.dash' | translate)" />
+  <os-mini-stat [label]="'dspace.stats.errors' | translate" [value]="(stats()?.errors | localeNumber) || ('common.dash' | translate)" />
+  <os-mini-stat [label]="'dspace.stats.sharedDois' | translate" [value]="(stats()?.sharedDois | localeNumber) || ('common.dash' | translate)" />
+  <os-mini-stat [label]="'dspace.stats.sharedDoiItems' | translate" [value]="(stats()?.sharedDoiItems | localeNumber) || ('common.dash' | translate)" />
+  <os-mini-stat [label]="'dspace.stats.withFile' | translate" [value]="fileInventoryKnown() ? ((stats()?.withFile | localeNumber) || ('common.dash' | translate)) : ('dspace.stats.undetermined' | translate)" />
+  <os-mini-stat [label]="'dspace.stats.withoutFile' | translate" [value]="fileInventoryKnown() ? ((stats()?.withoutFile | localeNumber) || ('common.dash' | translate)) : ('dspace.stats.undetermined' | translate)" />
+</section>
+@if (hasActiveItemFilters()) {
+  <p class="crx-note ds-filtered-summary">
+    {{ 'dspace.filteredSummary' | translate: { count: (stats()?.items | localeNumber) || 0 } }}
+    <button type="button" class="link-button" (click)="clearFilters()">{{ 'dspace.clearFilters' | translate }}</button>
+  </p>
+} @else {
+  <p class="crx-note">{{ 'dspace.universeNote' | translate }}</p>
+}
+@if (!hasActiveItemFilters() && (catalogStats()?.missingItems ?? 0) > 0) {
+  <p class="crx-note">{{ 'dspace.inactiveNote' | translate: { count: catalogStats()!.missingItems } }}</p>
+}
+@if (!hasActiveItemFilters() && (catalogStats()?.reviewItems ?? 0) > 0) {
+  <p class="crx-note">{{ 'dspace.reviewNote' | translate: { count: catalogStats()!.reviewItems } }}</p>
+}
+
+<nav class="oa-tabs" [attr.aria-label]="'dspace.tabsLabel' | translate">
+  <button type="button" [class.active]="tab() === 'items'" (click)="selectTab('items')">{{ 'dspace.tab.items' | translate }}</button>
+  <button type="button" [class.active]="tab() === 'matches'" (click)="selectTab('matches')">{{ 'dspace.tab.matches' | translate }}</button>
+  <button type="button" [class.active]="tab() === 'collections'" (click)="selectTab('collections')">{{ 'dspace.tab.collections' | translate }}</button>
+  <button type="button" [class.active]="tab() === 'communities'" (click)="selectTab('communities')">{{ 'dspace.tab.communities' | translate }}</button>
+  <button type="button" [class.active]="tab() === 'incidents'" (click)="selectTab('incidents')">{{ 'dspace.tab.incidents' | translate }}</button>
+  <button type="button" [class.active]="tab() === 'history'" (click)="selectTab('history')">{{ 'dspace.tab.history' | translate }}</button>
+</nav>
+
+@if (tab() === 'matches') {
+  <section class="oa-summary">
+    <p>{{ 'dspace.stats.linked' | translate }}: {{ (stats()?.linkedItems | localeNumber) || ('common.dash' | translate) }}</p>
+    <p>{{ 'dspace.stats.unmatched' | translate }}: {{ (stats()?.unmatchedItems | localeNumber) || ('common.dash' | translate) }}</p>
+    <p>{{ 'dspace.stats.review' | translate }}: {{ (stats()?.reviewItems | localeNumber) || ('common.dash' | translate) }}</p>
+  </section>
+}
+
+@if (tab() === 'items' || tab() === 'matches' || tab() === 'collections' || tab() === 'communities') {
+  <os-filter-bar>
+    <os-search-box
+      [control]="search"
+      [placeholder]="(tab() === 'collections' || tab() === 'communities' ? 'dspace.searchCatalogPlaceholder' : 'dspace.searchPlaceholder') | translate"
+      [label]="'dspace.search' | translate"
+    />
+    @if (tab() === 'items' || tab() === 'matches') {
+      <div class="ds-chips" role="group" [attr.aria-label]="'dspace.quickFilters' | translate">
+        <button type="button" [class.active]="quickFilter() === 'all'" (click)="applyQuick('all')">{{ 'dspace.filter.all' | translate }}</button>
+        <button type="button" [class.active]="quickFilter() === 'linked'" (click)="applyQuick('linked')">{{ 'dspace.filter.linked' | translate }}</button>
+        <button type="button" [class.active]="quickFilter() === 'unmatched'" (click)="applyQuick('unmatched')">{{ 'dspace.filter.unmatched' | translate }}</button>
+        <button type="button" [class.active]="quickFilter() === 'review'" (click)="applyQuick('review')">{{ 'dspace.filter.review' | translate }}</button>
+        <button type="button" [class.active]="quickFilter() === 'open'" (click)="applyQuick('open')">{{ 'dspace.filter.open' | translate }}</button>
+        <button type="button" [class.active]="quickFilter() === 'metadata'" (click)="applyQuick('metadata')">{{ 'dspace.filter.metadata' | translate }}</button>
+        <button type="button" [class.active]="quickFilter() === 'sharedDoi'" (click)="applyQuick('sharedDoi')">{{ 'dspace.filter.sharedDoi' | translate }}</button>
+        <button type="button" [class.active]="quickFilter() === 'accessDiff'" (click)="applyQuick('accessDiff')">{{ 'dspace.filter.accessDiff' | translate }}</button>
+        <button type="button" [class.active]="quickFilter() === 'withFile'" (click)="applyQuick('withFile')">{{ 'dspace.filter.withFile' | translate }}</button>
+        <button type="button" [class.active]="quickFilter() === 'withoutFile'" (click)="applyQuick('withoutFile')">{{ 'dspace.filter.withoutFile' | translate }}</button>
+        <button type="button" [class.active]="quickFilter() === 'inactive'" (click)="applyQuick('inactive')">{{ 'dspace.filter.inactive' | translate }}</button>
+        <button type="button" [class.active]="quickFilter() === 'errors'" (click)="applyQuick('errors')">{{ 'dspace.filter.errors' | translate }}</button>
+      </div>
+      <label class="filter-field">
+        <span>{{ 'dspace.access' | translate }}</span>
+        <select class="os-control" [value]="accessStatus()" (change)="setAccess($any($event.target).value)">
+          <option value="">{{ 'common.all' | translate }}</option>
+          <option value="open.access">{{ 'dspace.accessStatus.openAccess' | translate }}</option>
+          <option value="metadata.only">{{ 'dspace.accessStatus.metadataOnly' | translate }}</option>
+          <option value="restricted">{{ 'dspace.accessStatus.restricted' | translate }}</option>
+          <option value="embargo">{{ 'dspace.accessStatus.embargo' | translate }}</option>
+          <option value="UNKNOWN">{{ 'dspace.accessStatus.undetermined' | translate }}</option>
+        </select>
+      </label>
+      <label class="filter-field">
+        <span>{{ 'dspace.communityFilter' | translate }}</span>
+        <select class="os-control" [value]="communityUuid()" (change)="setCommunity($any($event.target).value)">
+          <option value="">{{ 'common.all' | translate }}</option>
+          @for (community of catalogCommunities(); track community.uuid) {
+            <option [value]="community.uuid">{{ community.name || community.handle || community.uuid }}</option>
+          }
+        </select>
+      </label>
+      <label class="filter-field">
+        <span>{{ 'dspace.collectionFilter' | translate }}</span>
+        <select class="os-control" [value]="collectionUuid()" (change)="setCollection($any($event.target).value)">
+          <option value="">{{ 'common.all' | translate }}</option>
+          @for (collection of catalogCollections(); track collection.uuid) {
+            <option [value]="collection.uuid">{{ collection.name || collection.handle || collection.uuid }}</option>
+          }
+        </select>
+      </label>
+      <label class="filter-field">
+        <span>{{ 'dspace.pureColumn' | translate }}</span>
+        <select class="os-control" [value]="matchStatus()" (change)="setMatchStatus($any($event.target).value)">
+          <option value="">{{ 'common.all' | translate }}</option>
+          <option value="LINKED">{{ 'dspace.match.LINKED' | translate }}</option>
+          <option value="UNMATCHED">{{ 'dspace.match.UNMATCHED' | translate }}</option>
+          <option value="REVIEW">{{ 'dspace.match.REVIEW' | translate }}</option>
+        </select>
+      </label>
+      <label class="filter-field">
+        <span>{{ 'dspace.fileFilter' | translate }}</span>
+        <select class="os-control" [value]="hasFile()" (change)="setHasFile($any($event.target).value)">
+          <option value="">{{ 'dspace.file.all' | translate }}</option>
+          <option value="YES">{{ 'dspace.file.withFile' | translate }}</option>
+          <option value="NO">{{ 'dspace.file.withoutFile' | translate }}</option>
+        </select>
+      </label>
+      <label class="filter-field">
+        <span>{{ 'dspace.doiSharedFilter' | translate }}</span>
+        <select class="os-control" [value]="sharedDoi() ? 'YES' : ''" (change)="setSharedDoi($any($event.target).value)">
+          <option value="">{{ 'common.all' | translate }}</option>
+          <option value="YES">{{ 'dspace.filter.sharedDoi' | translate }}</option>
+        </select>
+      </label>
+      <label class="filter-field">
+        <span>{{ 'dspace.comparisonFilter' | translate }}</span>
+        <select class="os-control" [value]="accessComparison()" (change)="setAccessComparison($any($event.target).value)">
+          <option value="">{{ 'common.all' | translate }}</option>
+          <option value="CONSISTENT">{{ 'dspace.comparison.consistent' | translate }}</option>
+          <option value="DIFFERENCE">{{ 'dspace.comparison.difference' | translate }}</option>
+          <option value="NOT_EVALUABLE">{{ 'dspace.comparison.notEvaluable' | translate }}</option>
+        </select>
+      </label>
+      @if (tab() === 'matches') {
+        <label class="filter-field">
+          <span>{{ 'dspace.methodLabel' | translate }}</span>
+          <select class="os-control" [value]="matchMethod()" (change)="setMatchMethod($any($event.target).value)">
+            <option value="">{{ 'common.all' | translate }}</option>
+            <option value="DOI">{{ 'dspace.method.DOI' | translate }}</option>
+            <option value="HANDLE">{{ 'dspace.method.HANDLE' | translate }}</option>
+            <option value="UUID">{{ 'dspace.method.UUID' | translate }}</option>
+            <option value="TITLE_AUTHOR_YEAR">{{ 'dspace.method.TITLE_AUTHOR_YEAR' | translate }}</option>
+          </select>
+        </label>
+      }
+    }
+  </os-filter-bar>
+}
+
+@if ((collectionUuid() || communityUuid()) && (tab() === 'items' || tab() === 'matches')) {
+  <p class="ds-structure">
+    {{ 'dspace.structureFilter' | translate }}
+    <button type="button" class="page-action page-action--secondary" (click)="clearStructureFilter()">{{ 'dspace.clearFilter' | translate }}</button>
+  </p>
+}
+
+@if (doi() && (tab() === 'items' || tab() === 'matches')) {
+  <p class="ds-structure">
+    {{ 'dspace.doiFilter' | translate: { doi: doi() } }}
+    <button type="button" class="page-action page-action--secondary" (click)="clearDoiFilter()">{{ 'dspace.clearFilter' | translate }}</button>
+  </p>
+}
+
+@if (tab() === 'incidents') {
+  <os-filter-bar>
+    <label class="filter-field">
+      <span>{{ 'dspace.stage' | translate }}</span>
+      <select class="os-control" [value]="incidentStage()" (change)="setIncidentStage($any($event.target).value)">
+        <option value="">{{ 'dspace.allStages' | translate }}</option>
+        @for (stage of incidentStages; track stage) {
+          <option [value]="stage">{{ stage }}</option>
+        }
+      </select>
+    </label>
+  </os-filter-bar>
+}
+
+@if (tab() === 'items' || tab() === 'matches') {
+  @if (itemsResult(); as vm) {
+    @if (vm.status === 'loading') {
+      <os-loading-state [label]="'dspace.loading' | translate" />
+    } @else if (vm.status === 'error') {
+      <os-error-state [message]="'dspace.loadError' | translate" />
+    } @else if (emptyKind() === 'disabled') {
+      <os-empty-state [title]="'dspace.disabledTitle' | translate" [message]="'dspace.disabledMessage' | translate" />
+    } @else if (emptyKind() === 'never') {
+      <os-empty-state [title]="'dspace.neverTitle' | translate" [message]="'dspace.neverMessage' | translate" />
+    } @else if (emptyKind() === 'filtered') {
+      <os-empty-state
+        [title]="'dspace.filteredTitle' | translate"
+        [message]="'dspace.filteredMessage' | translate"
+        [actionLabel]="'dspace.clearFilters' | translate"
+        actionVariant="link"
+        (action)="clearFilters()"
+      />
+    } @else if (emptyKind() === 'none') {
+      <os-empty-state [title]="'dspace.emptyTitle' | translate" [message]="'dspace.emptyMessage' | translate" />
+    } @else {
+      @if (selectedCount() > 0) {
+        <p class="ds-selected">{{ 'dspace.selectedCount' | translate: { count: selectedCount() } }}</p>
+      }
+      <os-data-table-shell [fluid]="true" [stickyStart]="true" [stickyEnd]="true">
+        <table class="ds-items-table">
+          <thead>
+            <tr>
+              <th class="col-select">
+                <input
+                  type="checkbox"
+                  [checked]="pageSelected()"
+                  [attr.aria-label]="'dspace.selectAll' | translate"
+                  (change)="togglePage($any($event.target).checked)"
+                />
+              </th>
+              <th class="col-title" [attr.aria-sort]="ariaSort('title')">
+                <os-sortable-header field="title" [label]="'dspace.columns.title' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" />
+              </th>
+              <th class="col-doi" [attr.aria-sort]="ariaSort('doi')">
+                <os-sortable-header field="doi" [label]="'dspace.doi' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" />
+              </th>
+              @if (tab() === 'items') {
+                <th class="col-handle" [attr.aria-sort]="ariaSort('handle')">
+                  <os-sortable-header field="handle" [label]="'dspace.handle' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" />
+                </th>
+                <th class="col-collection" [attr.aria-sort]="ariaSort('collection')">
+                  <os-sortable-header field="collection" [label]="'dspace.columns.collection' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" />
+                </th>
+                <th class="col-community" [attr.aria-sort]="ariaSort('community')">
+                  <os-sortable-header field="community" [label]="'dspace.columns.community' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" />
+                </th>
+              } @else {
+                <th class="col-collection" [attr.aria-sort]="ariaSort('pureTitle')">
+                  <os-sortable-header field="pureTitle" [label]="'dspace.columns.pureTitle' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" />
+                </th>
+                <th class="col-handle" [attr.aria-sort]="ariaSort('method')">
+                  <os-sortable-header field="method" [label]="'dspace.methodLabel' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" />
+                </th>
+              }
+              <th class="col-access" [attr.aria-sort]="ariaSort('access')">
+                <os-sortable-header field="access" [label]="'dspace.columns.dspaceAccess' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" />
+              </th>
+              <th class="col-pure-access" [attr.aria-sort]="ariaSort('pureAccess')">
+                <os-sortable-header field="pureAccess" [label]="'dspace.columns.pureAccess' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" />
+              </th>
+              <th class="col-comparison" [attr.aria-sort]="ariaSort('comparison')">
+                <os-sortable-header field="comparison" [label]="'dspace.columns.comparison' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" />
+              </th>
+              <th class="col-file" [attr.aria-sort]="ariaSort('file')">
+                <os-sortable-header field="file" [label]="'dspace.columns.file' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" />
+              </th>
+              <th class="col-pure" [attr.aria-sort]="ariaSort('pure')">
+                <os-sortable-header field="pure" [label]="'dspace.pureColumn' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" />
+              </th>
+              <th class="col-date" [attr.aria-sort]="ariaSort('syncedAt')">
+                <os-sortable-header field="syncedAt" [label]="'dspace.columns.syncedAt' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" />
+              </th>
+              <th class="col-status" [attr.aria-sort]="ariaSort('status')">
+                <os-sortable-header field="status" [label]="'dspace.columns.status' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" />
+              </th>
+              <th class="col-actions">{{ 'dspace.columns.actions' | translate }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of vm.data.items; track row.uuid) {
+              <tr>
+                <td class="col-select">
+                  <input
+                    type="checkbox"
+                    [checked]="isSelected(row.uuid)"
+                    [attr.aria-label]="'dspace.selectRow' | translate"
+                    (change)="toggleSelect(row.uuid, $any($event.target).checked)"
+                  />
+                </td>
+                <td class="col-title">{{ row.name || ('common.dash' | translate) }}</td>
+                <td class="col-doi">
+                  @if (doiHref(row.normalizedDoi || row.doi); as href) {
+                    <a class="doi-link" [href]="href" target="_blank" rel="noopener noreferrer" (click)="$event.stopPropagation()">{{ row.normalizedDoi || row.doi }}</a>
+                  } @else {
+                    {{ 'common.dash' | translate }}
+                  }
+                  @if ((row.sharedDoiCount ?? 0) > 1 && row.normalizedDoi) {
+                    <button type="button" class="ds-shared" (click)="filterSharedDoi(row.normalizedDoi, $event)">
+                      <os-status-badge
+                        [label]="'dspace.sharedDoiBadge' | translate: { count: row.sharedDoiCount ?? 0 }"
+                        tone="warning"
+                        [hint]="'dspace.sharedDoiHint' | translate"
+                      />
+                    </button>
+                  }
+                </td>
+                @if (tab() === 'items') {
+                  <td class="col-handle">{{ row.handle || ('common.dash' | translate) }}</td>
+                  <td class="col-collection" [title]="row.communityPath || row.collectionName || ''">{{ row.collectionName || ('common.dash' | translate) }}</td>
+                  <td class="col-community" [title]="row.communityPath || row.communityName || ''">{{ row.communityName || ('common.dash' | translate) }}</td>
+                } @else {
+                  <td class="col-collection">
+                    @if (row.researchOutputId) {
+                      <a class="entity-link" [routerLink]="['/research-output', row.researchOutputId]" (click)="$event.stopPropagation()">{{ row.researchOutputTitle || row.researchOutputUuid || ('common.dash' | translate) }}</a>
+                    } @else {
+                      {{ 'common.dash' | translate }}
+                    }
+                  </td>
+                  <td class="col-handle">{{ methodKey(row.matchMethod) | translate }}</td>
+                }
+                <td class="col-access">{{ accessKey(row.accessStatus) | translate }}</td>
+                <td class="col-pure-access">{{ row.researchOutputId ? (canonicalAccessKey(row.pureAccessCanonical) | translate) : ('common.dash' | translate) }}</td>
+                <td class="col-comparison">
+                  <os-status-badge [label]="comparisonKey(row.accessComparison) | translate" [tone]="comparisonTone(row.accessComparison)" />
+                </td>
+                <td class="col-file">{{ row.hasOriginalFile ? ('dspace.file.present' | translate) : ('dspace.file.absent' | translate) }}</td>
+                <td class="col-pure">
+                  <os-status-badge [label]="matchLabel(row.matchStatus) | translate" [tone]="matchTone(row.matchStatus)" />
+                </td>
+                <td class="col-date">{{ row.lastSyncAt ? (row.lastSyncAt | localeDate) : ('common.dash' | translate) }}</td>
+                <td class="col-status">
+                  <os-status-badge
+                    [label]="outcomeKey(row.lastOutcome) | translate"
+                    [tone]="outcomeTone(row.lastOutcome)"
+                    [hint]="row.lastOutcome === 'MISSING' ? ('dspace.inactiveHint' | translate) : null"
+                  />
+                </td>
+                <td class="col-actions">
+                  <button type="button" class="link-button" (click)="openItem(row, $event)">
+                    {{ 'dspace.viewDetail' | translate }}
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </os-data-table-shell>
+      <os-pagination
+        [page]="vm.data.page"
+        [pageSize]="vm.data.pageSize"
+        [total]="vm.data.total"
+        [pageSizeOptions]="pageSizes"
+        (pageChange)="goToPage($event)"
+        (pageSizeChange)="setPageSize($event)"
+      />
+    }
+  }
+}
+
+@if (tab() === 'collections') {
+  @if (collectionsResult(); as vm) {
+    @if (vm.status === 'loading') {
+      <os-loading-state [label]="'dspace.loading' | translate" />
+    } @else if (vm.status === 'error') {
+      <os-error-state [message]="'dspace.loadError' | translate" />
+    } @else if (emptyKind() === 'disabled') {
+      <os-empty-state [title]="'dspace.disabledTitle' | translate" [message]="'dspace.disabledMessage' | translate" />
+    } @else if (vm.data.items.length === 0) {
+      <os-empty-state [title]="'dspace.emptyCollections' | translate" />
+    } @else {
+      <os-data-table-shell [fluid]="true">
+        <table>
+          <thead>
+            <tr>
+              <th><os-sortable-header field="name" [label]="'dspace.columns.name' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" /></th>
+              <th>{{ 'dspace.uuid' | translate }}</th>
+              <th>{{ 'dspace.columns.community' | translate }}</th>
+              <th><os-sortable-header field="items" [label]="'dspace.columns.items' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" /></th>
+              <th><os-sortable-header field="syncedAt" [label]="'dspace.columns.syncedAt' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" /></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of vm.data.items; track row.uuid) {
+              <tr (click)="filterCollection(row)">
+                <td class="col-title">{{ row.name || ('common.dash' | translate) }}</td>
+                <td>{{ row.uuid }}</td>
+                <td>{{ row.communityName || ('common.dash' | translate) }}</td>
+                <td class="col-count">{{ row.itemCount | localeNumber }}</td>
+                <td class="col-date">{{ row.lastSyncAt ? (row.lastSyncAt | localeDate) : ('common.dash' | translate) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </os-data-table-shell>
+      <os-pagination
+        [page]="vm.data.page"
+        [pageSize]="vm.data.pageSize"
+        [total]="vm.data.total"
+        [pageSizeOptions]="pageSizes"
+        (pageChange)="goToPage($event)"
+        (pageSizeChange)="setPageSize($event)"
+      />
+    }
+  }
+}
+
+@if (tab() === 'communities') {
+  @if (communitiesResult(); as vm) {
+    @if (vm.status === 'loading') {
+      <os-loading-state [label]="'dspace.loading' | translate" />
+    } @else if (vm.status === 'error') {
+      <os-error-state [message]="'dspace.loadError' | translate" />
+    } @else if (emptyKind() === 'disabled') {
+      <os-empty-state [title]="'dspace.disabledTitle' | translate" [message]="'dspace.disabledMessage' | translate" />
+    } @else if (vm.data.items.length === 0) {
+      <os-empty-state [title]="'dspace.emptyCommunities' | translate" />
+    } @else {
+      <os-data-table-shell [fluid]="true">
+        <table>
+          <thead>
+            <tr>
+              <th><os-sortable-header field="name" [label]="'dspace.columns.name' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" /></th>
+              <th>{{ 'dspace.uuid' | translate }}</th>
+              <th>{{ 'dspace.columns.parent' | translate }}</th>
+              <th>{{ 'dspace.columns.collections' | translate }}</th>
+              <th><os-sortable-header field="items" [label]="'dspace.columns.items' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" /></th>
+              <th><os-sortable-header field="syncedAt" [label]="'dspace.columns.syncedAt' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" /></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of vm.data.items; track row.uuid) {
+              <tr (click)="filterCommunity(row)">
+                <td class="col-title">{{ row.name || ('common.dash' | translate) }}</td>
+                <td>{{ row.uuid }}</td>
+                <td>{{ row.parentName || ('common.dash' | translate) }}</td>
+                <td class="col-count">{{ row.collectionCount | localeNumber }}</td>
+                <td class="col-count">{{ row.itemCount | localeNumber }}</td>
+                <td class="col-date">{{ row.lastSyncAt ? (row.lastSyncAt | localeDate) : ('common.dash' | translate) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </os-data-table-shell>
+      <os-pagination
+        [page]="vm.data.page"
+        [pageSize]="vm.data.pageSize"
+        [total]="vm.data.total"
+        [pageSizeOptions]="pageSizes"
+        (pageChange)="goToPage($event)"
+        (pageSizeChange)="setPageSize($event)"
+      />
+    }
+  }
+}
+
+@if (tab() === 'incidents') {
+  @if (incidentsResult(); as vm) {
+    @if (vm.status === 'loading') {
+      <os-loading-state [label]="'dspace.loading' | translate" />
+    } @else if (vm.status === 'error') {
+      <os-error-state [message]="'dspace.loadError' | translate" />
+    } @else if (vm.data.items.length === 0) {
+      <os-empty-state [title]="'dspace.emptyIncidents' | translate" [message]="'dspace.emptyIncidentsMessage' | translate" />
+    } @else {
+      <os-data-table-shell [fluid]="true">
+        <table>
+          <thead>
+            <tr>
+              <th>{{ 'dspace.columns.date' | translate }}</th>
+              <th>{{ 'dspace.columns.syncId' | translate }}</th>
+              <th>{{ 'dspace.stage' | translate }}</th>
+              <th>{{ 'dspace.uuid' | translate }}</th>
+              <th>{{ 'dspace.columns.code' | translate }}</th>
+              <th>{{ 'dspace.columns.message' | translate }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of vm.data.items; track row.id) {
+              <tr>
+                <td class="col-date">{{ row.createdAt ? (row.createdAt | localeDate) : ('common.dash' | translate) }}</td>
+                <td>{{ row.syncId || ('common.dash' | translate) }}</td>
+                <td>{{ row.stage || ('common.dash' | translate) }}</td>
+                <td>{{ row.uuid || row.recordKey || ('common.dash' | translate) }}</td>
+                <td>{{ row.errorCode || ('common.dash' | translate) }}</td>
+                <td>{{ row.errorMessage || ('common.dash' | translate) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </os-data-table-shell>
+      <os-pagination
+        [page]="vm.data.page"
+        [pageSize]="vm.data.pageSize"
+        [total]="vm.data.total"
+        [pageSizeOptions]="pageSizes"
+        (pageChange)="goToPage($event)"
+        (pageSizeChange)="setPageSize($event)"
+      />
+    }
+  }
+}
+
+@if (tab() === 'history') {
+  @if (history().length === 0) {
+    <os-empty-state [title]="'dspace.emptyHistory' | translate" [message]="'dspace.emptyHistoryMessage' | translate" />
+  } @else {
+    <os-data-table-shell [fluid]="true">
+      <table>
+        <thead>
+          <tr>
+            <th>{{ 'dspace.columns.syncId' | translate }}</th>
+            <th>{{ 'dspace.columns.mode' | translate }}</th>
+            <th>{{ 'dspace.columns.status' | translate }}</th>
+            <th>{{ 'dspace.columns.startedAt' | translate }}</th>
+            <th>{{ 'dspace.columns.finishedAt' | translate }}</th>
+            <th>{{ 'dspace.columns.processed' | translate }}</th>
+            <th>{{ 'dspace.columns.created' | translate }}</th>
+            <th>{{ 'dspace.columns.updated' | translate }}</th>
+            <th>{{ 'dspace.columns.unchanged' | translate }}</th>
+            <th>{{ 'dspace.columns.inactive' | translate }}</th>
+            <th>{{ 'dspace.stats.errors' | translate }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of history(); track row.syncId) {
+            <tr>
+              <td>{{ row.syncId }}</td>
+              <td>{{ modeKey(row.syncMode) | translate }}</td>
+              <td>{{ statusKey(row.status) | translate }}</td>
+              <td class="col-date">{{ row.startedAt ? (row.startedAt | localeDate) : ('common.dash' | translate) }}</td>
+              <td class="col-date">{{ row.finishedAt ? (row.finishedAt | localeDate) : ('common.dash' | translate) }}</td>
+              <td class="col-count">{{ row.processed | localeNumber }}</td>
+              <td class="col-count">{{ row.created | localeNumber }}</td>
+              <td class="col-count">{{ row.updated | localeNumber }}</td>
+              <td class="col-count">{{ row.unchanged | localeNumber }}</td>
+              <td class="col-count">{{ row.markedInactive | localeNumber }}</td>
+              <td class="col-count">{{ row.errors | localeNumber }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </os-data-table-shell>
+  }
+}
+
+@if (detail(); as current) {
+  <div class="upw-drawer" role="dialog" aria-modal="true">
+    <button type="button" class="upw-drawer__backdrop" (click)="closeDetail()" tabindex="-1" aria-hidden="true"></button>
+    <aside class="upw-drawer__panel">
+      <header>
+        <h2>{{ current.name || ('dspace.detailTitle' | translate) }}</h2>
+        <button type="button" class="upw-drawer__close" (click)="closeDetail()" [attr.aria-label]="'common.close' | translate">×</button>
+      </header>
+
+      <h3>{{ 'dspace.section.identity' | translate }}</h3>
+      <p>{{ 'dspace.uuid' | translate }}: {{ current.uuid }}</p>
+      <p>{{ 'dspace.handle' | translate }}: {{ current.handle || ('common.dash' | translate) }}</p>
+      <p>
+        {{ 'dspace.doi' | translate }}:
+        @if (doiHref(current.normalizedDoi || current.doi); as href) {
+          <a [href]="href" target="_blank" rel="noopener noreferrer">{{ current.normalizedDoi || current.doi }}</a>
+        } @else {
+          {{ 'common.dash' | translate }}
+        }
+      </p>
+      @if ((current.sharedDoiCount ?? 0) > 1 && current.normalizedDoi) {
+        <p>
+          <button type="button" class="ds-shared" (click)="filterSharedDoi(current.normalizedDoi)">
+            <os-status-badge
+              [label]="'dspace.sharedDoiItemsBadge' | translate: { count: current.sharedDoiCount ?? 0 }"
+              tone="warning"
+              [hint]="'dspace.sharedDoiHint' | translate"
+            />
+          </button>
+        </p>
+      }
+      <p>{{ 'dspace.columns.type' | translate }}: {{ current.dcType || ('common.dash' | translate) }}</p>
+      @if (current.handleUrl) {
+        <p><a [href]="current.handleUrl" target="_blank" rel="noopener noreferrer">{{ 'dspace.openRecord' | translate }}</a></p>
+      }
+
+      <h3>{{ 'dspace.section.repository' | translate }}</h3>
+      <p>{{ 'dspace.columns.community' | translate }}: {{ current.communityName || ('common.dash' | translate) }}</p>
+      <p>{{ 'dspace.columns.collection' | translate }}: {{ current.collectionName || ('common.dash' | translate) }}</p>
+      @if (current.communityPath) {
+        <p>{{ current.communityPath }}</p>
+      }
+      @if (current.collections?.length) {
+        @for (collection of current.collections; track collection.uuid + '-' + collection.relation) {
+          <p>{{ (collection.relation === 'MAPPED' ? 'dspace.relation.MAPPED' : 'dspace.relation.OWNING') | translate }}: {{ collection.name || collection.uuid }}</p>
+        }
+      }
+      <p>{{ 'dspace.fulltext' | translate }}: {{ fulltextKey(current.fulltextAvailability) | translate }}</p>
+      <p>{{ 'dspace.columns.modified' | translate }}: {{ current.lastModifiedRemote ? (current.lastModifiedRemote | localeDate) : ('common.dash' | translate) }}</p>
+
+      <h3>{{ 'dspace.section.access' | translate }}</h3>
+      <p>
+        {{ 'dspace.source.dspace' | translate }}:
+        {{ canonicalAccessKey(current.dspaceAccessCanonical) | translate }}
+      </p>
+      <p>{{ 'dspace.sourceValue' | translate }}: {{ current.accessStatus || ('common.dash' | translate) }}</p>
+      <p>{{ 'dspace.columns.embargo' | translate }}: {{ current.embargoDate || ('common.dash' | translate) }}</p>
+      <p>
+        {{ 'dspace.source.pure' | translate }}:
+        {{ current.researchOutputId ? (canonicalAccessKey(current.pureAccessCanonical) | translate) : ('common.dash' | translate) }}
+      </p>
+      <p>{{ 'dspace.sourceValue' | translate }}: {{ current.pureAccessRaw || ('common.dash' | translate) }}</p>
+      <p>
+        <os-status-badge [label]="comparisonKey(current.accessComparison) | translate" [tone]="comparisonTone(current.accessComparison)" />
+      </p>
+      @if (rightsMetadata(current).length) {
+        @for (field of rightsMetadata(current); track field.field + '-' + field.place) {
+          <p>{{ field.field }}: {{ field.value }}</p>
+        }
+      }
+
+      <h3>{{ 'dspace.section.files' | translate }}</h3>
+      @if (!originalFiles(current.bitstreams).length) {
+        <p>{{ 'dspace.noFiles' | translate }}</p>
+      } @else {
+        <ul class="ds-files">
+          @for (file of originalFiles(current.bitstreams); track file.uuid) {
+            <li>
+              <strong>{{ file.name || file.uuid }}</strong>
+              <span>{{ file.mimeType || ('common.dash' | translate) }} · {{ formatBytes(file.sizeBytes) }}</span>
+              <span>{{ 'dspace.bundle' | translate }}: {{ file.bundleName || ('common.dash' | translate) }}</span>
+              <span>{{ 'dspace.access' | translate }}: {{ accessKey(file.accessStatus) | translate }}</span>
+              @if (file.checksumMd5) {
+                <span>{{ 'dspace.checksum' | translate }}: {{ file.checksumMd5 }}</span>
+              }
+              @if (isPublicFile(file)) {
+                <button type="button" class="page-action page-action--secondary" (click)="downloadFile($event, current.uuid, file)">{{ 'dspace.download' | translate }}</button>
+              } @else {
+                <span>{{ 'dspace.fileRestricted' | translate }}</span>
+                @if (current.embargoDate) {
+                  <span>{{ 'dspace.availableFrom' | translate: { date: current.embargoDate } }}</span>
+                }
+              }
+            </li>
+          }
+        </ul>
+      }
+      @if (otherFiles(current.bitstreams).length) {
+        <p class="crx-note">{{ 'dspace.otherBundles' | translate }}</p>
+        <ul class="ds-files">
+          @for (file of otherFiles(current.bitstreams); track file.uuid) {
+            <li>
+              {{ file.name || file.uuid }}
+              · {{ file.bundleName || ('common.dash' | translate) }}
+              · {{ file.mimeType || ('common.dash' | translate) }}
+              · {{ formatBytes(file.sizeBytes) }}
+            </li>
+          }
+        </ul>
+      }
+      @if (downloadError()) {
+        <p class="crx-note">{{ 'dspace.downloadError' | translate }}</p>
+      }
+
+      <h3>{{ 'dspace.section.pure' | translate }}</h3>
+      <p>
+        <os-status-badge [label]="matchLabel(current.matchStatus) | translate" [tone]="matchTone(current.matchStatus)" />
+      </p>
+      @if (current.researchOutputId) {
+        <p>
+          <a [routerLink]="['/research-output', current.researchOutputId]">{{ current.researchOutputTitle || current.researchOutputUuid }}</a>
+        </p>
+        <p>{{ 'dspace.uuid' | translate }} PURE: {{ current.researchOutputUuid || ('common.dash' | translate) }}</p>
+        <p>{{ 'dspace.methodLabel' | translate }}: {{ methodKey(current.matchMethod) | translate }}</p>
+        @if (current.confidence != null) {
+          <p>{{ 'dspace.confidence' | translate }}: {{ current.confidence }}</p>
+        }
+      } @else {
+        <p>{{ 'dspace.unmatchedHint' | translate }}</p>
+      }
+
+      <h3>{{ 'dspace.section.matching' | translate }}</h3>
+      @if (!current.matches.length) {
+        <p>{{ 'dspace.unmatchedHint' | translate }}</p>
+      } @else {
+        @for (match of current.matches; track match.id) {
+          <article class="ds-evidence">
+            <p>{{ methodKey(match.matchMethod) | translate }} · {{ matchLabel(match.matchStatus) | translate }}</p>
+            @if (match.researchOutputId) {
+              <p>
+                <a [routerLink]="['/research-output', match.researchOutputId]">{{ match.researchOutputTitle || match.researchOutputUuid }}</a>
+              </p>
+            }
+            <p>{{ 'dspace.columns.date' | translate }}: {{ match.updatedAt ? (match.updatedAt | localeDate) : ('common.dash' | translate) }}</p>
+            @if (match.confidence != null) {
+              <p>{{ 'dspace.confidence' | translate }}: {{ match.confidence }}</p>
+            }
+            @if (match.canonical) {
+              <p>{{ 'dspace.canonical' | translate }}</p>
+            }
+            @if (match.evidenceJson) {
+              <pre class="crx-raw">{{ match.evidenceJson }}</pre>
+            }
+          </article>
+        }
+      }
+
+      <h3>{{ 'dspace.section.sync' | translate }}</h3>
+      <p>{{ 'dspace.columns.syncedAt' | translate }}: {{ current.lastSyncAt ? (current.lastSyncAt | localeDate) : ('common.dash' | translate) }}</p>
+      <p>{{ 'dspace.columns.status' | translate }}: {{ outcomeKey(current.lastOutcome) | translate }}</p>
+      <p>{{ 'dspace.columns.syncId' | translate }}: {{ current.lastSyncExecutionId || ('common.dash' | translate) }}</p>
+      @if (current.lastErrorCode || current.lastErrorMessage) {
+        <p>{{ current.lastErrorCode }} {{ current.lastErrorMessage }}</p>
+      }
+
+      @if (current.metadata.length) {
+        <h3>{{ 'dspace.section.metadata' | translate }}</h3>
+        <ul class="ds-metadata">
+          @for (field of current.metadata; track field.field + '-' + field.place) {
+            <li><strong>{{ field.field }}</strong>: {{ field.value }}</li>
+          }
+        </ul>
+      }
+    </aside>
+  </div>
+}
+
+@if (detailError()) {
+  <p class="crx-note">{{ 'dspace.detailError' | translate }}</p>
+}

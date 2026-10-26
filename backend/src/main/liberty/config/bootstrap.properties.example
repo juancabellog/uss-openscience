@@ -1,0 +1,57 @@
+# Copiar a bootstrap.properties (mismo directorio) y completar.
+# Este es el archivo de conexión MySQL para:
+#   ./run-dev.sh       (mvn liberty:dev)
+#   ./package-prod.sh  (queda dentro de dist/openscience-uss.jar)
+#   ./run-prod.sh      (java -jar; no lee este archivo en runtime)
+# No versionar bootstrap.properties (está en .gitignore).
+#
+# db_host = hostname o IP del MySQL (en producción, el de ese servidor).
+# db_name = schema, por defecto uss-ca.
+
+db_host=127.0.0.1
+db_port=3306
+db_name=uss-ca
+db_user=root
+db_password=
+
+# Orígenes del front (CORS). 4200 = OPENSCIENCE-USS, 4300 = OPENSCIENCE Events.
+# Local: http://localhost:4300  |  Producción: https://apps.cienciavida.org/events
+# EVENTS_PUBLIC_URL=http://localhost:4300
+# EVENTS_PUBLIC_BASE_URL=http://localhost:4300/
+# openscience.events.publicUrl=http://localhost:4300
+# openscience.events.allowLocalMailLinks=true
+# EVENTS_ALLOW_LOCAL_MAIL_LINKS=true
+# En hidra Tomcat suele ser http://192.168.2.131:81
+# OPENSCIENCE_FRONTEND_ORIGIN=http://192.168.2.131:81,https://apps.cienciavida.org,http://localhost:4201
+
+# Unpaywall v2. Email institucional obligatorio. Sin API key.
+# UNPAYWALL_API_URL=https://api.unpaywall.org/v2
+# UNPAYWALL_EMAIL=
+
+# Autenticación local. No poner secretos reales en este ejemplo.
+# AUTH_MODE=real
+# Solo para liberty:dev. En hidra NO usar localhost: ponga APP_PUBLIC_URL en prod.env
+# (https://apps.cienciavida.org/openscience). Esa variable gana sobre este archivo.
+# APP_PUBLIC_URL=http://localhost:4200
+# AUTH_BOOTSTRAP_EMAIL=
+# MAIL_SMTP_HOST=
+# MAIL_SMTP_PORT=587
+# MAIL_SMTP_USERNAME=
+# MAIL_SMTP_PASSWORD=
+# MAIL_SMTP_STARTTLS=true
+# MAIL_FROM_ADDRESS=
+# MAIL_FROM_NAME=OPENSCIENCE-USS
+# ACCOUNT_ACTIVATION_TTL_HOURS=24
+# PASSWORD_RESET_TTL_MINUTES=60
+# PASSWORD_MIN_LENGTH=10
+# mail_smtp_host=
+# mail_smtp_port=587
+# mail_smtp_username=
+# mail_smtp_password=
+# mail_from_address=
+
+# Directorio USS. Pepper HMAC y clave AES-GCM (32 bytes hex). No versionar secretos reales.
+# openssl rand -hex 32
+# directory.rut.pepper=
+# directory.rut.aesKey=
+# directory.storage.dir=var/openscience-directory

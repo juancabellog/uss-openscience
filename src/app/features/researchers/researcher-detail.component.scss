@@ -1,0 +1,28 @@
+.panel {
+  background: var(--os-surface);
+  border: 1px solid var(--os-border);
+  border-radius: var(--os-radius-md);
+  padding: var(--os-space-lg);
+  margin-bottom: var(--os-space-md);
+}
+
+.panel h2 {
+  margin-bottom: var(--os-space-md);
+  font-size: var(--os-fs-lg);
+}
+
+dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: var(--os-space-md);
+}
+
+dt {
+  color: var(--os-text-secondary);
+  font-size: var(--os-fs-sm);
+}
+
+dd {
+  margin: 0.15rem 0 0;
+  font-weight: 600;
+}

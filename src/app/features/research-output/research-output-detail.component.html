@@ -1,0 +1,337 @@
+@let state = vm();
+@if (state.status === 'loading') {
+  <os-loading-state />
+} @else if (state.status === 'error') {
+  <os-error-state
+    [title]="'outputs.errorTitle' | translate"
+    [message]="'outputs.errorMessage' | translate"
+  />
+} @else if (state.status === 'notfound') {
+  <os-error-state
+    [title]="'outputs.notFoundTitle' | translate"
+    [message]="'outputs.notFoundMessage' | translate"
+  />
+} @else {
+  <os-page-header
+    [title]="state.item.title || ('common.dash' | translate)"
+    [subtitle]="headerSubtitle()"
+  >
+    <a routerLink="/research-output">{{ 'outputs.backToList' | translate }}</a>
+    @if (state.item.activeInPure === false) {
+      <span class="inactive-badge">{{ 'sync.inactiveBadge' | translate }}</span>
+    }
+  </os-page-header>
+
+  <os-detail-section-nav
+    [items]="sectionNav()"
+    [ariaLabel]="'outputs.sections' | translate"
+  />
+
+  <section id="general" class="panel">
+    <h2>{{ 'outputs.general' | translate }}</h2>
+    <dl>
+      <div>
+        <dt>{{ 'outputs.titleColumn' | translate }}</dt>
+        <dd>{{ state.item.title || ('common.dash' | translate) }}</dd>
+      </div>
+      <div>
+        <dt>{{ 'outputs.year' | translate }}</dt>
+        <dd>{{ state.item.year == null ? ('common.dash' | translate) : state.item.year }}</dd>
+      </div>
+      <div>
+        <dt>{{ 'outputs.type' | translate }}</dt>
+        <dd>{{ state.item.type || ('common.dash' | translate) }}</dd>
+      </div>
+      <div>
+        <dt>{{ 'outputs.pureStatus' | translate }}</dt>
+        <dd>
+          @if (state.item.publicationStatuses.length === 0) {
+            {{ 'common.dash' | translate }}
+          } @else {
+            @for (status of state.item.publicationStatuses; track $index) {
+              <p>
+                {{ storedLabel(status.statusEn, status.statusEs) || ('common.dash' | translate) }}
+                @if (status.current) {
+                  <span class="current">{{ 'outputs.currentStatus' | translate }}</span>
+                }
+              </p>
+            }
+          }
+        </dd>
+      </div>
+      <div>
+        <dt>{{ 'outputs.workflow' | translate }}</dt>
+        <dd>
+          {{ workflowLabel(state.item) || ('common.dash' | translate) }}
+          @if (workflowCode(state.item); as code) {
+            <p class="field-code">{{ 'outputs.workflowCode' | translate }}: {{ code }}</p>
+          }
+        </dd>
+      </div>
+      <div>
+        <dt>{{ 'outputs.visibility' | translate }}</dt>
+        <dd>{{ visibilityLabel(state.item) || ('common.dash' | translate) }}</dd>
+      </div>
+      <div>
+        <dt>{{ 'common.createdBy' | translate }}</dt>
+        <dd>{{ state.item.createdBy || ('common.dash' | translate) }}</dd>
+      </div>
+      <div>
+        <dt>{{ 'common.modifiedBy' | translate }}</dt>
+        <dd>{{ state.item.modifiedBy || ('common.dash' | translate) }}</dd>
+      </div>
+    </dl>
+  </section>
+
+  <section id="metricas" class="panel">
+    <h2>{{ 'metrics.title' | translate }}</h2>
+    @if (!metrics()) {
+      <p>{{ 'metrics.unavailable' | translate }}</p>
+    } @else {
+      <p class="metric-status">{{ metricFetchKey() | translate }}</p>
+      @if (metrics()?.sciVal?.lastSyncedAt) {
+        <p class="metric-updated">{{ 'metrics.lastUpdated' | translate }}: {{ metrics()?.sciVal?.lastSyncedAt | localeDate }}</p>
+      }
+      <dl>
+        <div>
+          <dt [attr.title]="'outputs.fwciTooltip' | translate">{{ 'outputs.fwci' | translate }}</dt>
+          <dd>
+            @if (metrics()?.fwci?.value == null) {
+              {{ metricFetchFailed() ? ('metrics.fetchFailed' | translate) : ('common.dash' | translate) }}
+            } @else {
+              {{ metrics()?.fwci?.value }}
+            }
+          </dd>
+        </div>
+        <div>
+          <dt>{{ 'metrics.source' | translate }}</dt>
+          <dd>{{ metrics()?.fwci?.sourceTermEn || 'SciVal' }}</dd>
+        </div>
+        @if (metrics()?.fwci?.year != null) {
+          <div>
+            <dt>{{ 'metrics.year' | translate }}</dt>
+            <dd>{{ metrics()?.fwci?.year }}</dd>
+          </div>
+        }
+      </dl>
+      @if (secondaryObservations().length > 0) {
+        <h3>{{ 'metrics.otherSciVal' | translate }}</h3>
+        <ul class="record-list">
+          @for (obs of secondaryObservations(); track obs.metricId ?? $index) {
+            <li>
+              <strong>{{ obs.metricId }}</strong>
+              <p>{{ observationValue(obs) }}</p>
+            </li>
+          }
+        </ul>
+      }
+    }
+  </section>
+
+  <section id="identificadores" class="panel">
+    <h2>{{ 'outputs.identifiers' | translate }}</h2>
+    <os-identifier-row
+      [label]="'common.pureId' | translate"
+      [value]="state.item.pureId"
+      [tooltip]="'common.pureIdTooltip' | translate"
+      copyLabelKey="common.copyPureId"
+    />
+    <os-identifier-row
+      [label]="'outputs.uuidPure' | translate"
+      [value]="state.item.uuid"
+      copyLabelKey="common.copyUuid"
+    />
+    <os-identifier-row
+      [label]="'outputs.doi' | translate"
+      [value]="state.item.doi"
+      [href]="state.item.doi ? doiHref(state.item.doi) : null"
+      [tooltip]="'outputs.openDoi' | translate"
+      copyLabelKey="common.copyDoi"
+      [external]="true"
+    />
+    @for (identifier of state.item.identifiers; track $index) {
+      <os-identifier-row
+        [label]="identifier.idSource || identifier.typeDiscriminator || ('common.dash' | translate)"
+        [value]="identifier.value"
+        copyLabelKey="common.copy"
+      />
+    }
+  </section>
+
+  <section id="publicacion" class="panel">
+    <h2>{{ 'outputs.publication' | translate }}</h2>
+    <dl>
+      <div>
+        <dt>{{ 'outputs.journal' | translate }}</dt>
+        <dd>
+          @if (state.item.journalDetail?.title || state.item.journal) {
+            {{ state.item.journalDetail?.title || state.item.journal }}
+          } @else if (state.item.journalDetail?.uuid || state.item.journalUuid) {
+            {{ 'outputs.journalNotSynced' | translate }}
+          } @else {
+            {{ 'common.dash' | translate }}
+          }
+        </dd>
+      </div>
+      <div>
+        <dt>{{ 'outputs.issn' | translate }}</dt>
+        <dd>{{ state.item.journalDetail?.issn || ('common.dash' | translate) }}</dd>
+      </div>
+      <div>
+        <dt>{{ 'outputs.volume' | translate }}</dt>
+        <dd>{{ state.item.volume || ('common.dash' | translate) }}</dd>
+      </div>
+      <div>
+        <dt>{{ 'outputs.issue' | translate }}</dt>
+        <dd>{{ state.item.issue || ('common.dash' | translate) }}</dd>
+      </div>
+      <div>
+        <dt>{{ 'outputs.pages' | translate }}</dt>
+        <dd>{{ state.item.pages || ('common.dash' | translate) }}</dd>
+      </div>
+    </dl>
+  </section>
+
+  <section id="contributors" class="panel">
+    <h2>{{ 'outputs.contributors' | translate }}</h2>
+    @if (state.item.contributors.length === 0) {
+      <p>{{ 'outputs.noContributors' | translate }}</p>
+    } @else {
+      <ul class="records">
+        @for (contributor of state.item.contributors; track contributor.id) {
+          <li>
+            <strong>{{ contributor.fullName || ('common.dash' | translate) }}</strong>
+            <span>{{ contributor.role || ('common.dash' | translate) }}</span>
+            @if (contributor.external) {
+              <span>{{ 'outputs.externalContributor' | translate }}</span>
+            }
+            @if (contributor.personId) {
+              <a [routerLink]="['/people', contributor.personId]">{{ 'outputs.viewPerson' | translate }}</a>
+            }
+          </li>
+        }
+      </ul>
+    }
+    @if (state.item.externalOrganizationUuids.length > 0) {
+      <h3>{{ 'outputs.externalOrganizations' | translate }}</h3>
+      <ul class="records">
+        @for (uuid of state.item.externalOrganizationUuids; track uuid) {
+          <li>{{ uuid }}</li>
+        }
+      </ul>
+    }
+  </section>
+
+  <section id="versiones" class="panel">
+    <h2>{{ 'outputs.electronicVersions' | translate }}</h2>
+    @if (state.item.electronicVersions.length === 0) {
+      <p>{{ 'outputs.noElectronicVersions' | translate }}</p>
+    } @else {
+      <ul class="records">
+        @for (version of state.item.electronicVersions; track $index) {
+          <li>
+            <strong>
+              @if (version.doi) {
+                <a [href]="doiHref(version.doi)" target="_blank" rel="noopener noreferrer">{{ version.doi }}</a>
+              } @else {
+                {{ 'common.dash' | translate }}
+              }
+            </strong>
+            <span>{{ version.typeDiscriminator || ('common.dash' | translate) }}</span>
+            <span>{{ storedLabel(version.accessTypeEn, version.accessTypeEs) || ('common.dash' | translate) }}</span>
+            <span>{{ storedLabel(version.versionTypeEn, version.versionTypeEs) || ('common.dash' | translate) }}</span>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+
+  <section id="keywords" class="panel">
+    <h2>{{ 'outputs.keywords' | translate }}</h2>
+    @if (state.item.keywordGroups.length === 0) {
+      <p>{{ 'outputs.noKeywords' | translate }}</p>
+    } @else {
+      @for (group of state.item.keywordGroups; track $index) {
+        <h3>{{ group.name || ('common.dash' | translate) }}</h3>
+        <p>
+          @if (group.keywords.length === 0) {
+            {{ 'common.dash' | translate }}
+          } @else {
+            {{ keywordValues(group.keywords) || ('common.dash' | translate) }}
+          }
+        </p>
+      }
+    }
+  </section>
+
+  <section id="links" class="panel">
+    <h2>{{ 'outputs.links' | translate }}</h2>
+    @if (state.item.links.length === 0) {
+      <p>{{ 'outputs.noLinks' | translate }}</p>
+    } @else {
+      <ul class="records">
+        @for (link of state.item.links; track $index) {
+          <li>
+            <span>{{ storedLabel(link.linkTypeEn, link.linkTypeEs) || storedLabel(link.descriptionEn, link.descriptionEs) || ('common.dash' | translate) }}</span>
+            @if (link.url) {
+              <a [href]="link.url" target="_blank" rel="noopener noreferrer">{{ link.url }}</a>
+            } @else {
+              {{ 'common.dash' | translate }}
+            }
+          </li>
+        }
+      </ul>
+    }
+  </section>
+
+  @if (crossref().length > 0) {
+    <section id="crossref" class="panel">
+      <h2>{{ 'crossref.title' | translate }}</h2>
+      <p>{{ 'crossref.detailHint' | translate }}</p>
+      <ul class="records">
+        @for (work of crossref(); track work.id) {
+          <li>
+            <strong>{{ work.status }}</strong>
+            <span>{{ work.normalizedDoi || work.doi || ('common.dash' | translate) }}</span>
+            <span>{{ work.title || ('common.dash' | translate) }}</span>
+            @if (work.hasRetraction) {
+              <span>{{ 'crossref.retractionBadge' | translate }}</span>
+            } @else if (work.hasUpdate) {
+              <span>{{ 'crossref.updateBadge' | translate }}</span>
+            }
+            <a [routerLink]="['/integrations/crossref']">{{ 'crossref.openInternal' | translate }}</a>
+          </li>
+        }
+      </ul>
+    </section>
+  }
+
+  @if (dspace().length > 0) {
+    <section id="dspace" class="panel">
+      <h2>{{ 'dspace.title' | translate }}</h2>
+      <p>{{ 'dspace.detailHint' | translate }}</p>
+      <ul class="records">
+        @for (item of dspace(); track item.uuid) {
+          <li>
+            <strong>{{ item.name || item.handle || item.uuid }}</strong>
+            <span>{{ 'dspace.handle' | translate }}: {{ item.handle || ('common.dash' | translate) }}</span>
+            <span>{{ 'dspace.doi' | translate }}: {{ item.normalizedDoi || item.doi || ('common.dash' | translate) }}</span>
+            <span>{{ 'dspace.access' | translate }}: {{ dspaceAccessKey(item.accessStatus) | translate }}</span>
+            <span>{{ 'dspace.fulltext' | translate }}: {{ dspaceFulltextKey(item.fulltextAvailability) | translate }}</span>
+            @if (item.canonical) {
+              <span>{{ 'dspace.canonical' | translate }}</span>
+            } @else if (item.matchStatus === 'CANDIDATE') {
+              <span>{{ 'dspace.candidate' | translate }}</span>
+            }
+            @if (item.handleUrl) {
+              <a [href]="item.handleUrl" target="_blank" rel="noopener noreferrer">{{ 'dspace.openRecord' | translate }}</a>
+            }
+            @if (item.publicDownload && item.contentUrl) {
+              <a [href]="item.contentUrl" target="_blank" rel="noopener noreferrer">{{ 'dspace.openFile' | translate }}</a>
+            }
+          </li>
+        }
+      </ul>
+    </section>
+  }
+}

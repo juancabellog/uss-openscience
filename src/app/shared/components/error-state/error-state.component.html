@@ -1,0 +1,9 @@
+<section class="state-box state-box--error" role="alert">
+  <h2>{{ displayTitle() }}</h2>
+  <p>{{ displayMessage() }}</p>
+  @if (actionLabel()) {
+    <button type="button" class="state-box__action" (click)="action.emit()">
+      {{ actionLabel() }}
+    </button>
+  }
+</section>

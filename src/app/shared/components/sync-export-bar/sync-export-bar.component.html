@@ -1,0 +1,345 @@
+<div class="sync-bar">
+  <div class="sync-bar__actions">
+    @if (canSync()) {
+    <div class="sync-split" [class.sync-split--open]="menuOpen()">
+      <button
+        type="button"
+        class="page-action page-action--primary"
+        [class.sync-split__main]="dualMode()"
+        [disabled]="controlDisabled()"
+        [attr.title]="primaryHelpKey() | translate"
+        (click)="openConfirm()"
+      >
+        <os-icon name="sync" class="sync-bar__sync-icon" [class.sync-bar__sync-icon--spinning]="running()" />
+        {{ primaryActionKey() | translate }}
+      </button>
+      @if (dualMode()) {
+        <button
+          type="button"
+          class="page-action page-action--primary sync-split__chevron"
+          [disabled]="controlDisabled()"
+          [attr.aria-expanded]="menuOpen()"
+          [attr.aria-haspopup]="'menu'"
+          [attr.aria-label]="'sync.mode.choose' | translate"
+          (click)="toggleMenu($event)"
+        >
+          <span aria-hidden="true">▾</span>
+        </button>
+        @if (menuOpen()) {
+          <ul class="sync-split__menu" role="menu">
+            @for (mode of menuModes(); track mode) {
+              <li role="none">
+                <button type="button" role="menuitem" (click)="requestSync(mode)">
+                  <strong>{{ menuTitleKey(mode) | translate }}</strong>
+                  <span>{{ menuHelpKey(mode) | translate }}</span>
+                </button>
+              </li>
+            }
+          </ul>
+        }
+      }
+    </div>
+    }
+    @if (canSync() && (canCancel() || cancelling())) {
+      <button
+        type="button"
+        class="page-action page-action--secondary"
+        [disabled]="!canCancel() || cancelBusy() || cancelling()"
+        (click)="openCancelConfirmFor('entity')"
+      >
+        {{ (cancelling() || cancelBusy() ? 'sync.cancellingAction' : 'sync.cancelAction') | translate }}
+      </button>
+    }
+    @if (canSync() && metricsActive()) {
+    <div class="sync-split" [class.sync-split--open]="metricsMenuOpen()">
+      <button
+        type="button"
+        class="page-action page-action--primary"
+        [class.sync-split__main]="metricsDualMode()"
+        [disabled]="metricsControlDisabled()"
+        [attr.title]="metricsPrimaryHelpKey() | translate"
+        (click)="openMetricsConfirm()"
+      >
+        <os-icon name="sync" class="sync-bar__sync-icon" [class.sync-bar__sync-icon--spinning]="metricsRunning()" />
+        {{ metricsPrimaryActionKey() | translate }}
+      </button>
+      @if (metricsDualMode()) {
+        <button
+          type="button"
+          class="page-action page-action--primary sync-split__chevron"
+          [disabled]="metricsControlDisabled()"
+          [attr.aria-expanded]="metricsMenuOpen()"
+          [attr.aria-haspopup]="'menu'"
+          [attr.aria-label]="'sync.metrics.choose' | translate"
+          (click)="toggleMetricsMenu($event)"
+        >
+          <span aria-hidden="true">▾</span>
+        </button>
+        @if (metricsMenuOpen()) {
+          <ul class="sync-split__menu" role="menu">
+            @for (mode of metricsMenuModes(); track mode) {
+              <li role="none">
+                <button type="button" role="menuitem" (click)="requestMetricsSync(mode)">
+                  <strong>{{ metricsModeTitleKey(mode) | translate }}</strong>
+                  <span>{{ metricsModeHelpKey(mode) | translate }}</span>
+                </button>
+              </li>
+            }
+          </ul>
+        }
+      }
+    </div>
+    }
+    @if (canSync() && metricsActive() && (metricsCanCancel() || metricsCancelling())) {
+      <button
+        type="button"
+        class="page-action page-action--secondary"
+        [disabled]="!metricsCanCancel() || cancelBusy() || metricsCancelling()"
+        (click)="openCancelConfirmFor('metrics')"
+      >
+        {{ (metricsCancelling() || cancelBusy() ? 'sync.cancellingAction' : 'sync.cancelAction') | translate }}
+      </button>
+    }
+    @if (canExport()) {
+      <button
+        type="button"
+        class="page-action page-action--secondary"
+        [disabled]="exportBusy()"
+        (click)="exportExcel()"
+      >
+        <os-icon name="download" />
+        {{ (exportBusy() ? 'sync.exporting' : 'sync.export') | translate }}
+      </button>
+    }
+  </div>
+
+  <div class="sync-bar__status" [class.sync-bar__status--split]="metricsActive()">
+    <div class="sync-bar__last">
+      @if (running() && currentSync(); as run) {
+        <p>
+          {{ 'sync.inProgress' | translate }}
+          ·
+          @if (entity() === 'ORCID') {
+            {{ 'sync.orcidPeopleOf' | translate: { processed: run.processed, total: run.totalExpected || 0 } }}
+          } @else if (entity() === 'OPENALEX') {
+            @if (run.phase === 'AUTHORS' && run.authorsTotal != null) {
+              {{ 'sync.detail.openalexAuthorsOf' | translate: { processed: run.authorsProcessed ?? 0, total: run.authorsTotal } }}
+            } @else if (run.totalExpected) {
+              {{ 'sync.detail.openalexWorksOf' | translate: { processed: run.processed, total: run.totalExpected } }}
+            } @else {
+              {{ 'sync.processedOnly' | translate: { processed: run.processed } }}
+            }
+          } @else if (run.totalExpected) {
+            {{ 'sync.processedOf' | translate: { processed: run.processed, total: run.totalExpected } }}
+          } @else {
+            {{ 'sync.processedOnly' | translate: { processed: run.processed } }}
+          }
+        </p>
+      } @else if (lastSync(); as run) {
+        <p>
+          {{ 'sync.lastExecution' | translate }}
+          @if (lastModeKey(run); as modeKey) {
+            <span class="sync-bar__mode">{{ modeKey | translate }}</span>
+            ·
+          }
+          <span class="sync-bar__run-status" [attr.data-status]="run.status">
+            {{ ('sync.status.' + run.status) | translate }}
+          </span>
+        </p>
+        <p>{{ run.finishedAt || run.startedAt | localeDate }}</p>
+        @if (entity() === 'ORCID' || entity() === 'UNPAYWALL' || entity() === 'CROSSREF' || entity() === 'OPENALEX' || entity() === 'DSPACE') {
+          <p>{{ lastSyncSummary(run) }}</p>
+          @if (globalErrorLine(run); as err) {
+            <p class="sync-bar__global-error">{{ err }}</p>
+          }
+        } @else if (hasVisibleChanges(run)) {
+          <p>{{ lastSyncSummary(run) }}</p>
+        } @else if (run.status !== 'FAILED') {
+          <p>{{ 'sync.summary.processed' | translate: { count: formatCount(run.processed) } }}</p>
+        }
+        <button type="button" class="sync-bar__detail" (click)="openDetail(run.syncId)">
+          {{ 'sync.viewDetail' | translate }}
+        </button>
+      } @else {
+        <p>{{ 'sync.never' | translate }}</p>
+      }
+    </div>
+
+    @if (metricsActive()) {
+      <div class="sync-bar__last sync-bar__last--metrics">
+        @if (metricsRunning() && currentMetricsSync(); as run) {
+          <p>
+            {{ 'sync.metrics.inProgress' | translate }}
+            @if (lastModeKey(run); as modeKey) {
+              · {{ modeKey | translate }}
+            }
+          </p>
+          <p>
+            @if (run.totalExpected) {
+              {{ 'sync.metrics.processedOf' | translate: { processed: run.processed, total: run.totalExpected } }}
+            } @else {
+              {{ 'sync.metrics.processedOnly' | translate: { processed: run.processed } }}
+            }
+          </p>
+        } @else if (lastMetricsSync(); as run) {
+          <p>
+            {{ 'sync.metrics.label' | translate }}
+            ·
+            <span class="sync-bar__run-status" [attr.data-status]="run.status">
+              {{ ('sync.status.' + run.status) | translate }}
+            </span>
+            @if (lastModeKey(run); as modeKey) {
+              · {{ modeKey | translate }}
+            }
+          </p>
+          <p>{{ run.finishedAt || run.startedAt | localeDate }}</p>
+          <p>{{ lastSyncSummary(run, metricsEntity() ?? entity()) }}</p>
+          <button type="button" class="sync-bar__detail" (click)="openDetail(run.syncId)">
+            {{ 'sync.viewDetail' | translate }}
+          </button>
+        } @else {
+          <p>{{ 'sync.metrics.never' | translate }}</p>
+        }
+      </div>
+    }
+  </div>
+</div>
+
+@if (confirmOpen()) {
+  <div class="sync-dialog" role="dialog" aria-modal="true" [attr.aria-labelledby]="'sync-confirm-title'">
+    <div class="sync-dialog__panel">
+      <h2 id="sync-confirm-title" class="sync-dialog__title">{{ confirmTitleKey() | translate }}</h2>
+      <p>{{ confirmBodyKey() | translate: confirmBodyParams() }}</p>
+      <div class="sync-dialog__actions">
+        <button type="button" class="page-action page-action--secondary" [disabled]="confirmBusy()" (click)="cancelConfirm()">
+          {{ 'sync.cancel' | translate }}
+        </button>
+        <button type="button" class="page-action page-action--primary" [disabled]="confirmBusy()" (click)="startSync()">
+          {{ confirmActionKey() | translate }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (cancelConfirmOpen() && cancelTarget(); as run) {
+  <div class="sync-dialog" role="dialog" aria-modal="true" [attr.aria-labelledby]="'sync-cancel-title'">
+    <div class="sync-dialog__panel">
+      <h2 id="sync-cancel-title" class="sync-dialog__title">{{ 'sync.confirmCancelTitle' | translate }}</h2>
+      <p>{{ 'sync.confirmCancelBody' | translate }}</p>
+      <div class="sync-dialog__actions">
+        <button type="button" class="page-action page-action--secondary" [disabled]="cancelBusy()" (click)="closeCancelConfirm()">
+          {{ 'sync.cancel' | translate }}
+        </button>
+        <button type="button" class="page-action page-action--primary" [disabled]="cancelBusy()" (click)="confirmCancel()">
+          {{ 'sync.confirmCancelAction' | translate }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (running() && currentSync(); as run) {
+  <section class="sync-progress" [attr.aria-live]="'polite'">
+    <p class="sync-progress__title">
+      {{ (entity() === 'ORCID' ? 'sync.orcidInProgress' : 'sync.inProgress') | translate }}
+      @if (lastModeKey(run); as modeKey) {
+        · {{ modeKey | translate }}
+      }
+    </p>
+    <p>
+      @if (entity() === 'ORCID') {
+        {{ 'sync.orcidPeopleOf' | translate: { processed: run.processed, total: run.totalExpected || 0 } }}
+      } @else if (entity() === 'OPENALEX') {
+        @if (run.phase) {
+          {{ 'sync.detail.openalexPhase' | translate }}:
+          {{ (run.phase === 'WORKS' ? 'sync.detail.openalexPhaseWorks'
+            : run.phase === 'AUTHORS' ? 'sync.detail.openalexPhaseAuthors'
+            : run.phase === 'CONFLICTS' ? 'sync.detail.openalexPhaseConflicts'
+            : 'sync.detail.openalexPhaseFinalizing') | translate }}
+          ·
+        }
+        @if (run.phase === 'AUTHORS' && run.authorsTotal != null) {
+          {{ 'sync.detail.openalexAuthorsOf' | translate: { processed: run.authorsProcessed ?? 0, total: run.authorsTotal } }}
+        } @else if (run.totalExpected) {
+          {{ 'sync.detail.openalexWorksOf' | translate: { processed: run.processed, total: run.totalExpected } }}
+        } @else {
+          {{ 'sync.processedOnly' | translate: { processed: run.processed } }}
+        }
+      } @else if (run.totalExpected) {
+        {{ 'sync.processedOf' | translate: { processed: run.processed, total: run.totalExpected } }}
+      } @else {
+        {{ 'sync.processedOnly' | translate: { processed: run.processed } }}
+      }
+    </p>
+    <dl>
+      <div>
+        <dt>{{ 'sync.created' | translate }}</dt>
+        <dd>{{ run.created | localeNumber }}</dd>
+      </div>
+      <div>
+        <dt>{{ 'sync.updated' | translate }}</dt>
+        <dd>{{ run.updated | localeNumber }}</dd>
+      </div>
+      @if (entity() === 'OPENALEX') {
+        <div>
+          <dt>{{ 'sync.detail.openalexInvalidDois' | translate }}</dt>
+          <dd>{{ (run.invalidCount ?? 0) | localeNumber }}</dd>
+        </div>
+      } @else {
+        <div [title]="'sync.markedInactiveHint' | translate">
+          <dt>{{ 'sync.markedInactive' | translate }}</dt>
+          <dd>{{ run.markedInactive | localeNumber }}</dd>
+        </div>
+      }
+      @if (entity() === 'ORCID') {
+        <div>
+          <dt>{{ 'sync.orcidWorks' | translate }}</dt>
+          <dd>{{ (run.created + run.updated + run.unchanged + run.reactivated) | localeNumber }}</dd>
+        </div>
+        <div>
+          <dt>{{ 'sync.recordErrors' | translate }}</dt>
+          <dd>{{ run.errors | localeNumber }}</dd>
+        </div>
+      }
+    </dl>
+  </section>
+}
+
+@if (metricsRunning() && currentMetricsSync(); as run) {
+  <section class="sync-progress" [attr.aria-live]="'polite'">
+    <p class="sync-progress__title">
+      {{ 'sync.metrics.inProgress' | translate }}
+      @if (lastModeKey(run); as modeKey) {
+        · {{ modeKey | translate }}
+      }
+    </p>
+    <p>
+      @if (run.totalExpected) {
+        {{ 'sync.metrics.processedOf' | translate: { processed: run.processed, total: run.totalExpected } }}
+      } @else {
+        {{ 'sync.metrics.processedOnly' | translate: { processed: run.processed } }}
+      }
+    </p>
+    <dl>
+      <div>
+        <dt>{{ 'sync.metrics.found' | translate }}</dt>
+        <dd>{{ run.created | localeNumber }}</dd>
+      </div>
+      <div>
+        <dt>{{ 'sync.metrics.empty' | translate }}</dt>
+        <dd>{{ run.unchanged | localeNumber }}</dd>
+      </div>
+      <div>
+        <dt>{{ 'sync.metrics.failed' | translate }}</dt>
+        <dd>{{ run.errors | localeNumber }}</dd>
+      </div>
+    </dl>
+  </section>
+}
+
+@if (message(); as key) {
+  <p class="sync-feedback" [class.sync-feedback--error]="messageKind() === 'error'" [class.sync-feedback--success]="messageKind() === 'success'" [class.sync-feedback--info]="messageKind() === 'info'">
+    {{ key | translate }}
+  </p>
+}

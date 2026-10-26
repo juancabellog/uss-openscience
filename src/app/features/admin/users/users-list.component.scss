@@ -1,0 +1,68 @@
+.page-action {
+  min-height: 2.4rem;
+  margin-right: 0.75rem;
+}
+
+.table-actions__danger,
+.page-action--danger {
+  border: 1px solid var(--os-danger);
+  background: var(--os-surface);
+  color: var(--os-danger);
+}
+
+.table-actions__danger:hover:not(:disabled),
+.table-actions__danger:focus-visible,
+.page-action--danger:hover:not(:disabled),
+.page-action--danger:focus-visible {
+  background: #fbf6f5;
+}
+
+.table-actions__danger:disabled,
+.page-action--danger:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
+.delete-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+}
+
+.delete-dialog__backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(16, 43, 66, 0.32);
+}
+
+.delete-dialog__panel {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 0.75rem;
+  width: min(32rem, calc(100vw - 1.5rem));
+  padding: 1.2rem 1.25rem 1.05rem;
+  border-radius: var(--os-radius-md);
+  background: var(--os-surface);
+  box-shadow: var(--os-shadow-md);
+}
+
+.delete-dialog__panel h2,
+.delete-dialog__panel p {
+  margin: 0;
+}
+
+.delete-dialog__email {
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.delete-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}

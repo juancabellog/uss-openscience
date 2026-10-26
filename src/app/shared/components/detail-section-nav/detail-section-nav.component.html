@@ -1,0 +1,12 @@
+<nav class="tabs" [attr.aria-label]="ariaLabel()">
+  @for (item of items(); track item.id) {
+    <a
+      routerLink="."
+      [fragment]="item.id"
+      queryParamsHandling="preserve"
+      [replaceUrl]="true"
+      [class.is-active]="activeFragment() === item.id"
+      [attr.aria-current]="activeFragment() === item.id ? 'location' : null"
+    >{{ item.labelKey | translate }}</a>
+  }
+</nav>

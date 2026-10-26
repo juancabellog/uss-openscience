@@ -1,0 +1,14 @@
+target/
+dist/
+work/
+.classpath
+.project
+.settings/
+.idea/
+*.iml
+src/main/liberty/config/server.env
+src/main/liberty/config/bootstrap.properties
+src/main/liberty/config/configDropins/overrides/openscience-db-password.xml
+src/main/liberty/config/configDropins/overrides/openscience-db-connection.xml
+prod.env
+var/openscience-directory/

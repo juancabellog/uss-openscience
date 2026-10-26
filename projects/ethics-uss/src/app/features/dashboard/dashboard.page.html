@@ -1,0 +1,79 @@
+<section>
+  <h1>{{ 'dashboard.home' | translate }}</h1>
+  <p class="muted">
+    {{ user()?.displayName }} · {{ roleLabelKey() | translate }}
+    @if (activeCommittee(); as committee) {
+      · {{ committees[committee] | translate }}
+    }
+  </p>
+
+  @if (user()?.role === 'RESEARCHER') {
+    <div class="kpi-grid">
+      <article class="card"><strong>{{ kpis().projects }}</strong><p>{{ 'dashboard.myProjects' | translate }}</p></article>
+      <article class="card"><strong>{{ kpis().evaluation }}</strong><p>{{ 'dashboard.underReview' | translate }}</p></article>
+      <article class="card"><strong>{{ kpis().observations }}</strong><p>{{ 'dashboard.withComments' | translate }}</p></article>
+      <article class="card"><strong>{{ kpis().approved }}</strong><p>{{ 'dashboard.activeApprovals' | translate }}</p></article>
+      <article class="card"><strong>{{ kpis().expiring }}</strong><p>{{ 'dashboard.expiringSoon' | translate }}</p></article>
+    </div>
+    <p class="actions">
+      <a class="btn" routerLink="/proyectos/nuevo">
+        <span class="button-icon" aria-hidden="true">+</span>
+        <span>{{ 'dashboard.newEthicsApplication' | translate }}</span>
+      </a>
+    </p>
+    <div class="table-wrap panel">
+      <table>
+        <thead>
+          <tr>
+            <th>{{ 'dashboard.project' | translate }}</th>
+            <th>{{ 'dashboard.type' | translate }}</th>
+            <th>{{ 'dashboard.globalStatus' | translate }}</th>
+            <th>{{ 'dashboard.committees' | translate }}</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of rows(); track row.project.id) {
+            <tr>
+              <td>{{ row.project.title }}<div class="muted">{{ row.project.code }}</div></td>
+              <td>{{ (row.project.type === 'VALIDATION' ? 'dashboard.typeValidation' : 'dashboard.typeNew') | translate }}</td>
+              <td><eth-status-chip [value]="row.globalStatus" /></td>
+              <td>
+                @for (item of row.cases; track item.id) {
+                  <div>{{ committees[item.committee] | translate }}: <eth-status-chip [value]="item.status" /></div>
+                }
+              </td>
+              <td><a routerLink="/proyectos/{{ row.project.id }}">{{ 'dashboard.viewProject' | translate }}</a></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  } @else if (user()?.role === 'COMMITTEE_MEMBER') {
+    <div class="kpi-grid">
+      <article class="card"><strong>{{ myAssignments().length }}</strong><p>{{ 'dashboard.assignments' | translate }}</p></article>
+      <article class="card"><strong>{{ myAssignments().filter(a => a.status === 'PENDING').length }}</strong><p>{{ 'dashboard.pending' | translate }}</p></article>
+      <article class="card"><strong>{{ myAssignments().filter(a => a.status === 'ACCEPTED').length }}</strong><p>{{ 'dashboard.inReview' | translate }}</p></article>
+    </div>
+    <p><a class="btn" routerLink="/revisiones">{{ 'dashboard.goAssignedReviews' | translate }}</a></p>
+  } @else if (user()?.role === 'ADMINISTRATOR') {
+    <div class="kpi-grid">
+      <article class="card"><strong>{{ pendingClass() }}</strong><p>{{ 'dashboard.pendingClassification' | translate }}</p></article>
+      <article class="card"><strong>{{ secretaryBuckets().admissibility }}</strong><p>{{ 'dashboard.admissibility' | translate }}</p></article>
+      <article class="card"><strong>{{ secretaryBuckets().resolution }}</strong><p>{{ 'dashboard.resolutions' | translate }}</p></article>
+      <article class="card"><strong>{{ secretaryBuckets().expiring }}</strong><p>{{ 'dashboard.expiring' | translate }}</p></article>
+    </div>
+    <p class="actions">
+      <a class="btn" routerLink="/solicitudes">{{ 'dashboard.diseiApplications' | translate }}</a>
+      <a class="btn secondary" routerLink="/expedientes">{{ 'dashboard.cases' | translate }}</a>
+    </p>
+  } @else {
+    <div class="kpi-grid">
+      <article class="card"><strong>{{ secretaryBuckets().admissibility }}</strong><p>{{ 'dashboard.pendingAdmissibility' | translate }}</p></article>
+      <article class="card"><strong>{{ secretaryBuckets().review }}</strong><p>{{ 'dashboard.reviewsInProgress' | translate }}</p></article>
+      <article class="card"><strong>{{ secretaryBuckets().resolution }}</strong><p>{{ 'dashboard.pendingResolution' | translate }}</p></article>
+      <article class="card"><strong>{{ secretaryBuckets().expiring }}</strong><p>{{ 'dashboard.expiring' | translate }}</p></article>
+    </div>
+    <p><a class="btn" routerLink="/expedientes">{{ 'dashboard.openCaseInbox' | translate }}</a></p>
+  }
+</section>

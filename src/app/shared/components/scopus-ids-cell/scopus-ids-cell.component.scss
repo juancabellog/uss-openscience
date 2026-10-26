@@ -1,0 +1,180 @@
+:host {
+  display: inline-flex;
+  justify-content: center;
+  position: relative;
+}
+
+.scopus-value {
+  display: inline-block;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.scopus-count-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  margin: 0;
+  padding: 0.1rem 0.35rem;
+  border: 0;
+  border-radius: 2px;
+  background: transparent;
+  color: var(--os-info);
+  font: inherit;
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 0.16em;
+  cursor: pointer;
+}
+
+.scopus-count-trigger:hover,
+.scopus-count-trigger:focus-visible {
+  color: var(--os-primary);
+}
+
+.scopus-count-trigger:focus-visible {
+  outline: none;
+  box-shadow: var(--os-focus);
+}
+
+.scopus-popover {
+  position: fixed;
+  z-index: var(--os-z-dropdown);
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+  padding: 0.75rem 0.85rem;
+  background: var(--os-surface);
+  border: 1px solid var(--os-border);
+  border-radius: var(--os-radius-sm);
+  box-shadow: var(--os-shadow-sm);
+  color: var(--os-text-primary);
+  text-align: left;
+  text-transform: none;
+  letter-spacing: normal;
+  white-space: normal;
+}
+
+.scopus-popover:focus-visible {
+  outline: none;
+  box-shadow: var(--os-focus);
+}
+
+.scopus-popover__header {
+  margin-bottom: 0.65rem;
+}
+
+.scopus-popover__header p,
+.scopus-popover__status,
+.scopus-popover__author,
+.scopus-popover__local-miss,
+.scopus-popover__pure-id {
+  margin: 0;
+}
+
+.scopus-popover__header p {
+  font-size: var(--os-fs-sm);
+  font-weight: 700;
+}
+
+.scopus-popover__distinct,
+.scopus-popover__coverage,
+.scopus-popover__status,
+.scopus-popover__local-miss,
+.scopus-popover__pure-id {
+  color: var(--os-text-secondary);
+  font-size: var(--os-fs-xs);
+}
+
+.scopus-popover__author {
+  margin-top: 0.3rem;
+  color: var(--os-text-primary);
+  font-size: var(--os-fs-sm);
+  font-weight: 600;
+}
+
+.scopus-popover__local-miss {
+  margin-top: 0.3rem;
+}
+
+.scopus-popover__status {
+  padding: 0.4rem 0;
+}
+
+.scopus-popover__status--error {
+  color: var(--os-text-primary);
+}
+
+.scopus-popover__list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.scopus-popover__item {
+  min-width: 0;
+  padding: 0.65rem 0;
+}
+
+.scopus-popover__item + .scopus-popover__item {
+  border-top: 1px solid var(--os-border);
+}
+
+.scopus-popover__value {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.65rem;
+}
+
+.scopus-popover__trash {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.7rem;
+  height: 1.7rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--os-radius-sm);
+  background: transparent;
+  color: var(--os-text-secondary);
+  cursor: pointer;
+}
+
+.scopus-popover__trash:hover,
+.scopus-popover__trash:focus-visible {
+  background: #fbf6f5;
+  color: var(--os-danger);
+}
+
+.scopus-popover__trash:focus-visible {
+  outline: none;
+  box-shadow: var(--os-focus);
+}
+
+.scopus-id,
+.scopus-missing {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+.scopus-missing {
+  font-style: italic;
+  color: var(--os-text-secondary);
+}
+
+.scopus-popover__pure-id {
+  margin-top: 0.35rem;
+}
+
+:host ::ng-deep .scopus-popover .badge {
+  flex: 0 0 auto;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}

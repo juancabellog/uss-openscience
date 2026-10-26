@@ -1,0 +1,40 @@
+@if (issue() === undefined) {
+  <os-loading-state />
+} @else if (issue() === null) {
+  <os-error-state [title]="'dataQuality.notFound' | translate" />
+} @else {
+  <os-page-header [title]="issue()!.code" [subtitle]="issue()!.rule">
+    <os-status-badge [label]="issueKey(issue()!.status) | translate" [tone]="issueTone(issue()!.status)" />
+  </os-page-header>
+
+  <dl class="meta">
+    <div><dt>{{ 'dataQuality.entity' | translate }}</dt><dd>{{ issue()!.entityLabel }}</dd></div>
+    <div><dt>{{ 'dataQuality.status' | translate }}</dt><dd>{{ issueKey(issue()!.status) | translate }}</dd></div>
+    <div><dt>{{ 'dataQuality.detectedAt' | translate }}</dt><dd>{{ issue()!.detectedAt | localeDate }}</dd></div>
+    <div><dt>{{ 'dataQuality.source' | translate }}</dt><dd>{{ issue()!.source }}</dd></div>
+  </dl>
+
+  <div class="grid">
+    <os-section-card [title]="'dataQuality.currentData' | translate">
+      <p>{{ issue()!.currentData }}</p>
+    </os-section-card>
+    <os-section-card [title]="'dataQuality.externalEvidence' | translate">
+      <p>{{ issue()!.externalEvidence }}</p>
+    </os-section-card>
+    <os-section-card [title]="'dataQuality.proposedAction' | translate">
+      <p>{{ issue()!.proposedAction }}</p>
+    </os-section-card>
+  </div>
+
+  @if (auth.canAdminister('DATA_QUALITY')) {
+    <div class="actions">
+      <button type="button" [disabled]="busy()" (click)="update('in_review')">{{ 'dataQuality.markInReview' | translate }}</button>
+      <button type="button" [disabled]="busy()" (click)="update('validated')">{{ 'dataQuality.validate' | translate }}</button>
+      <button type="button" [disabled]="busy()" (click)="update('dismissed')">{{ 'dataQuality.dismiss' | translate }}</button>
+      <button type="button" class="primary" [disabled]="busy()" (click)="update('corrected')">{{ 'dataQuality.proposeCorrection' | translate }}</button>
+    </div>
+  }
+  @if (noticeKey()) {
+    <p class="notice" role="status">{{ noticeKey() | translate }}</p>
+  }
+}

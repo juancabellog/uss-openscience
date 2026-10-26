@@ -1,0 +1,351 @@
+:host {
+  display: block;
+}
+
+.discovery-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.discovery-stats {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(8.5rem, 1fr));
+  gap: var(--os-space-sm);
+  margin-bottom: var(--os-space-md);
+}
+
+.identity-secondary {
+  margin: 0 0 var(--os-space-md);
+  font-size: var(--os-fs-sm);
+}
+
+.identity-secondary a {
+  margin-left: 0.5rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.discovery-progress,
+.discovery-history,
+.history-list {
+  margin-bottom: var(--os-space-md);
+}
+
+.discovery-progress {
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--os-border);
+  border-radius: var(--os-radius-sm);
+  background: var(--os-surface);
+}
+
+.discovery-progress__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.discovery-progress h2,
+.discovery-history h2,
+.history-list h2,
+.discovery-drawer__header h2,
+.discovery-drawer h3 {
+  margin: 0 0 0.4rem;
+  font-size: var(--os-fs-md);
+}
+
+.discovery-progress p,
+.discovery-history p {
+  margin: 0.25rem 0;
+}
+
+.discovery-progress__bar {
+  height: 0.55rem;
+  margin: 0.65rem 0 0.85rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--os-surface-muted, #eef2f5);
+}
+
+.discovery-progress__bar span {
+  display: block;
+  height: 100%;
+  background: var(--os-primary);
+}
+
+.discovery-progress__metrics {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.discovery-progress__metrics dt {
+  color: var(--os-text-secondary);
+  font-size: var(--os-fs-xs);
+}
+
+.discovery-progress__metrics dd {
+  margin: 0.15rem 0 0;
+  font-weight: 600;
+}
+
+.discovery-progress__hint,
+.discovery-progress__new,
+.hint {
+  margin: 0.45rem 0 0;
+  color: var(--os-text-secondary);
+  font-size: var(--os-fs-xs);
+}
+
+.discovery-filters {
+  margin-bottom: var(--os-space-md);
+}
+
+.discovery-filters .filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: var(--os-fs-sm);
+  color: var(--os-text-secondary);
+}
+
+:host ::ng-deep table.discovery-table {
+  min-width: 86rem;
+}
+
+:host ::ng-deep .discovery-table .col-check {
+  width: 3.5rem;
+}
+
+:host ::ng-deep .discovery-table .col-status {
+  width: 12.5rem;
+}
+
+:host ::ng-deep .discovery-table .col-candidates {
+  width: 12.5rem;
+}
+
+:host ::ng-deep .discovery-table .col-doi {
+  width: 9rem;
+}
+
+:host ::ng-deep .discovery-table .col-action {
+  width: 11.5rem;
+}
+
+:host ::ng-deep .discovery-table td.col-candidates,
+:host ::ng-deep .discovery-table td.col-action {
+  overflow: visible;
+  overflow-wrap: normal;
+  word-break: normal;
+  white-space: nowrap;
+}
+
+.page-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2.4rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: var(--os-radius-sm);
+  font-size: var(--os-fs-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.page-action:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.page-action--primary {
+  background: var(--os-primary);
+  color: var(--os-text-inverse);
+  border: 1px solid var(--os-primary);
+}
+
+.page-action--secondary {
+  background: var(--os-surface);
+  color: var(--os-text-primary);
+  border: 1px solid var(--os-border-strong);
+}
+
+.discovery-sync-icon {
+  display: inline-flex;
+}
+
+.discovery-sync-icon--spinning {
+  animation: discovery-spin 1s linear infinite;
+}
+
+@keyframes discovery-spin {
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .discovery-sync-icon--spinning {
+    animation: none;
+  }
+}
+
+.candidate-link,
+.evidence-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0;
+  border: 0;
+  margin: 0;
+  background: transparent;
+  color: var(--os-primary);
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.candidate-link os-icon,
+:host ::ng-deep .candidate-link .os-icon {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 auto;
+}
+
+.link-button {
+  display: inline-block;
+  padding: 0;
+  border: 0;
+  margin: 0;
+  background: transparent;
+  color: var(--os-primary);
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.sync-dialog,
+.discovery-drawer {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+}
+
+.sync-dialog {
+  display: grid;
+  place-items: center;
+  background: rgba(16, 43, 66, 0.28);
+}
+
+.sync-dialog__panel {
+  width: min(40rem, calc(100vw - 2rem));
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
+  padding: 1.25rem;
+  border-radius: var(--os-radius-md);
+  background: var(--os-surface);
+  box-shadow: var(--os-shadow-md);
+}
+
+.sync-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.discovery-drawer__backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(16, 43, 66, 0.28);
+}
+
+.discovery-drawer__panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: grid;
+  align-content: start;
+  gap: 0.75rem;
+  width: min(46rem, calc(100vw - 1.5rem));
+  height: 100%;
+  overflow: auto;
+  padding: 1.25rem 1.35rem 1.5rem;
+  background: var(--os-surface);
+  box-shadow: var(--os-shadow-md);
+}
+
+.discovery-drawer__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.discovery-drawer__header p {
+  margin: 0.25rem 0 0;
+  color: var(--os-text-secondary);
+  font-size: var(--os-fs-sm);
+}
+
+.candidate-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.candidate-table th,
+.candidate-table td {
+  padding: 0.5rem 0.4rem;
+  text-align: left;
+  border-bottom: 1px solid var(--os-border);
+}
+
+.candidate-row--chosen td {
+  background: var(--os-surface-muted, #f4f7f9);
+}
+
+.apply-preview-table {
+  margin: 0.75rem 0 0;
+}
+
+.apply-result-table td:last-child {
+  white-space: nowrap;
+}
+
+.evidence {
+  margin-top: 0.5rem;
+}
+
+.evidence-card {
+  margin: 0.75rem 0;
+  padding: 0.75rem 0 0;
+  border-top: 1px solid var(--os-border);
+}
+
+.evidence-card p {
+  margin: 0.25rem 0;
+}
+
+.evidence-ok {
+  color: var(--os-text-primary);
+}
+
+.evidence-info {
+  color: var(--os-text-secondary);
+}
+
+@media (max-width: 52rem) {
+  .discovery-stats,
+  .discovery-progress__metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .discovery-actions {
+    justify-content: flex-start;
+  }
+}

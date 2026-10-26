@@ -1,0 +1,72 @@
+:host {
+  display: block;
+  min-width: max-content;
+}
+
+.sort-button {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.3rem;
+  width: auto;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+  border-radius: 2px;
+}
+
+.sort-button.is-numeric {
+  justify-content: center;
+  text-align: center;
+}
+
+.sort-button.is-active {
+  color: var(--os-text-primary);
+}
+
+.sort-button:hover .sort-icon {
+  opacity: 0.72;
+}
+
+.sort-button:focus-visible {
+  outline: none;
+  box-shadow: var(--os-focus);
+}
+
+.sort-label {
+  flex: 0 0 auto;
+  min-width: max-content;
+  overflow-wrap: normal;
+  word-break: normal;
+  white-space: nowrap;
+}
+
+.sort-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  width: 0.85rem;
+  height: 0.85rem;
+  opacity: 0.42;
+  color: var(--os-text-secondary);
+}
+
+.sort-icon ::ng-deep .os-icon {
+  width: 0.85rem;
+  height: 0.85rem;
+}
+
+.sort-button.is-active .sort-icon {
+  opacity: 0.95;
+  color: var(--os-secondary);
+}

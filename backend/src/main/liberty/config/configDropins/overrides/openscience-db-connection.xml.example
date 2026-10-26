@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<server>
+    <!--
+      Copiar a openscience-db-connection.xml (gitignored).
+      Pisa el dataSource. Usar <properties>, no properties.mysql.
+    -->
+    <dataSource id="OpenScienceDataSource" jndiName="jdbc/openscience" validationTimeout="10s">
+        <jdbcDriver libraryRef="mysqlLib"/>
+        <connectionManager maxPoolSize="20"
+                           minPoolSize="0"
+                           maxIdleTime="5m"
+                           agedTimeout="30m"
+                           reapTime="1m"
+                           purgePolicy="EntirePool" />
+        <properties serverName="192.168.2.109"
+                    portNumber="3306"
+                    databaseName="uss-ca"
+                    user="root"
+                    password="CAMBIAR"
+                    allowPublicKeyRetrieval="true"
+                    sslMode="DISABLED"
+                    serverTimezone="America/Santiago"/>
+    </dataSource>
+</server>

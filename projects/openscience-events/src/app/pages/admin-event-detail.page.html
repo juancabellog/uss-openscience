@@ -1,0 +1,140 @@
+<p><a routerLink="/admin/eventos">{{ 'form.back' | translate }}</a></p>
+
+@if (errorKey(); as key) {
+  <p class="error" role="alert">{{ key | translate }}</p>
+}
+
+@if (event(); as current) {
+  <section class="panel event-summary">
+    <div class="event-summary__head">
+      <div>
+        <p class="muted">
+          {{ current.eventType | catalog:'types' }}
+          ·
+          {{ current.modality ? (current.modality | catalog:'modalities') : ('adminList.noModality' | translate) }}
+        </p>
+        <h1 class="event-name">{{ titleOf(current) }}</h1>
+        <span class="badge {{ statusClass(current) }}">{{ current.publicationStatus | catalog:'statuses' }}</span>
+      </div>
+      <div class="event-summary__actions">
+        @if (canEdit(current)) {
+          <a class="button-link" [routerLink]="['/admin/eventos', current.id, 'editar']">
+            {{ 'adminList.editEvent' | translate }}
+          </a>
+        }
+        <ose-event-status-menu
+          [event]="current"
+          (publish)="ask('publish')"
+          (unpublish)="ask('unpublish')"
+          (finish)="ask('finish')"
+          (cancel)="ask('cancel')"
+        />
+      </div>
+    </div>
+
+    <ose-event-admin-tabs [eventId]="current.id" />
+
+    @if (successKey(); as key) {
+      <p class="success" role="status">{{ key | translate }}</p>
+    }
+
+    @if (pending(); as action) {
+      <section class="confirm-box {{ confirmTone(action) }}" role="dialog" aria-modal="true" aria-labelledby="event-confirm-title">
+        <p id="event-confirm-title">{{ confirmTitleKey(action) | translate }}</p>
+        <p class="muted">{{ confirmHintKey(action) | translate }}</p>
+        <div class="actions">
+          <button
+            type="button"
+            [class.danger]="action === 'cancel'"
+            [class.warning]="action === 'finish'"
+            [disabled]="busy()"
+            (click)="confirmPending()"
+          >
+            {{ confirmActionKey(action) | translate }}
+          </button>
+          <button type="button" class="secondary" [disabled]="busy()" (click)="dismissPending()">
+            {{ 'common.cancel' | translate }}
+          </button>
+        </div>
+      </section>
+    }
+
+    <dl>
+      @if (current.startsAt) {
+        <div>
+          <dt>{{ 'detail.start' | translate }}</dt>
+          <dd>{{ current.startsAt | localeDate: current.timezone }}</dd>
+        </div>
+      }
+      @if (current.endsAt) {
+        <div>
+          <dt>{{ 'detail.end' | translate }}</dt>
+          <dd>{{ current.endsAt | localeDate: current.timezone }}</dd>
+        </div>
+      }
+      @if (placeOf(current); as place) {
+        <div>
+          <dt>{{ 'detail.place' | translate }}</dt>
+          <dd>{{ place }}</dd>
+        </div>
+      }
+      @if (current.virtualAccess) {
+        <div>
+          <dt>{{ 'form.virtualAccess' | translate }}</dt>
+          <dd>{{ current.virtualAccess }}</dd>
+        </div>
+      }
+      @if (unitOf(current); as unit) {
+        <div>
+          <dt>{{ 'detail.organizer' | translate }}</dt>
+          <dd>{{ unit }}</dd>
+        </div>
+      }
+      @if (current.registrationOpensAt) {
+        <div>
+          <dt>{{ 'form.registrationOpensAt' | translate }}</dt>
+          <dd>{{ current.registrationOpensAt | localeDate: current.timezone }}</dd>
+        </div>
+      }
+      @if (current.registrationClosesAt) {
+        <div>
+          <dt>{{ 'form.registrationClosesAt' | translate }}</dt>
+          <dd>{{ current.registrationClosesAt | localeDate: current.timezone }}</dd>
+        </div>
+      }
+      <div>
+        <dt>{{ 'adminHome.registrants' | translate }}</dt>
+        <dd>
+          {{ current.confirmedCount || 0 }}
+          @if (current.capacity) {
+            / {{ current.capacity }}
+          }
+        </dd>
+      </div>
+      @if (current.publicSlug) {
+        <div>
+          <dt>{{ 'form.publicSlug' | translate }}</dt>
+          <dd>{{ current.publicSlug }}</dd>
+        </div>
+      }
+    </dl>
+
+    @if (descriptionOf(current); as description) {
+      <p class="description">{{ description }}</p>
+    }
+
+    @if (registrationUrl() || publicUrl()) {
+      <section class="event-summary__share">
+        <h2>{{ 'adminEvent.share' | translate }}</h2>
+        <div class="actions actions-share">
+          @if (registrationUrl(); as url) {
+            <ose-copy-button [value]="url">{{ 'form.copyRegistration' | translate }}</ose-copy-button>
+          }
+          @if (publicUrl(); as url) {
+            <ose-copy-button [value]="url">{{ 'form.copyPublic' | translate }}</ose-copy-button>
+          }
+        </div>
+      </section>
+    }
+  </section>
+}

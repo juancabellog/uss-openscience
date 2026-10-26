@@ -1,0 +1,78 @@
+@if (submission(); as sub) {
+  <section class="review">
+    <eth-submission-readonly
+      [submission]="sub"
+      [project]="project()"
+      [researcherName]="researcher()"
+    />
+
+    <aside class="classification panel">
+      <section>
+        <h2>{{ 'classification.automatic' | translate }}</h2>
+        <p class="hint">{{ 'classification.automaticHint' | translate }}</p>
+        <ul class="auto-list">
+          @for (code of codes; track code) {
+            <li [class.on]="sub.classification.automatic.includes(code)">
+              <span aria-hidden="true">{{ sub.classification.automatic.includes(code) ? '✓' : '○' }}</span>
+              <span>{{ labels[code] | translate }}</span>
+            </li>
+          }
+        </ul>
+      </section>
+
+      <fieldset class="validated">
+        <legend>{{ 'classification.validated' | translate }}</legend>
+        @for (code of committeeCodes; track code) {
+          <label class="class-option">
+            <input type="checkbox" [checked]="validated().includes(code)" (change)="toggle(code)" />
+            <span>{{ labels[code] | translate }}</span>
+          </label>
+        }
+        <label class="class-option exclusive">
+          <input type="checkbox" [checked]="validated().includes('NO_REQUIERE_COMITE')" (change)="toggle('NO_REQUIERE_COMITE')" />
+          <span>{{ labels['NO_REQUIERE_COMITE'] | translate }}</span>
+        </label>
+      </fieldset>
+
+      @if (changed()) {
+        <label class="field">
+          <span class="label-caption">{{ 'classification.justification' | translate }} <span class="req">*</span></span>
+          <textarea
+            [value]="reason()"
+            (input)="reason.set($any($event.target).value)"
+            rows="4"
+            [placeholder]="'classification.justificationPlaceholder' | translate"
+          ></textarea>
+          <span class="hint">{{ 'classification.justificationHint' | translate }}</span>
+        </label>
+      }
+
+      <div class="actions">
+        <button type="button" class="btn" [disabled]="!canConfirm()" (click)="ask()">{{ 'classification.confirmReferral' | translate }}</button>
+      </div>
+      @if (error(); as text) {
+        <p class="alert danger">{{ text }}</p>
+      }
+    </aside>
+  </section>
+} @else {
+  <p class="muted">{{ 'submission.notFound' | translate }}</p>
+}
+
+@if (askConfirm()) {
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="derive-title">
+    <div class="modal-card">
+      <h2 id="derive-title">{{ 'classification.confirmTitle' | translate }}</h2>
+      <p>{{ 'classification.confirmBody' | translate }}</p>
+      <ul class="summary-codes">
+        @for (code of validated(); track code) {
+          <li>{{ labels[code] | translate }}</li>
+        }
+      </ul>
+      <div class="actions">
+        <button type="button" class="ghost" (click)="askConfirm.set(false)">{{ 'common.cancel' | translate }}</button>
+        <button type="button" class="btn" (click)="confirm()">{{ 'classification.confirmReferral' | translate }}</button>
+      </div>
+    </div>
+  </div>
+}

@@ -1,0 +1,108 @@
+:host {
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+.info-hint {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.info-hint__trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  min-width: 1.5rem;
+  min-height: 1.5rem;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--os-text-secondary);
+  cursor: pointer;
+}
+
+.info-hint__trigger--embedded {
+  min-width: 0;
+  min-height: 0;
+  color: inherit;
+}
+
+.info-hint__trigger:hover,
+.info-hint__trigger:focus-visible {
+  color: var(--os-primary, #102b42);
+}
+
+.info-hint__trigger--embedded:hover,
+.info-hint__trigger--embedded:focus-visible {
+  color: inherit;
+}
+
+.info-hint__trigger:focus-visible {
+  outline: none;
+  box-shadow: var(--os-focus);
+}
+
+.info-hint__trigger os-icon {
+  display: block;
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+:host ::ng-deep .info-hint__trigger .os-icon {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.info-hint__trigger--embedded os-icon,
+:host ::ng-deep .info-hint__trigger--embedded .os-icon {
+  width: 0.85rem;
+  height: 0.85rem;
+}
+
+.info-hint__panel {
+  position: absolute;
+  z-index: var(--os-z-dropdown);
+  top: calc(100% + 0.35rem);
+  right: 0;
+  display: grid;
+  gap: 0.45rem;
+  width: 18.5rem;
+  max-width: min(18.5rem, 70vw);
+  padding: 0.55rem 0.7rem;
+  background: var(--os-surface);
+  border: 1px solid var(--os-border);
+  border-radius: var(--os-radius-sm);
+  box-shadow: var(--os-shadow-sm);
+  color: var(--os-text-primary);
+  font-size: var(--os-fs-xs);
+  font-weight: 500;
+  line-height: 1.4;
+  text-transform: none;
+  letter-spacing: normal;
+  white-space: normal;
+}
+
+.info-hint__action {
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--os-primary);
+  font-size: var(--os-fs-xs);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.info-hint__action:hover,
+.info-hint__action:focus-visible {
+  text-decoration: underline;
+}
+
+.info-hint__action:focus-visible {
+  outline: none;
+  box-shadow: var(--os-focus);
+  border-radius: 0.15rem;
+}

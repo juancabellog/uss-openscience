@@ -1,0 +1,103 @@
+<server description="OPENSCIENCE-USS">
+    <featureManager>
+        <feature>restfulWS-3.1</feature>
+        <feature>jsonb-3.0</feature>
+        <feature>jsonp-2.1</feature>
+        <feature>cdi-4.0</feature>
+        <feature>beanValidation-3.0</feature>
+        <feature>mpConfig-3.1</feature>
+        <feature>jdbc-4.3</feature>
+        <feature>concurrent-3.0</feature>
+        <feature>mail-2.1</feature>
+    </featureManager>
+
+    <httpEndpoint id="defaultHttpEndpoint"
+                  host="*"
+                  httpPort="${httpPort}"
+                  httpsPort="${httpsPort}">
+        <accessLogging enabled="true"
+                       filepath="${server.output.dir}/logs/http_access.log"
+                       logFormat='%h %t "%r" %s %b origin=%{Origin}i referer=%{Referer}i %D'/>
+    </httpEndpoint>
+
+    <variable name="httpPort" defaultValue="9080" />
+    <variable name="httpsPort" defaultValue="9443" />
+    <!--
+        MySQL: bootstrap.properties (embebido al empaquetar) o DB_* en el entorno
+        al hacer java -jar (pisan el JAR). El dropin openscience-db-password.xml
+        también pisa db_password si está en el paquete.
+        El dropin openscience-db-connection.xml pisa el dataSource (host).
+    -->
+    <variable name="db_host" defaultValue="192.168.2.109" />
+    <variable name="db_port" defaultValue="3306" />
+    <variable name="db_name" defaultValue="uss-ca" />
+    <variable name="db_user" defaultValue="root" />
+    <variable name="db_password" defaultValue="" />
+    <variable name="db_use_ssl" defaultValue="true" />
+
+    <library id="mysqlLib">
+        <fileset dir="${server.config.dir}/jdbc" includes="*.jar" />
+    </library>
+
+    <!--
+        MySQL en Liberty: <properties>, no properties.mysql.
+        properties.mysql deja serverName=localhost y esa default pisa el URL:
+        entra al MySQL local con la password de db_password (la de 220).
+    -->
+    <!--
+        minPoolSize=1 + sin validación dejaba una conexión ociosa toda la noche.
+        MySQL cierra por wait_timeout (~8h) y el siguiente getConnection()
+        revienta (J2CA0056I / Broken pipe). No usar autoReconnect=true.
+        validationTimeout fuerza Connection.isValid() al entregar del pool.
+        maxIdleTime debe ser menor que wait_timeout de MySQL.
+        transactional=false: no hay JTA. Con el default (true) Liberty enlista
+        jdbc/openscience en un LTC del ManagedExecutor y la conexión NO vuelve
+        al pool hasta que termina el job (OpenAlex FULL puede durar > wait_timeout).
+        Eso deja STATE_TRAN_WRAPPER_INUSE + Broken pipe en el heartbeat.
+        socketTimeout=0: una importación FULL del directorio (~3000 filas cifradas
+        contra MySQL remoto) puede superar 5 minutos. Un corte JDBC dejaría
+        RUNNING committed y las personas en rollback.
+    -->
+    <dataSource id="OpenScienceDataSource"
+                jndiName="jdbc/openscience"
+                transactional="false"
+                validationTimeout="10s">
+        <jdbcDriver libraryRef="mysqlLib"/>
+        <connectionManager maxPoolSize="20"
+                           minPoolSize="0"
+                           maxIdleTime="5m"
+                           agedTimeout="30m"
+                           reapTime="1m"
+                           purgePolicy="EntirePool" />
+        <properties serverName="${db_host}"
+                    portNumber="${db_port}"
+                    databaseName="${db_name}"
+                    user="${db_user}"
+                    password="${db_password}"
+                    allowPublicKeyRetrieval="true"
+                    sslMode="DISABLED"
+                    serverTimezone="America/Santiago"
+                    connectTimeout="10000"
+                    socketTimeout="0"/>
+    </dataSource>
+
+    <!--
+        MailSession opcional. NO activar con host vacío (Liberty puede fallar al arrancar).
+        SmtpMailService usa MAIL_SMTP_* de MicroProfile Config y, si existe, JNDI mail/openscience.
+        Ejemplo cuando el SMTP esté listo:
+        <mailSession jndiName="mail/openscience" host="${mail_smtp_host}" from="${mail_from_address}"
+                     user="${mail_smtp_username}" password="${mail_smtp_password}">
+            <property name="mail.smtp.port" value="${mail_smtp_port}" />
+            <property name="mail.smtp.auth" value="true" />
+            <property name="mail.smtp.starttls.enable" value="${mail_smtp_starttls}" />
+        </mailSession>
+    -->
+
+    <!-- SIMPLE prints JUL LogRecord.getThrown() (full stack) in messages.log/console.log. -->
+    <logging consoleLogLevel="INFO"
+             consoleFormat="SIMPLE"
+             messageFormat="SIMPLE"
+             copySystemStreams="true" />
+
+    <webApplication location="openscience-uss.war" contextRoot="/" />
+</server>

@@ -1,0 +1,637 @@
+<os-page-header
+  [title]="'dataQuality.title' | translate"
+  [subtitle]="'dataQuality.subtitle' | translate"
+>
+  <div class="dq-actions">
+    <span
+      class="dq-export-wrap"
+      [attr.title]="canExport() ? null : ('dataQuality.exportDisabledTitle' | translate)"
+    >
+      <button
+        type="button"
+        class="page-action page-action--secondary"
+        [disabled]="!canExport() || exportBusy()"
+        [attr.aria-disabled]="!canExport() || exportBusy()"
+        [attr.title]="canExport() ? null : ('dataQuality.exportDisabledTitle' | translate)"
+        (click)="exportExcel()"
+      >
+        {{ 'dataQuality.exportExcel' | translate }}
+      </button>
+    </span>
+    @if (canAdminister()) {
+    <button type="button" class="page-action page-action--primary" [disabled]="running() || busy()" (click)="confirmRun.set(true)">
+      <os-icon name="sync" [class.dq-spin]="running()" />
+      {{ (running() ? 'dataQuality.validatingButton' : 'dataQuality.runValidations') | translate }}
+    </button>
+    }
+  </div>
+</os-page-header>
+
+<nav class="dq-tabs" role="tablist" [attr.aria-label]="'dataQuality.tabs' | translate">
+  <button
+    type="button"
+    role="tab"
+    id="dq-tab-findings"
+    [attr.aria-selected]="tab() === 'findings'"
+    aria-controls="dq-panel-findings"
+    [class.is-active]="tab() === 'findings'"
+    (click)="tab.set('findings')"
+  >
+    {{ 'dataQuality.tabFindings' | translate }}
+  </button>
+  <button
+    type="button"
+    role="tab"
+    id="dq-tab-rules"
+    [attr.aria-selected]="tab() === 'rules'"
+    aria-controls="dq-panel-rules"
+    [class.is-active]="tab() === 'rules'"
+    (click)="tab.set('rules')"
+  >
+    {{ 'dataQuality.tabRules' | translate }}
+  </button>
+  <button
+    type="button"
+    role="tab"
+    id="dq-tab-history"
+    [attr.aria-selected]="tab() === 'history'"
+    aria-controls="dq-panel-history"
+    [class.is-active]="tab() === 'history'"
+    (click)="tab.set('history')"
+  >
+    {{ 'dataQuality.tabHistory' | translate }}
+  </button>
+</nav>
+
+@if (tab() === 'findings') {
+  <section class="dq-stats" [attr.aria-label]="'dataQuality.stats' | translate">
+    <os-mini-stat
+      [label]="'dataQuality.openFindings' | translate"
+      [value]="hasExecutionUniverse() ? ((stats()?.openFindings ?? 0) | localeNumber) : ('common.dash' | translate)"
+      [tooltip]="hasExecutionUniverse() ? '' : ('dataQuality.statsNeverHint' | translate)"
+    />
+    <os-mini-stat
+      [label]="'dataQuality.affectedRecords' | translate"
+      [value]="hasExecutionUniverse() ? ((stats()?.affectedRecords ?? 0) | localeNumber) : ('common.dash' | translate)"
+      [tooltip]="hasExecutionUniverse() ? '' : ('dataQuality.statsNeverHint' | translate)"
+    />
+    <os-mini-stat
+      [label]="'dataQuality.correctionAvailable' | translate"
+      [value]="hasExecutionUniverse() ? ((stats()?.correctionAvailable ?? 0) | localeNumber) : ('common.dash' | translate)"
+      [tooltip]="hasExecutionUniverse() ? '' : ('dataQuality.statsNeverHint' | translate)"
+    />
+    <os-mini-stat
+      [label]="'dataQuality.manualReview' | translate"
+      [value]="hasExecutionUniverse() ? ((stats()?.manualReview ?? 0) | localeNumber) : ('common.dash' | translate)"
+      [tooltip]="hasExecutionUniverse() ? '' : ('dataQuality.statsNeverHint' | translate)"
+    />
+  </section>
+}
+
+@if (running() && execution(); as run) {
+  <section class="dq-progress" aria-live="polite">
+    <header class="dq-progress__head">
+      <h2>{{ 'dataQuality.progressTitle' | translate }}</h2>
+      <os-status-badge [label]="'dataQuality.progressInProgress' | translate" [tone]="statusTone(run.status)" />
+    </header>
+    <p>{{ 'dataQuality.processedOf' | translate: { processed: (run.evaluatedRecords | localeNumber), total: (run.totalRecords | localeNumber) } }}</p>
+    <div class="dq-progress__bar" role="progressbar" [attr.aria-valuemin]="0" [attr.aria-valuenow]="run.evaluatedRecords" [attr.aria-valuemax]="run.totalRecords">
+      <span [style.width.%]="progressPercent(run)"></span>
+    </div>
+    <p>{{ 'dataQuality.findingsSoFar' | translate: { count: (run.findingCount | localeNumber) } }}</p>
+    <p class="dq-progress__hint">{{ 'dataQuality.backgroundHint' | translate }}</p>
+  </section>
+}
+
+@if (tab() === 'findings') {
+  <div id="dq-panel-findings" role="tabpanel" aria-labelledby="dq-tab-findings">
+  <div class="dq-filters">
+    <os-filter-bar>
+      <os-search-box [control]="search" [placeholder]="'dataQuality.searchPlaceholder' | translate" [label]="'dataQuality.search' | translate" />
+      <label class="filter-field dq-filter--category">
+        <span>{{ 'dataQuality.categoryFilter' | translate }}</span>
+        <select class="os-control" [formControl]="category">
+          <option value="">{{ 'dataQuality.categoryAll' | translate }}</option>
+          <option value="IDENTIFICATION">{{ 'dataQuality.category.IDENTIFICATION' | translate }}</option>
+          <option value="COMPLETENESS">{{ 'dataQuality.category.COMPLETENESS' | translate }}</option>
+          <option value="CONSISTENCY">{{ 'dataQuality.category.CONSISTENCY' | translate }}</option>
+          <option value="TEXT_QUALITY">{{ 'dataQuality.category.TEXT_QUALITY' | translate }}</option>
+          <option value="IDENTITY">{{ 'dataQuality.category.IDENTITY' | translate }}</option>
+          <option value="BIBLIOGRAPHY">{{ 'dataQuality.category.BIBLIOGRAPHY' | translate }}</option>
+          <option value="ACCESS_WORKFLOW">{{ 'dataQuality.category.ACCESS_WORKFLOW' | translate }}</option>
+          <option value="EXTERNAL_CONSISTENCY">{{ 'dataQuality.category.EXTERNAL_CONSISTENCY' | translate }}</option>
+        </select>
+      </label>
+      <label class="filter-field dq-filter--rule">
+        <span>{{ 'dataQuality.rule' | translate }}</span>
+        <select class="os-control" [formControl]="rule">
+          <option value="">{{ 'dataQuality.ruleAll' | translate }}</option>
+          @for (item of visibleRuleCounts(); track item.code) {
+            <option [value]="item.code">{{ item.code }} · {{ item.name }} ({{ item.count | localeNumber }})</option>
+          }
+        </select>
+      </label>
+      <label class="filter-field dq-filter--entity">
+        <span>{{ 'dataQuality.entityFilter' | translate }}</span>
+        <select class="os-control" [formControl]="entity">
+          <option value="">{{ 'dataQuality.entityAll' | translate }}</option>
+          <option value="RESEARCH_OUTPUT">{{ 'dataQuality.entity.RESEARCH_OUTPUT' | translate }}</option>
+          <option value="PERSON">{{ 'dataQuality.entity.PERSON' | translate }}</option>
+        </select>
+      </label>
+      <label class="filter-field dq-filter--action">
+        <span>{{ 'dataQuality.actionType' | translate }}</span>
+        <select class="os-control" [formControl]="action">
+          <option value="">{{ 'dataQuality.actionAll' | translate }}</option>
+          <option value="SAFE_SUGGESTION">{{ 'dataQuality.action.SAFE_SUGGESTION' | translate }}</option>
+          <option value="MANUAL_REVIEW">{{ 'dataQuality.action.MANUAL_REVIEW' | translate }}</option>
+          <option value="VIEW_ONLY">{{ 'dataQuality.action.VIEW_ONLY' | translate }}</option>
+        </select>
+      </label>
+      <label class="filter-field dq-filter--status">
+        <span>{{ 'dataQuality.status' | translate }}</span>
+        <select class="os-control" [formControl]="status">
+          <option value="OPEN">{{ 'dataQuality.findingStatus.OPEN' | translate }}</option>
+          <option value="IN_REVIEW">{{ 'dataQuality.findingStatus.IN_REVIEW' | translate }}</option>
+          <option value="RESOLVED">{{ 'dataQuality.findingStatus.RESOLVED' | translate }}</option>
+          <option value="NOT_APPLICABLE">{{ 'dataQuality.findingStatus.NOT_APPLICABLE' | translate }}</option>
+          <option value="ALL">{{ 'common.all' | translate }}</option>
+        </select>
+      </label>
+      <label class="filter-field dq-filter--source">
+        <span>{{ 'dataQuality.sourceFilter' | translate }}</span>
+        <select class="os-control" [formControl]="source">
+          <option value="">{{ 'dataQuality.sourceAll' | translate }}</option>
+          <option value="PURE">{{ 'dataQuality.source.PURE' | translate }}</option>
+          <option value="CROSSREF">{{ 'dataQuality.source.CROSSREF' | translate }}</option>
+          <option value="OPENALEX">{{ 'dataQuality.source.OPENALEX' | translate }}</option>
+          <option value="EXTERNAL">{{ 'dataQuality.source.EXTERNAL' | translate }}</option>
+          <option value="UNPAYWALL">{{ 'dataQuality.source.UNPAYWALL' | translate }}</option>
+          <option value="ORCID">{{ 'dataQuality.source.ORCID' | translate }}</option>
+          <option value="SCOPUS">{{ 'dataQuality.source.SCOPUS' | translate }}</option>
+          <option value="DSPACE">{{ 'dataQuality.source.DSPACE' | translate }}</option>
+          <option value="DATACITE">{{ 'dataQuality.source.DATACITE' | translate }}</option>
+        </select>
+      </label>
+      @if (filtersDirty()) {
+        <button type="button" class="link-button dq-clear-filters" (click)="clearFilters()">
+          {{ 'dataQuality.clearFilters' | translate }}
+        </button>
+      }
+    </os-filter-bar>
+  </div>
+
+  @if (bulkReady() && canAdminister()) {
+    <div class="dq-bulk">
+      <button type="button" class="page-action page-action--primary" [disabled]="applying()" (click)="confirmApply.set(true)">
+        {{ 'dataQuality.applyBulk' | translate: { count: selectedIds().length } }}
+      </button>
+    </div>
+  }
+
+  @let vm = table();
+  @if (vm.status === 'loading' && vm.data.items.length === 0) {
+    <os-loading-state />
+  } @else if (vm.status === 'error') {
+    <os-error-state />
+  } @else if (findingsEmptyKind() === 'never') {
+    <os-empty-state
+      icon="quality"
+      [title]="'dataQuality.emptyNeverTitle' | translate"
+      [message]="'dataQuality.emptyNeverMessage' | translate"
+      [actionLabel]="canAdminister() ? ('dataQuality.runValidations' | translate) : ''"
+      actionVariant="primary"
+      (action)="canAdminister() && confirmRun.set(true)"
+    />
+  } @else if (findingsEmptyKind() === 'zero') {
+    <os-empty-state
+      icon="check"
+      [title]="'dataQuality.emptyZeroTitle' | translate"
+      [message]="'dataQuality.emptyZeroMessage' | translate"
+    />
+  } @else if (findingsEmptyKind() === 'filtered') {
+    <os-empty-state
+      icon="search"
+      [title]="'dataQuality.emptyFilteredTitle' | translate"
+      [message]="'dataQuality.emptyFilteredMessage' | translate"
+      [actionLabel]="filtersDirty() ? ('dataQuality.clearFilters' | translate) : ''"
+      actionVariant="link"
+      (action)="clearFilters()"
+    />
+  } @else if (vm.data.items.length > 0) {
+    <os-data-table-shell [caption]="'dataQuality.caption' | translate">
+      <table class="dq-findings-table">
+        <thead>
+          <tr>
+            @if (canAdminister()) {
+            <th class="col-check">
+              <input type="checkbox" [checked]="selectedIds().length === vm.data.items.length" (change)="toggleAll($any($event.target).checked)" [attr.aria-label]="'dataQuality.selectAll' | translate" />
+            </th>
+            }
+            <th [attr.aria-sort]="ariaSort('ruleCode')">
+              <os-sortable-header field="ruleCode" [label]="'dataQuality.rule' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" />
+            </th>
+            <th [attr.aria-sort]="ariaSort('recordLabel')">
+              <os-sortable-header field="recordLabel" [label]="'dataQuality.record' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" />
+            </th>
+            <th [attr.aria-sort]="ariaSort('entityType')">
+              <os-sortable-header field="entityType" [label]="'dataQuality.entityFilter' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" />
+            </th>
+            <th [attr.aria-sort]="ariaSort('fieldName')">
+              <os-sortable-header field="fieldName" [label]="'dataQuality.field' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" />
+            </th>
+            <th [attr.aria-sort]="ariaSort('summary')">
+              <os-sortable-header field="summary" [label]="'dataQuality.problem' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" />
+            </th>
+            <th [attr.aria-sort]="ariaSort('correctionMode')">
+              <os-sortable-header field="correctionMode" [label]="'dataQuality.actionType' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" />
+            </th>
+            <th [attr.aria-sort]="ariaSort('status')">
+              <os-sortable-header field="status" [label]="'dataQuality.status' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" />
+            </th>
+            <th class="col-actions">{{ 'dataQuality.actions' | translate }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (finding of vm.data.items; track finding.id) {
+            <tr
+              class="dq-finding-row"
+              [class.is-open]="detail()?.id === finding.id"
+              (click)="onFindingRowClick($event, finding)"
+            >
+              @if (canAdminister()) {
+              <td class="col-check">
+                <input type="checkbox" [checked]="isSelected(finding.id)" (change)="toggleRow(finding.id, $any($event.target).checked)" />
+              </td>
+              }
+              <td>
+                <strong>{{ finding.ruleCode }}</strong>
+                <div class="dq-muted">{{ finding.ruleName }}</div>
+              </td>
+              <td class="col-title">
+                <span>{{ finding.recordLabel || ('common.dash' | translate) }}</span>
+                <div class="dq-muted">PURE {{ finding.pureId || ('common.dash' | translate) }}</div>
+              </td>
+              <td>{{ ('dataQuality.entity.' + finding.entityType) | translate }}</td>
+              <td>{{ finding.fieldName }}</td>
+              <td>{{ finding.summary }}</td>
+              <td>
+                <os-status-badge [label]="('dataQuality.action.' + finding.correctionMode) | translate" [tone]="actionTone(finding.correctionMode)" />
+              </td>
+              <td>
+                <os-status-badge [label]="('dataQuality.findingStatus.' + finding.status) | translate" [tone]="statusTone(finding.status)" />
+              </td>
+              <td class="col-actions">
+                <button
+                  type="button"
+                  class="link-button"
+                  [id]="'dq-finding-open-' + finding.id"
+                  [attr.aria-haspopup]="'dialog'"
+                  [attr.aria-label]="'dataQuality.viewFindingAria' | translate: { code: finding.ruleCode }"
+                  (click)="openFinding(finding)"
+                >
+                  {{ 'dataQuality.viewDetail' | translate }}
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </os-data-table-shell>
+    <os-pagination [page]="vm.data.page" [pageSize]="vm.data.pageSize" [total]="vm.data.total" (pageChange)="onPageChange($event)" />
+  }
+  </div>
+}
+
+@if (tab() === 'rules') {
+  <div id="dq-panel-rules" role="tabpanel" aria-labelledby="dq-tab-rules">
+  <os-data-table-shell [caption]="'dataQuality.rulesCaption' | translate">
+    <table>
+      <thead>
+        <tr>
+          <th>{{ 'dataQuality.code' | translate }}</th>
+          <th>{{ 'dataQuality.entityField' | translate }}</th>
+          <th>{{ 'dataQuality.description' | translate }}</th>
+          <th>{{ 'dataQuality.ruleText' | translate }}</th>
+          <th>{{ 'dataQuality.actionType' | translate }}</th>
+          <th>{{ 'dataQuality.openFindings' | translate }}</th>
+          <th>{{ 'dataQuality.enabled' | translate }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of rules(); track item.code) {
+          <tr (click)="ruleDetail.set(item)">
+            <td><strong>{{ item.code }}</strong></td>
+            <td>{{ item.entityType }} / {{ item.fieldName }}</td>
+            <td>{{ item.description }}</td>
+            <td>{{ item.ruleText }}</td>
+            <td>
+              <os-status-badge [label]="('dataQuality.action.' + item.correctionMode) | translate" [tone]="actionTone(item.correctionMode)" />
+            </td>
+            <td>{{ item.openFindingCount | localeNumber }}</td>
+            <td>{{ (item.enabled ? 'dataQuality.enabledYes' : 'dataQuality.enabledNo') | translate }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </os-data-table-shell>
+  </div>
+}
+
+@if (tab() === 'history') {
+  <div id="dq-panel-history" role="tabpanel" aria-labelledby="dq-tab-history">
+  <os-data-table-shell [caption]="'dataQuality.historyCaption' | translate">
+    <table>
+      <thead>
+        <tr>
+          <th>{{ 'dataQuality.date' | translate }}</th>
+          <th>{{ 'dataQuality.trigger' | translate }}</th>
+          <th>{{ 'dataQuality.status' | translate }}</th>
+          <th>{{ 'dataQuality.evaluated' | translate }}</th>
+          <th>{{ 'dataQuality.detected' | translate }}</th>
+          <th>{{ 'dataQuality.resolved' | translate }}</th>
+          <th>{{ 'dataQuality.errors' | translate }}</th>
+          <th>{{ 'dataQuality.duration' | translate }}</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of history(); track item.id) {
+          <tr>
+            <td>{{ item.startedAt | localeDate }}</td>
+            <td>{{ ('dataQuality.triggerType.' + item.triggerType) | translate }}</td>
+            <td>
+              <os-status-badge [label]="('dataQuality.executionStatus.' + item.status) | translate" [tone]="statusTone(item.status)" />
+            </td>
+            <td>{{ item.evaluatedRecords | localeNumber }}</td>
+            <td>{{ item.findingCount | localeNumber }}</td>
+            <td>{{ item.resolvedCount | localeNumber }}</td>
+            <td>{{ item.errorCount | localeNumber }}</td>
+            <td>{{ item.durationSeconds == null ? ('common.dash' | translate) : (item.durationSeconds + 's') }}</td>
+            <td><button type="button" class="link-button" (click)="historyDetail.set(item)">{{ 'dataQuality.viewDetail' | translate }}</button></td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </os-data-table-shell>
+  </div>
+}
+
+@if (detail(); as finding) {
+  <div class="discovery-drawer" role="dialog" aria-modal="true">
+    <button type="button" class="discovery-drawer__backdrop" (click)="closeFinding()" tabindex="-1" aria-hidden="true"></button>
+    <aside class="discovery-drawer__panel">
+      <header class="discovery-drawer__header">
+        <div>
+          <p class="dq-code">{{ finding.ruleCode }}</p>
+          <h2>{{ finding.ruleName }}</h2>
+        </div>
+        <button type="button" (click)="closeFinding()">{{ 'common.close' | translate }}</button>
+      </header>
+      <p>
+        <strong>{{ finding.recordLabel }}</strong>
+        <span class="dq-muted"> · PURE {{ finding.pureId }} · {{ finding.recordUuid }}</span>
+      </p>
+      <os-status-badge [label]="('dataQuality.action.' + finding.correctionMode) | translate" [tone]="actionTone(finding.correctionMode)" />
+      <os-status-badge [label]="('dataQuality.findingStatus.' + finding.status) | translate" [tone]="statusTone(finding.status)" />
+      <section>
+        <h3>{{ 'dataQuality.rule' | translate }}</h3>
+        <p>{{ finding.ruleText }}</p>
+      </section>
+      <section>
+        <h3>{{ 'dataQuality.problem' | translate }}</h3>
+        <p>{{ finding.summary }}</p>
+      </section>
+      <section class="dq-diff">
+        <div>
+          <h3>{{ 'dataQuality.pureValue' | translate }}</h3>
+          <pre>{{ finding.currentValue }}</pre>
+        </div>
+        @if (finding.ruleCode === 'CROSSREF-007') {
+          <div>
+            <h3>{{ 'dataQuality.after' | translate }}</h3>
+            <p class="dq-suggested-summary">{{ crossrefOrcidSuggested(finding) }}</p>
+          </div>
+        } @else if (finding.suggestedValue) {
+          <div>
+            <h3>{{ 'dataQuality.after' | translate }}</h3>
+            <pre>{{ finding.suggestedValue }}</pre>
+          </div>
+        }
+      </section>
+      @if (crossrefOrcidEvidence(finding); as evidence) {
+        <section class="dq-evidence">
+          <h3>{{ 'dataQuality.crossrefEvidence' | translate }}</h3>
+          <p>
+            <span class="dq-source-chip">{{ 'dataQuality.source.CROSSREF' | translate }}</span>
+            @if (evidence.doi) {
+              <span class="dq-muted"> · {{ 'dataQuality.crossrefDoi' | translate }} {{ evidence.doi }}</span>
+            }
+          </p>
+          <p>{{ 'dataQuality.crossrefOrcidCount' | translate: { count: evidence.externalOrcidCount } }}</p>
+          <ul class="dq-orcid-list">
+            @for (orcid of crossrefOrcidPreview(finding); track orcid) {
+              <li>{{ orcid }}</li>
+            }
+          </ul>
+          <p class="dq-muted">
+            {{ 'dataQuality.crossrefOrcidPreview' | translate: { shown: crossrefOrcidPreview(finding).length, total: evidence.externalOrcidCount } }}
+          </p>
+          @if (crossrefOrcidPreview(finding).length < evidence.externalOrcidCount) {
+            <button type="button" class="page-action page-action--secondary" (click)="showMoreCrossrefOrcids()">
+              {{ 'dataQuality.crossrefOrcidShowMore' | translate }}
+            </button>
+          }
+        </section>
+      }
+      @if (hasExternalConflict(finding)) {
+        <p class="dq-conflict">{{ 'dataQuality.externalConflict' | translate }}</p>
+      }
+      @if (hasExternalEvidence(finding)) {
+        <section class="dq-evidence">
+          <h3>{{ 'dataQuality.externalSources' | translate }}</h3>
+          <ul class="dq-evidence-list">
+            @for (item of evidenceRows(finding); track (item.source || '') + '-' + (item.sourceRecordId || '') + '-' + (item.externalValue || '')) {
+              <li>
+                <span class="dq-source-chip">{{ sourceLabel(item.source) }}</span>
+                <os-status-badge
+                  [label]="('dataQuality.comparison.' + (item.comparisonResult || 'NO_EXTERNAL_DATA')) | translate"
+                  [tone]="comparisonTone(item.comparisonResult)"
+                />
+                <pre>{{ item.externalValue }}</pre>
+                @if (item.externalLastSyncAt) {
+                  <p class="dq-muted">{{ 'dataQuality.lastExternalSync' | translate }}: {{ item.externalLastSyncAt | localeDate }}</p>
+                }
+              </li>
+            }
+          </ul>
+        </section>
+      }
+      @if (finding.issueKind === 'EXACT_DUPLICATE') {
+        <p>{{ 'dataQuality.removeChildren' | translate }}: {{ evidenceChildIds(finding) }}</p>
+      }
+      @if (canAdminister() && finding.correctionMode === 'SAFE_SUGGESTION' && finding.suggestedValue && finding.status === 'OPEN') {
+        <button type="button" class="page-action page-action--primary" [disabled]="applying()" (click)="applySuggestion(finding)">
+          {{ 'dataQuality.applySuggestion' | translate }}
+        </button>
+      }
+      @if (canAdminister() && finding.correctionMode === 'MANUAL_REVIEW' && finding.status === 'OPEN') {
+        <label class="dq-edit">
+          <span>{{ 'dataQuality.manualValue' | translate }}</span>
+          <textarea [value]="editValue()" (input)="editValue.set($any($event.target).value)"></textarea>
+        </label>
+        <div class="dq-drawer-actions">
+          <button type="button" (click)="closeFinding()">{{ 'common.cancel' | translate }}</button>
+          <button type="button" class="page-action page-action--primary" [disabled]="applying()" (click)="applyManual(finding)">
+            {{ 'dataQuality.saveToPure' | translate }}
+          </button>
+        </div>
+      }
+      @if (finding.ruleCode === 'PURE-013') {
+        <a routerLink="/integrations/orcid">{{ 'dataQuality.manageOrcid' | translate }}</a>
+      }
+      @if (finding.ruleCode === 'PURE-014' && finding.recordRoute) {
+        <a [routerLink]="finding.recordRoute">{{ 'dataQuality.openPerson' | translate }}</a>
+      }
+      @if (finding.recordRoute) {
+        <a [routerLink]="finding.recordRoute">{{ 'dataQuality.openRecord' | translate }}</a>
+      }
+      @if (canAdminister() && finding.status === 'OPEN') {
+        <div class="dq-drawer-actions">
+          <button type="button" (click)="markInReview(finding)">{{ 'dataQuality.markInReview' | translate }}</button>
+          <button type="button" (click)="askNotApplicable(finding)">{{ 'dataQuality.notApplicable' | translate }}</button>
+        </div>
+      }
+      @if (canAdminister() && finding.status !== 'OPEN') {
+        <button type="button" (click)="retryLocal(finding)">{{ 'dataQuality.retryLocal' | translate }}</button>
+      }
+    </aside>
+  </div>
+}
+
+@if (ruleDetail(); as item) {
+  <div class="discovery-drawer" role="dialog" aria-modal="true">
+    <button type="button" class="discovery-drawer__backdrop" (click)="ruleDetail.set(null)" tabindex="-1"></button>
+    <aside class="discovery-drawer__panel">
+      <header class="discovery-drawer__header">
+        <h2>{{ item.code }} · {{ item.name }}</h2>
+        <button type="button" (click)="ruleDetail.set(null)">{{ 'common.close' | translate }}</button>
+      </header>
+      <p><strong>{{ 'dataQuality.entityField' | translate }}:</strong> {{ item.entityType }} / {{ item.fieldName }}</p>
+      <p><strong>{{ 'dataQuality.description' | translate }}:</strong> {{ item.description }}</p>
+      <p><strong>{{ 'dataQuality.ruleText' | translate }}:</strong> {{ item.ruleText }}</p>
+      <p><strong>{{ 'dataQuality.alert' | translate }}:</strong> {{ item.alertText }}</p>
+      <p><strong>{{ 'dataQuality.bulkProcedure' | translate }}:</strong> {{ item.bulkProcedure || ('common.dash' | translate) }}</p>
+      <p><strong>{{ 'dataQuality.openFindings' | translate }}:</strong> {{ item.openFindingCount | localeNumber }}</p>
+    </aside>
+  </div>
+}
+
+@if (historyDetail(); as item) {
+  <div class="discovery-drawer" role="dialog" aria-modal="true">
+    <button type="button" class="discovery-drawer__backdrop" (click)="historyDetail.set(null)" tabindex="-1"></button>
+    <aside class="discovery-drawer__panel">
+      <header class="discovery-drawer__header">
+        <h2>{{ 'dataQuality.executionDetail' | translate }}</h2>
+        <button type="button" (click)="historyDetail.set(null)">{{ 'common.close' | translate }}</button>
+      </header>
+      <p>{{ item.startedAt | localeDate }} · {{ ('dataQuality.triggerType.' + item.triggerType) | translate }}</p>
+      <p>{{ ('dataQuality.executionStatus.' + item.status) | translate }}</p>
+      <p>{{ 'dataQuality.evaluated' | translate }}: {{ item.evaluatedRecords | localeNumber }} / {{ item.totalRecords | localeNumber }}</p>
+      <p>{{ 'dataQuality.detected' | translate }}: {{ item.findingCount | localeNumber }}</p>
+      <p>{{ 'dataQuality.resolved' | translate }}: {{ item.resolvedCount | localeNumber }}</p>
+      @if (item.errorMessage) {
+        <p>{{ item.errorMessage }}</p>
+      }
+    </aside>
+  </div>
+}
+
+@if (applyResult(); as result) {
+  <div class="discovery-drawer" role="dialog" aria-modal="true">
+    <button type="button" class="discovery-drawer__backdrop" (click)="applyResult.set(null)" tabindex="-1"></button>
+    <aside class="discovery-drawer__panel">
+      <header class="discovery-drawer__header">
+        <h2 id="dq-apply-result-title">{{ 'dataQuality.bulkResultTitle' | translate }}</h2>
+        <button type="button" (click)="applyResult.set(null)">{{ 'common.close' | translate }}</button>
+      </header>
+      <p>{{ 'dataQuality.bulkResult' | translate: { applied: result.applied, review: result.reviewRequired + result.failed + result.remoteChanged } }}</p>
+      <table>
+        <thead>
+          <tr>
+            <th>{{ 'dataQuality.record' | translate }}</th>
+            <th>{{ 'dataQuality.status' | translate }}</th>
+            <th>{{ 'dataQuality.problem' | translate }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of result.items; track item.findingId) {
+            <tr>
+              <td>{{ item.recordLabel }}</td>
+              <td>{{ item.status }}</td>
+              <td>{{ item.message }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </aside>
+  </div>
+}
+
+@if (confirmRun()) {
+  <div class="sync-dialog" role="dialog" aria-modal="true">
+    <div class="sync-dialog__panel">
+      <h2>{{ 'dataQuality.confirmRunTitle' | translate }}</h2>
+      <p>{{ 'dataQuality.confirmRunBody' | translate }}</p>
+      <div class="sync-dialog__actions">
+        <button type="button" (click)="confirmRun.set(false)">{{ 'common.cancel' | translate }}</button>
+        <button type="button" class="page-action page-action--primary" (click)="startValidation()">{{ 'dataQuality.runValidations' | translate }}</button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (confirmApply()) {
+  <div class="sync-dialog" role="dialog" aria-modal="true">
+    <div class="sync-dialog__panel">
+      <h2>{{ 'dataQuality.confirmBulkTitle' | translate }}</h2>
+      <p>{{ 'dataQuality.confirmBulkBody' | translate: { count: selectedIds().length } }}</p>
+      <table>
+        <thead>
+          <tr>
+            <th>{{ 'dataQuality.record' | translate }}</th>
+            <th>{{ 'dataQuality.before' | translate }}</th>
+            <th>{{ 'dataQuality.after' | translate }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of selectedFindings(); track item.id) {
+            <tr>
+              <td>{{ item.recordLabel }}</td>
+              <td><pre>{{ item.currentValue }}</pre></td>
+              <td><pre>{{ item.suggestedValue }}</pre></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+      <div class="sync-dialog__actions">
+        <button type="button" (click)="confirmApply.set(false)">{{ 'common.cancel' | translate }}</button>
+        <button type="button" class="page-action page-action--primary" (click)="applyBulk()">{{ 'dataQuality.applyBulk' | translate: { count: selectedIds().length } }}</button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (confirmNotApplicable()) {
+  <div class="sync-dialog" role="dialog" aria-modal="true">
+    <div class="sync-dialog__panel">
+      <h2>{{ 'dataQuality.notApplicableTitle' | translate }}</h2>
+      <p>{{ 'dataQuality.notApplicableBody' | translate }}</p>
+      <textarea [value]="justification()" (input)="justification.set($any($event.target).value)"></textarea>
+      <div class="sync-dialog__actions">
+        <button type="button" (click)="confirmNotApplicable.set(false)">{{ 'common.cancel' | translate }}</button>
+        <button type="button" class="page-action page-action--primary" [disabled]="!justification().trim()" (click)="confirmNotApplicableSubmit()">{{ 'dataQuality.notApplicable' | translate }}</button>
+      </div>
+    </div>
+  </div>
+}

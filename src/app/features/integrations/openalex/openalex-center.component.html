@@ -1,0 +1,568 @@
+<os-page-header
+  [title]="'openalex.title' | translate"
+  [subtitle]="'openalex.subtitle' | translate"
+>
+  <os-sync-export-bar
+    entity="OPENALEX"
+    [openalexQuery]="currentMatchQuery()"
+    [syncEnabled]="stats()?.enabled !== false && stats()?.configured !== false"
+    [confirmEstimate]="stats()?.uniqueDois ?? null"
+    (completed)="reload()"
+  />
+</os-page-header>
+
+<section class="upw-stats" [attr.aria-label]="'openalex.title' | translate">
+  <os-mini-stat [label]="'openalex.foundWorks' | translate" [value]="(stats()?.found | localeNumber) || ('common.dash' | translate)" />
+  <os-mini-stat [label]="'openalex.authors' | translate" [value]="(stats()?.authors | localeNumber) || ('common.dash' | translate)" [tooltip]="'openalex.authorsHint' | translate" />
+  <os-mini-stat [label]="'openalex.linked' | translate" [value]="(stats()?.personsLinked | localeNumber) || ('common.dash' | translate)" [tooltip]="'openalex.linkedHint' | translate" />
+  <os-mini-stat [label]="'openalex.pending' | translate" [value]="(stats()?.pendingMatches | localeNumber) || ('common.dash' | translate)" [tooltip]="'openalex.pendingHint' | translate" />
+  <os-mini-stat [label]="'openalex.lastSync' | translate" [value]="stats()?.lastExecution ? (stats()!.lastExecution | localeDate) : ('sync.never' | translate)" />
+</section>
+<p class="crx-note">{{ 'openalex.operationalNote' | translate }}</p>
+@if (actionMessage(); as message) {
+  <p class="oa-muted">{{ message | translate }}</p>
+}
+
+<nav class="oa-tabs" [attr.aria-label]="'openalex.tabsLabel' | translate">
+  <button type="button" [class.active]="tab() === 'summary'" (click)="selectTab('summary')">{{ 'openalex.tab.summary' | translate }}</button>
+  <button type="button" [class.active]="tab() === 'works'" (click)="selectTab('works')">{{ 'openalex.tab.works' | translate }}</button>
+  <button type="button" [class.active]="tab() === 'authors'" (click)="selectTab('authors')">{{ 'openalex.tab.authors' | translate }}</button>
+  <button type="button" [class.active]="tab() === 'matches'" (click)="selectTab('matches')">{{ 'openalex.tab.matches' | translate }}</button>
+  <button type="button" [class.active]="tab() === 'history'" (click)="selectTab('history')">{{ 'openalex.tab.history' | translate }}</button>
+</nav>
+
+@if (tab() === 'summary') {
+  <section class="oa-summary">
+    <p>{{ 'openalex.coverage' | translate: { numerator: stats()?.coverageNumerator ?? 0, denominator: stats()?.coverageDenominator ?? 0 } }}</p>
+    <p>{{ 'openalex.conflicts' | translate }}: {{ (stats()?.conflicts | localeNumber) || ('common.dash' | translate) }}</p>
+    <p>{{ 'openalex.confirmed' | translate }}: {{ (stats()?.confirmedMatches | localeNumber) || ('common.dash' | translate) }}</p>
+  </section>
+}
+
+@if (tab() === 'history') {
+  @if (pendingRecoveries().length > 0) {
+    <section class="oa-summary" [attr.aria-label]="'openalex.pendingRecoveries' | translate">
+      <h2>{{ 'openalex.pendingRecoveries' | translate }}</h2>
+      @for (row of pendingRecoveries(); track row.syncId) {
+        <p>
+          #{{ row.syncId }}
+          · {{ modeKey(row.syncMode) | translate }}
+          · {{ historyStatusKey(row) | translate }}
+          · {{ 'openalex.pendingAuthors' | translate: { count: row.pendingAuthors ?? 0 } }}
+        </p>
+        @if (row.recoveryBlockedReason === 'SYNC_ALREADY_RUNNING') {
+          <p class="oa-muted">{{ 'sync.detail.openalexRecoverBlocked' | translate }}</p>
+        }
+        <button type="button" class="link-button" (click)="openHistoryDetail(row.syncId)">
+          {{ 'sync.viewDetail' | translate }}
+        </button>
+      }
+    </section>
+  }
+  @if (historyState().status === 'loading') {
+    <os-loading-state />
+  } @else if (historyState().status === 'error') {
+    <os-error-state
+      [title]="'openalex.emptyHistory' | translate"
+      [message]="'openalex.historyLoadError' | translate"
+      [actionLabel]="'common.retry' | translate"
+      (action)="reload()"
+    />
+  } @else if (history().length === 0) {
+    <os-empty-state [title]="'openalex.emptyHistory' | translate" [message]="'openalex.emptyHistoryMessage' | translate" />
+  } @else {
+    <os-data-table-shell [fluid]="true" [stickyEnd]="true">
+      <table>
+        <thead>
+          <tr>
+            <th>{{ 'openalex.columns.syncId' | translate }}</th>
+            <th class="col-date">{{ 'openalex.columns.startedAt' | translate }}</th>
+            <th>{{ 'openalex.columns.mode' | translate }}</th>
+            <th class="col-status">{{ 'openalex.columns.status' | translate }}</th>
+            <th>{{ 'openalex.columns.phase' | translate }}</th>
+            <th class="col-count">{{ 'openalex.columns.processed' | translate }}</th>
+            <th class="col-count">{{ 'openalex.columns.errors' | translate }}</th>
+            <th class="col-actions">{{ 'openalex.columns.action' | translate }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of history(); track row.syncId) {
+            <tr>
+              <td>#{{ row.syncId }}</td>
+              <td class="col-date">{{ row.startedAt ? (row.startedAt | localeDate) : ('common.dash' | translate) }}</td>
+              <td>{{ modeKey(row.syncMode) | translate }}</td>
+              <td class="col-status">
+                {{ historyStatusKey(row) | translate }}
+                @if (row.errorCode) {
+                  <span class="oa-muted"> · {{ row.errorCode }}</span>
+                }
+                @if (showsRecovery(row)) {
+                  <span class="oa-muted"> · {{ 'openalex.recoveryAvailable' | translate }}</span>
+                }
+              </td>
+              <td>
+                @if (phaseKey(row.phase); as phase) {
+                  {{ phase | translate }}
+                } @else {
+                  {{ 'common.dash' | translate }}
+                }
+              </td>
+              <td class="col-count">
+                {{ row.processed | localeNumber }}
+                @if (row.totalExpected) {
+                  / {{ row.totalExpected | localeNumber }}
+                }
+              </td>
+              <td class="col-count">{{ row.errors | localeNumber }}</td>
+              <td class="col-actions">
+                <div class="table-actions">
+                  <button type="button" class="link-button" (click)="openHistoryDetail(row.syncId)">
+                    {{ 'sync.viewDetail' | translate }}
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </os-data-table-shell>
+  }
+}
+
+@if (tab() !== 'history' && tab() !== 'summary') {
+<os-filter-bar>
+  <os-search-box
+    [control]="search"
+    [placeholder]="'openalex.searchPlaceholder' | translate"
+    [label]="'openalex.search' | translate"
+  />
+  @if (tab() === 'matches') {
+    <label class="filter-field">
+      <span>{{ 'openalex.matchStatus' | translate }}</span>
+      <select class="os-control" [formControl]="status">
+        <option value="">{{ 'openalex.allStatuses' | translate }}</option>
+        @for (item of filters().matchStatuses; track item) {
+          <option [value]="item">{{ ('openalex.status.' + item) | translate }}</option>
+        }
+      </select>
+    </label>
+    <label class="filter-field">
+      <span>{{ 'openalex.position' | translate }}</span>
+      <select class="os-control" [formControl]="position">
+        <option value="">{{ 'openalex.allPositions' | translate }}</option>
+        @for (item of filters().positions; track item) {
+          <option [value]="item">{{ item }}</option>
+        }
+      </select>
+    </label>
+    <label class="filter-field">
+      <span>{{ 'openalex.orcid' | translate }}</span>
+      <select class="os-control" [formControl]="hasOrcid">
+        <option value="">{{ 'openalex.allOrcid' | translate }}</option>
+        <option value="yes">{{ 'openalex.yes' | translate }}</option>
+        <option value="no">{{ 'openalex.no' | translate }}</option>
+      </select>
+    </label>
+    <label class="filter-field">
+      <span>{{ 'openalex.uss' | translate }}</span>
+      <select class="os-control" [formControl]="ussAffiliation">
+        <option value="">{{ 'openalex.allUss' | translate }}</option>
+        <option value="yes">{{ 'openalex.yes' | translate }}</option>
+        <option value="no">{{ 'openalex.no' | translate }}</option>
+      </select>
+    </label>
+    <label class="filter-field">
+      <span>{{ 'openalex.minWorks' | translate }}</span>
+      <select class="os-control" [formControl]="minWorks">
+        <option value="">{{ 'openalex.allWorks' | translate }}</option>
+        <option value="2">2+</option>
+        <option value="5">5+</option>
+      </select>
+    </label>
+  }
+  @if (tab() === 'works') {
+    <label class="filter-field">
+      <span>{{ 'openalex.outcome' | translate }}</span>
+      <select class="os-control" [formControl]="status">
+        <option value="">{{ 'openalex.allOutcomes' | translate }}</option>
+        <option value="FOUND">{{ 'openalex.outcomeFound' | translate }}</option>
+        <option value="NOT_FOUND">{{ 'openalex.outcomeNotFound' | translate }}</option>
+      </select>
+    </label>
+  }
+</os-filter-bar>
+}
+
+@if (tab() === 'matches') {
+  @if (matches(); as vm) {
+    @if (vm.status === 'loading') {
+      <os-loading-state />
+    } @else if (vm.status === 'error') {
+      <os-error-state [message]="'openalex.loadError' | translate" />
+    } @else if (emptyKind() === 'disabled') {
+      <os-empty-state [title]="'openalex.disabledTitle' | translate" [message]="'openalex.disabledMessage' | translate" />
+    } @else if (emptyKind() === 'never') {
+      <os-empty-state [title]="'openalex.neverTitle' | translate" [message]="'openalex.neverMessage' | translate" />
+    } @else if (emptyKind() === 'filtered') {
+      <os-empty-state [title]="'openalex.filteredTitle' | translate" [message]="'openalex.filteredMessage' | translate" />
+    } @else if (vm.data.items.length === 0) {
+      <os-empty-state [title]="'openalex.emptyMatches' | translate" />
+    } @else {
+      <os-data-table-shell [fluid]="true" [stickyStart]="true" [stickyEnd]="true">
+        <table>
+          <thead>
+            <tr>
+              <th class="col-name"><os-sortable-header field="person" [label]="'openalex.person' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" /></th>
+              <th class="col-orcid">{{ 'openalex.orcid' | translate }}</th>
+              <th class="col-name"><os-sortable-header field="openalex" [label]="'openalex.author' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" /></th>
+              <th class="col-count"><os-sortable-header field="works" [label]="'openalex.matchingWorks' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" /></th>
+              <th class="col-status"><os-sortable-header field="status" [label]="'openalex.matchStatus' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" /></th>
+              <th class="col-actions">{{ 'openalex.actions' | translate }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of vm.data.items; track row.id) {
+              <tr>
+                <td class="col-name">
+                  <a class="entity-link" [routerLink]="['/people', row.personId]">{{ row.personName || ('common.dash' | translate) }}</a>
+                  <div class="oa-muted">{{ row.personPosition || ('common.dash' | translate) }}</div>
+                </td>
+                <td class="col-orcid">{{ row.personOrcid || ('common.dash' | translate) }}</td>
+                <td class="col-name">
+                  @if (row.openalexUrl) {
+                    <a class="external-link" [href]="row.openalexUrl" target="_blank" rel="noopener noreferrer">{{ row.openalexAuthorId }}</a>
+                  } @else {
+                    {{ row.openalexAuthorId || ('common.dash' | translate) }}
+                  }
+                  <div class="oa-muted">{{ row.openalexDisplayName || ('common.dash' | translate) }}</div>
+                </td>
+                <td class="col-count">{{ row.matchingWorkCount }}</td>
+                <td class="col-status">{{ statusKey(row.status) | translate }}</td>
+                <td class="col-actions">
+                  <div class="table-actions">
+                    <button type="button" class="page-action page-action--secondary" (click)="openEvidence(row)">{{ 'openalex.evidence' | translate }}</button>
+                    @if (canAdminister() && row.status !== 'CONFIRMED' && row.status !== 'REJECTED') {
+                      <button type="button" class="page-action" [disabled]="actionBusy()" (click)="confirm(row)">{{ 'openalex.confirm' | translate }}</button>
+                      <button type="button" class="page-action page-action--secondary" [disabled]="actionBusy()" (click)="reject(row)">{{ 'openalex.reject' | translate }}</button>
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </os-data-table-shell>
+      <os-pagination [page]="vm.data.page" [pageSize]="vm.data.pageSize" [total]="vm.data.total" (pageChange)="goToPage($event)" />
+    }
+  }
+}
+
+@if (tab() === 'works') {
+  @if (works(); as vm) {
+    @if (vm.status === 'loading') {
+      <os-loading-state />
+    } @else if (vm.status === 'error') {
+      <os-error-state [message]="'openalex.loadError' | translate" />
+    } @else if (emptyKind() === 'disabled') {
+      <os-empty-state [title]="'openalex.disabledTitle' | translate" [message]="'openalex.disabledMessage' | translate" />
+    } @else if (emptyKind() === 'never') {
+      <os-empty-state [title]="'openalex.neverTitle' | translate" [message]="'openalex.neverMessage' | translate" />
+    } @else if (emptyKind() === 'filtered') {
+      <os-empty-state [title]="'openalex.filteredTitle' | translate" [message]="'openalex.filteredMessage' | translate" />
+    } @else if (vm.data.items.length === 0) {
+      <os-empty-state [title]="'openalex.emptyWorks' | translate" />
+    } @else {
+      <os-data-table-shell [fluid]="true">
+        <table>
+          <thead>
+            <tr>
+              <th class="col-doi"><os-sortable-header field="doi" [label]="'openalex.doi' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" /></th>
+              <th class="col-title"><os-sortable-header field="title" [label]="'openalex.workTitle' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" /></th>
+              <th class="col-year"><os-sortable-header field="year" [label]="'openalex.year' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" /></th>
+              <th class="col-count"><os-sortable-header field="cited" [label]="'openalex.cited' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" /></th>
+              <th class="col-status"><os-sortable-header field="status" [label]="'openalex.outcome' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" /></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of vm.data.items; track row.id) {
+              <tr>
+                <td class="col-doi">{{ row.normalizedDoi || row.doi || ('common.dash' | translate) }}</td>
+                <td class="col-title">{{ row.displayName || row.publicationTitle || ('common.dash' | translate) }}</td>
+                <td class="col-year">{{ row.publicationYear || ('common.dash' | translate) }}</td>
+                <td class="col-count">{{ row.citedByCount ?? ('common.dash' | translate) }}</td>
+                <td class="col-status">{{ row.lastOutcome || ('common.dash' | translate) }}
+                  @if (row.authorshipsTruncated) {
+                    <div class="oa-muted">{{ 'openalex.authorshipsTruncated' | translate }}</div>
+                  }
+                  @if (row.rawJsonTruncated) {
+                    <div class="oa-muted">{{ 'openalex.rawJsonTruncated' | translate }}</div>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </os-data-table-shell>
+      <os-pagination [page]="vm.data.page" [pageSize]="vm.data.pageSize" [total]="vm.data.total" (pageChange)="goToPage($event)" />
+    }
+  }
+}
+
+@if (tab() === 'authors') {
+  @if (authors(); as vm) {
+    @if (vm.status === 'loading') {
+      <os-loading-state />
+    } @else if (vm.status === 'error') {
+      <os-error-state [message]="'openalex.loadError' | translate" />
+    } @else if (emptyKind() === 'disabled') {
+      <os-empty-state [title]="'openalex.disabledTitle' | translate" [message]="'openalex.disabledMessage' | translate" />
+    } @else if (emptyKind() === 'never') {
+      <os-empty-state [title]="'openalex.neverTitle' | translate" [message]="'openalex.neverMessage' | translate" />
+    } @else if (emptyKind() === 'filtered') {
+      <os-empty-state [title]="'openalex.filteredTitle' | translate" [message]="'openalex.filteredMessage' | translate" />
+    } @else if (vm.data.items.length === 0) {
+      <os-empty-state [title]="'openalex.emptyAuthors' | translate" />
+    } @else {
+      <os-data-table-shell [fluid]="true">
+        <table>
+          <thead>
+            <tr>
+              <th class="col-name"><os-sortable-header field="name" [label]="'openalex.author' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" /></th>
+              <th class="col-orcid"><os-sortable-header field="orcid" [label]="'openalex.orcid' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" /></th>
+              <th class="col-count"><os-sortable-header field="works" [label]="'openalex.authorWorks' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" /></th>
+              <th class="col-count"><os-sortable-header field="cited" [label]="'openalex.cited' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" /></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of vm.data.items; track row.id) {
+              <tr>
+                <td class="col-name">
+                  @if (row.openalexUrl) {
+                    <a class="external-link" [href]="row.openalexUrl" target="_blank" rel="noopener noreferrer">{{ row.openalexAuthorId }}</a>
+                  } @else {
+                    {{ row.openalexAuthorId }}
+                  }
+                  <div class="oa-muted">{{ row.displayName || ('common.dash' | translate) }}</div>
+                </td>
+                <td class="col-orcid">{{ row.orcid || ('common.dash' | translate) }}</td>
+                <td class="col-count">{{ row.worksCount ?? ('common.dash' | translate) }}</td>
+                <td class="col-count">{{ row.citedByCount ?? ('common.dash' | translate) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </os-data-table-shell>
+      <os-pagination [page]="vm.data.page" [pageSize]="vm.data.pageSize" [total]="vm.data.total" (pageChange)="goToPage($event)" />
+    }
+  }
+}
+
+@if (detail(); as current) {
+  <div class="upw-drawer" role="dialog" aria-modal="true" aria-labelledby="openalex-evidence-title">
+    <button type="button" class="upw-drawer__backdrop" (click)="closeEvidence()" tabindex="-1" aria-hidden="true"></button>
+    <aside class="upw-drawer__panel">
+      <header class="upw-drawer__header">
+        <div>
+          <h2 id="openalex-evidence-title">{{ 'openalex.evidenceTitle' | translate }}</h2>
+          <p class="oa-muted">{{ 'openalex.linkingHint' | translate }}</p>
+        </div>
+        <button
+          type="button"
+          [class]="drawerCloseButtonClass"
+          (click)="closeEvidence()"
+          autofocus
+          [attr.aria-label]="'common.close' | translate"
+        >{{ 'common.close' | translate }}</button>
+      </header>
+
+      <section class="oa-identity-block" [attr.aria-labelledby]="'openalex-identity-title'">
+        <h3 id="openalex-identity-title">{{ 'openalex.identitySection' | translate }}</h3>
+        <section class="oa-identity-pair" [attr.aria-label]="'openalex.identityCompare' | translate">
+          <div>
+            <h4>{{ 'openalex.person' | translate }}</h4>
+            <p class="oa-identity-pair__name">
+              <a class="entity-link" [routerLink]="['/people', current.personId]">{{ display(current.personName) || ('common.dash' | translate) }}</a>
+            </p>
+            <p class="oa-muted">
+              {{ display(current.personPosition) || ('people.noPosition' | translate) }}
+              · {{ 'common.pureId' | translate }}
+              {{ display(current.personPureId) || ('common.dash' | translate) }}
+            </p>
+          </div>
+          <p class="oa-identity-pair__swap" aria-hidden="true">↕</p>
+          <div>
+            <h4>{{ 'openalex.author' | translate }}</h4>
+            <p class="oa-identity-pair__name">
+              @if (current.openalexUrl) {
+                <a class="external-link" [href]="current.openalexUrl" target="_blank" rel="noopener noreferrer">{{ display(current.openalexAuthorId) || ('common.dash' | translate) }}</a>
+              } @else {
+                {{ display(current.openalexAuthorId) || ('common.dash' | translate) }}
+              }
+            </p>
+            <p class="oa-muted">{{ display(current.openalexDisplayName) || ('common.dash' | translate) }}</p>
+            @if (current.identityConfirmed) {
+              <p class="oa-confirmed">{{ 'openalex.idConfirmed' | translate }}</p>
+              @if (current.confirmedBy) {
+                <p class="oa-muted">{{ 'openalex.confirmedBy' | translate }}: {{ current.confirmedBy }}</p>
+              }
+              @if (current.confirmedAt) {
+                <p class="oa-muted">{{ 'openalex.confirmedAt' | translate }}: {{ current.confirmedAt | localeDate }}</p>
+              }
+            }
+          </div>
+        </section>
+      </section>
+
+      <div class="oa-identity-status">
+        <os-status-badge [label]="statusKey(current.status) | translate" [tone]="statusTone(current.status)" />
+        <span class="oa-muted">{{ 'openalex.linkStatus' | translate }}</span>
+      </div>
+
+      <dl class="oa-summary-grid">
+        <div>
+          <dt>{{ 'openalex.orcidPure' | translate }}</dt>
+          <dd>{{ orcidValue(current.personOrcid) || ('openalex.notInformed' | translate) }}</dd>
+        </div>
+        <div>
+          <dt>{{ 'openalex.orcidOpenAlex' | translate }}</dt>
+          <dd>{{ orcidValue(current.openalexOrcid) || ('openalex.notInformed' | translate) }}</dd>
+        </div>
+        <div>
+          <dt>{{ 'openalex.orcidComparison' | translate }}</dt>
+          <dd>
+            <os-status-badge
+              [label]="orcidComparisonKey(current) | translate"
+              [tone]="orcidComparisonTone(current)"
+              [icon]="orcidComparisonIcon(current)"
+            />
+          </dd>
+        </div>
+        <div>
+          <dt>{{ 'openalex.matchingWorks' | translate }}</dt>
+          <dd>{{ current.matchingWorkCount | localeNumber }}</dd>
+        </div>
+        <div>
+          <dt>{{ 'openalex.currentStatus' | translate }}</dt>
+          <dd>{{ statusKey(current.status) | translate }}</dd>
+        </div>
+        <div>
+          <dt>{{ 'openalex.ussAffiliation' | translate }}</dt>
+          <dd>{{ (current.ussAffiliation ? 'openalex.yes' : 'openalex.no') | translate }}</dd>
+        </div>
+        <div>
+          <dt>{{ 'openalex.affiliation' | translate }}</dt>
+          <dd>{{ display(primaryAffiliation(current).display) || ('common.dash' | translate) }}</dd>
+        </div>
+        <div>
+          <dt>{{ 'openalex.ror' | translate }}</dt>
+          <dd>{{ display(primaryAffiliation(current).ror) || ('common.dash' | translate) }}</dd>
+        </div>
+      </dl>
+
+      @if (current.orcidSyncAvailable) {
+        <p class="oa-orcid-hint">{{ 'openalex.orcidAvailableInOpenAlex' | translate }}</p>
+      }
+
+      <div class="oa-evidence-actions">
+        @if (canAdminister() && current.status !== 'CONFIRMED' && current.status !== 'REJECTED') {
+          <button type="button" class="page-action page-action--primary" [disabled]="actionBusy()" (click)="confirm(current)">{{ 'openalex.confirm' | translate }}</button>
+        }
+        @if (canSyncOrcid(current)) {
+          <button type="button" class="page-action page-action--secondary" [disabled]="actionBusy()" (click)="requestOrcidSync(current)">{{ 'openalex.syncOrcid' | translate }}</button>
+        }
+        @if (canAdminister() && current.status !== 'CONFIRMED' && current.status !== 'REJECTED') {
+          <button type="button" class="page-action page-action--danger" [disabled]="actionBusy()" (click)="reject(current)">{{ 'openalex.reject' | translate }}</button>
+        }
+      </div>
+
+      <section class="oa-evidence-list" [attr.aria-label]="'openalex.matchingPublications' | translate">
+        <h3>{{ 'openalex.matchingPublications' | translate }}</h3>
+        <p class="oa-muted">{{ 'openalex.positionHelp' | translate }}</p>
+        @if (showEvidenceSearch(current)) {
+          <os-search-box
+            [control]="evidenceSearch"
+            [label]="'openalex.searchEvidence' | translate"
+            [placeholder]="'openalex.searchEvidencePlaceholder' | translate"
+          />
+        }
+        @if (evidenceLoading()) {
+          <os-loading-state />
+        } @else if (current.works.length === 0) {
+          <os-empty-state
+            [title]="(evidenceSearch.value ? 'openalex.emptyEvidenceFilter' : 'openalex.emptyEvidence') | translate"
+          />
+        } @else {
+          @for (work of current.works; track work.id || work.researchOutputId) {
+            <article class="oa-evidence-card">
+              <header>
+                <h4>{{ display(work.title) || ('common.dash' | translate) }}</h4>
+                <p class="oa-muted">{{ 'openalex.doi' | translate }}: {{ display(work.normalizedDoi) || ('common.dash' | translate) }}</p>
+              </header>
+              <dl class="oa-evidence-meta">
+                <div>
+                  <dt>{{ 'openalex.contributor' | translate }}</dt>
+                  <dd>{{ contributorName(work) || ('common.dash' | translate) }}</dd>
+                </div>
+              </dl>
+              @for (evidence of evidenceUnits(work); track evidence.id || evidence.sourceOrder || $index) {
+                <div class="oa-evidence-unit">
+                  <dl class="oa-evidence-meta">
+                    <div>
+                      <dt>{{ 'openalex.rawName' | translate }}</dt>
+                      <dd>{{ display(evidence.rawAuthorName) || ('common.dash' | translate) }}</dd>
+                    </div>
+                    <div>
+                      <dt>{{ 'openalex.displayName' | translate }}</dt>
+                      <dd>{{ display(evidence.authorDisplayName) || ('common.dash' | translate) }}</dd>
+                    </div>
+                    <div>
+                      <dt>{{ 'openalex.purePosition' | translate }}</dt>
+                      <dd>{{ display(work.contributorPosition) || ('common.dash' | translate) }}</dd>
+                    </div>
+                    <div>
+                      <dt>{{ 'openalex.openAlexPosition' | translate }}</dt>
+                      <dd>{{ display(evidence.authorPosition) || ('common.dash' | translate) }}</dd>
+                    </div>
+                    <div>
+                      <dt>{{ 'openalex.affiliation' | translate }}</dt>
+                      <dd>{{ display(evidence.affiliationDisplay) || display(work.affiliationDisplay) || ('common.dash' | translate) }}</dd>
+                    </div>
+                    <div>
+                      <dt>{{ 'openalex.ror' | translate }}</dt>
+                      <dd>{{ display(evidence.ror) || display(work.ror) || ('common.dash' | translate) }}</dd>
+                    </div>
+                  </dl>
+                  <os-evidence-code-badges [items]="evidenceBadges(evidence)" />
+                </div>
+              }
+            </article>
+          }
+          @if (worksTotal(current) > (current.workSize || 25)) {
+            <os-pagination
+              [page]="current.workPage || evidencePage()"
+              [pageSize]="current.workSize || 25"
+              [total]="worksTotal(current)"
+              (pageChange)="goToEvidencePage($event)"
+            />
+          }
+        }
+      </section>
+    </aside>
+  </div>
+}
+
+@if (orcidSyncConfirm(); as pending) {
+  <div class="sync-dialog" role="dialog" aria-modal="true" aria-labelledby="openalex-orcid-sync-title">
+    <div class="sync-dialog__panel">
+      <h2 id="openalex-orcid-sync-title">{{ 'openalex.syncOrcidTitle' | translate }}</h2>
+      <p>{{ 'openalex.syncOrcidPerson' | translate }}: {{ display(pending.personName) || ('common.dash' | translate) }}</p>
+      <p>{{ 'openalex.syncOrcidValue' | translate }}: {{ orcidValue(pending.openalexOrcid) || ('common.dash' | translate) }}</p>
+      <p>{{ 'openalex.syncOrcidSource' | translate }}</p>
+      <p class="oa-muted">{{ 'openalex.syncOrcidCopy' | translate }}</p>
+      <div class="sync-dialog__actions">
+        <button type="button" class="page-action page-action--secondary" [disabled]="actionBusy()" (click)="cancelOrcidSync()">{{ 'common.cancel' | translate }}</button>
+        <button type="button" class="page-action page-action--primary" [disabled]="actionBusy()" (click)="confirmOrcidSync()">{{ 'openalex.syncOrcid' | translate }}</button>
+      </div>
+    </div>
+  </div>
+}

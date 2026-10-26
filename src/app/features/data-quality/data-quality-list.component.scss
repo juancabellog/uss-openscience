@@ -1,0 +1,386 @@
+:host {
+  display: block;
+}
+
+:host ::ng-deep os-page-header .page-header {
+  margin-bottom: var(--os-space-md);
+}
+
+.dq-actions,
+.dq-drawer-actions,
+.dq-bulk {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.dq-export-wrap {
+  display: inline-flex;
+}
+
+.dq-tabs {
+  display: flex;
+  gap: 0.25rem;
+  margin: 0 0 var(--os-space-md);
+  border-bottom: 1px solid var(--os-border);
+}
+
+.dq-tabs button {
+  border: 0;
+  background: transparent;
+  padding: 0.75rem 1.05rem;
+  color: var(--os-text-secondary);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.dq-tabs button.is-active {
+  color: var(--os-text-primary);
+  font-weight: 700;
+  box-shadow: inset 0 -2px 0 var(--os-primary);
+}
+
+.dq-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(8.5rem, 1fr));
+  align-items: stretch;
+  gap: var(--os-space-sm);
+  margin-bottom: var(--os-space-md);
+}
+
+.dq-filters {
+  margin-bottom: var(--os-space-md);
+}
+
+.dq-filters os-filter-bar {
+  display: block;
+  width: 100%;
+  margin-bottom: 0;
+}
+
+:host ::ng-deep .dq-filters .filter-bar {
+  margin-bottom: 0;
+}
+
+.dq-filters os-search-box {
+  flex: 1 1 22rem;
+  min-width: min(100%, 16rem);
+}
+
+.dq-filters .filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: var(--os-fs-sm);
+  color: var(--os-text-secondary);
+}
+
+.dq-filters .dq-filter--source,
+.dq-filters .dq-filter--category,
+.dq-filters .dq-filter--entity {
+  flex: 1 1 12.5rem;
+  min-width: 11.5rem;
+}
+
+.dq-filters .dq-filter--rule {
+  flex: 1 1 16rem;
+  min-width: 14rem;
+}
+
+.dq-filters .dq-filter--action {
+  flex: 1 1 15rem;
+  min-width: 13.5rem;
+}
+
+.dq-filters .dq-filter--status {
+  flex: 0 1 10.5rem;
+  width: 10.5rem;
+  min-width: 9.5rem;
+}
+
+:host ::ng-deep .dq-filters .os-control {
+  min-width: 0;
+}
+
+.dq-clear-filters {
+  height: var(--os-control-height);
+  padding: 0 0.15rem;
+}
+
+.dq-progress {
+  margin-bottom: var(--os-space-md);
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--os-border);
+  border-radius: var(--os-radius-sm);
+  background: var(--os-surface);
+}
+
+.dq-progress__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.dq-progress h2 {
+  margin: 0;
+  font-size: var(--os-fs-md);
+}
+
+.dq-progress p {
+  margin: 0.25rem 0;
+}
+
+.dq-progress__bar {
+  height: 0.55rem;
+  margin: 0.65rem 0 0.85rem;
+  border-radius: 999px;
+  background: var(--os-surface-muted);
+  overflow: hidden;
+}
+
+.dq-progress__bar span {
+  display: block;
+  height: 100%;
+  background: var(--os-primary);
+}
+
+.dq-progress__hint,
+.dq-muted {
+  color: var(--os-text-secondary);
+  font-size: var(--os-fs-sm);
+}
+
+.dq-progress__hint {
+  margin: 0.45rem 0 0;
+  font-size: var(--os-fs-xs);
+}
+
+.dq-code {
+  margin: 0;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.dq-diff {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.dq-conflict {
+  margin: 0.75rem 0 0;
+  font-weight: 700;
+}
+
+.dq-evidence-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.dq-evidence-list li {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.dq-source-chip {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  border-radius: 999px;
+  padding: 0.1rem 0.55rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: color-mix(in srgb, var(--os-primary, #102b42) 10%, white);
+}
+
+.dq-suggested-summary {
+  margin: 0;
+}
+
+.dq-orcid-list {
+  margin: 0.35rem 0 0.5rem;
+  padding-left: 1.15rem;
+  max-height: 16rem;
+  overflow: auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.dq-diff pre,
+.dq-evidence-list pre,
+.dq-edit textarea,
+.sync-dialog textarea {
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+  padding: 0.75rem;
+  background: var(--os-surface-muted);
+  border-radius: var(--os-radius-sm);
+  font-family: inherit;
+}
+
+.dq-edit {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.col-check {
+  width: 2.5rem;
+}
+
+:host ::ng-deep .dq-findings-table .col-actions {
+  width: 8.5rem;
+  white-space: nowrap;
+  overflow: visible;
+}
+
+:host ::ng-deep .dq-finding-row {
+  cursor: pointer;
+}
+
+:host ::ng-deep .dq-finding-row .col-check,
+:host ::ng-deep .dq-finding-row .col-check input {
+  cursor: auto;
+}
+
+:host ::ng-deep .dq-finding-row.is-open {
+  background: color-mix(in srgb, var(--os-surface-muted) 88%, var(--os-primary));
+}
+
+.page-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid var(--os-border);
+  border-radius: var(--os-radius-sm);
+  padding: 0.45rem 0.8rem;
+  background: var(--os-surface);
+  cursor: pointer;
+}
+
+.page-action--primary {
+  background: var(--os-primary);
+  color: white;
+  border-color: var(--os-primary);
+}
+
+.page-action--secondary:hover,
+.page-action--primary:hover:not(:disabled) {
+  filter: brightness(0.97);
+}
+
+.page-action:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.dq-spin {
+  animation: dq-rotate 1s linear infinite;
+}
+
+@keyframes dq-rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.discovery-drawer,
+.sync-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+}
+
+.sync-dialog {
+  display: grid;
+  place-items: center;
+  background: rgba(16, 43, 66, 0.28);
+}
+
+.sync-dialog__panel {
+  width: min(46rem, calc(100vw - 2rem));
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
+  padding: 1.25rem;
+  border-radius: var(--os-radius-md);
+  background: var(--os-surface);
+}
+
+.sync-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.discovery-drawer__backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(16, 43, 66, 0.28);
+}
+
+.discovery-drawer__panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: grid;
+  align-content: start;
+  gap: 0.75rem;
+  width: min(46rem, calc(100vw - 1.5rem));
+  height: 100%;
+  overflow: auto;
+  padding: 1.25rem 1.35rem 1.5rem;
+  background: var(--os-surface);
+  box-shadow: var(--os-shadow-md);
+}
+
+.discovery-drawer__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.link-button {
+  display: inline-block;
+  border: 0;
+  background: transparent;
+  color: var(--os-primary);
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+@media (max-width: 72rem) {
+  .dq-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dq-filters os-search-box {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 40rem) {
+  .dq-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .dq-diff {
+    grid-template-columns: 1fr;
+  }
+
+  .dq-filters os-search-box,
+  .dq-filters .filter-field,
+  .dq-filters .dq-clear-filters {
+    flex: 1 1 100%;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+}

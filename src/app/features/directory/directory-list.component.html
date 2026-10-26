@@ -1,0 +1,391 @@
+<os-page-header
+  [title]="'directory.title' | translate"
+  [subtitle]="'directory.subtitle' | translate"
+/>
+
+<nav class="tabs" [attr.aria-label]="'directory.tabs' | translate">
+  <button type="button" [class.is-active]="tab() === 'catalog'" (click)="tab.set('catalog')">
+    {{ 'directory.tabCatalog' | translate }}
+  </button>
+  @if (canAdminister()) {
+    <button type="button" [class.is-active]="tab() === 'import'" (click)="tab.set('import')">
+      {{ 'directory.tabImport' | translate }}
+    </button>
+  }
+  <button type="button" [class.is-active]="tab() === 'history'" (click)="tab.set('history')">
+    {{ 'directory.tabHistory' | translate }}
+  </button>
+</nav>
+
+@if (tab() !== 'import' && (importProgress() || persistStarted())) {
+  <aside class="import-track import-track--compact" [attr.data-kind]="importProgress()?.kind || 'running'" role="status" aria-live="polite">
+    @if (importProgress(); as progress) {
+      <div class="import-track__head">
+        <h2>{{ progressTitleKey(progress.kind) | translate }}</h2>
+        <os-status-badge [label]="statusKey({ status: progress.status, interrupted: progress.kind === 'interrupted' }) | translate" [tone]="progressTone(progress.kind)" />
+      </div>
+      <p class="import-track__meta">
+        {{ 'directory.runningId' | translate: { id: progress.id } }}
+        · {{ progress.filename || ('common.dash' | translate) }}
+        @if (progress.percent !== null) {
+          · {{ progress.percent | localePercent }}
+        }
+      </p>
+      <div
+        class="import-track__bar"
+        role="progressbar"
+        [attr.aria-label]="'directory.progressAria' | translate"
+        [attr.aria-valuemin]="0"
+        [attr.aria-valuemax]="progress.expected || 100"
+        [attr.aria-valuenow]="progress.processed"
+      >
+        <span [style.width.%]="progress.percent ?? 0"></span>
+      </div>
+    } @else {
+      <p>{{ 'directory.startingMessage' | translate }}</p>
+    }
+  </aside>
+}
+
+@if (tab() === 'import') {
+  <section class="import-panel" [attr.aria-label]="'directory.importTitle' | translate">
+    <section class="import-section" [attr.aria-label]="'directory.simulateSection' | translate">
+      <h2>{{ 'directory.simulateSection' | translate }}</h2>
+      <p>{{ 'directory.importHint' | translate }}</p>
+      <label class="file-field">
+        <span>{{ 'directory.chooseFile' | translate }}</span>
+        <input
+          type="file"
+          accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          [disabled]="importBlocked() || importBusy()"
+          (change)="onFile($event)"
+        />
+      </label>
+      @if (selectedFile(); as file) {
+        <p class="selected-file">{{ 'directory.selectedFile' | translate: { name: file.name } }}</p>
+      }
+      <div class="import-actions">
+        <button type="button" class="page-action page-action--secondary" [disabled]="!canSimulateImport()" (click)="simulate()">
+          {{ 'directory.simulate' | translate }}
+        </button>
+        <button
+          type="button"
+          class="page-action page-action--primary"
+          [disabled]="!canConfirmImport()"
+          [attr.title]="canConfirmImport() ? null : ('directory.confirmDisabled' | translate)"
+          (click)="confirmImport()"
+        >
+          {{ 'directory.confirm' | translate }}
+        </button>
+      </div>
+      @if (importError(); as error) {
+        <p class="import-error">{{ error | translate }}</p>
+      }
+      @if (showDryRunResult()) {
+        @if (simulation(); as result) {
+          <section class="directory-summary" [attr.aria-label]="'directory.resultTitle' | translate">
+            <os-mini-stat [label]="'directory.stats.processed' | translate" [value]="result.rowCount | localeNumber" />
+            <os-mini-stat [label]="'directory.stats.created' | translate" [value]="result.created | localeNumber" />
+            <os-mini-stat [label]="'directory.stats.updated' | translate" [value]="result.updated | localeNumber" />
+            <os-mini-stat [label]="'directory.stats.unchanged' | translate" [value]="result.unchanged | localeNumber" />
+            <os-mini-stat [label]="'directory.stats.reactivated' | translate" [value]="result.reactivated | localeNumber" />
+            <os-mini-stat [label]="'directory.stats.wouldInactivate' | translate" [value]="result.wouldInactivate | localeNumber" />
+            <os-mini-stat [label]="'directory.stats.rejected' | translate" [value]="result.rejected | localeNumber" />
+            <os-mini-stat [label]="'directory.stats.issues' | translate" [value]="result.issueCount | localeNumber" />
+          </section>
+          <p>{{ 'directory.dryRunStatus' | translate }}</p>
+          @if (!result.censusReliable) {
+            <p>{{ 'directory.unreliableCensus' | translate }}</p>
+          }
+          @if (result.issues.length > 0) {
+            <os-data-table-shell [caption]="'directory.issuesCaption' | translate" [fluid]="true">
+              <table>
+                <thead>
+                  <tr>
+                    <th>{{ 'directory.issueRow' | translate }}</th>
+                    <th>{{ 'directory.issueCode' | translate }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (issue of result.issues; track $index) {
+                    <tr>
+                      <td>{{ issue.sourceRowNumber || ('common.dash' | translate) }}</td>
+                      <td>{{ ('directory.codes.' + issue.code) | translate }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </os-data-table-shell>
+          }
+        }
+      }
+    </section>
+
+    <section class="import-section" [attr.aria-label]="'directory.trackSection' | translate">
+      <h2>{{ 'directory.trackSection' | translate }}</h2>
+      @if (importProgress(); as progress) {
+        <div
+          class="import-track"
+          [attr.data-kind]="progress.kind"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          <div class="import-track__head">
+            <h3>{{ progressTitleKey(progress.kind) | translate }}</h3>
+            <os-status-badge [label]="statusKey({ status: progress.status, interrupted: progress.kind === 'interrupted' }) | translate" [tone]="progressTone(progress.kind)" />
+          </div>
+          @if (progress.kind === 'running') {
+            <p>{{ 'directory.runningMessage' | translate }}</p>
+          } @else if (progress.kind === 'completed') {
+            <p>{{ 'directory.completedMessage' | translate }}</p>
+          } @else if (progress.kind === 'failed') {
+            <p>{{ 'directory.failedMessage' | translate }}</p>
+          } @else {
+            <p>{{ 'directory.interruptedMessage' | translate }}</p>
+          }
+          <dl class="import-track__facts">
+            <div>
+              <dt>{{ 'directory.historyId' | translate }}</dt>
+              <dd>{{ progress.id }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'directory.historyFile' | translate }}</dt>
+              <dd>{{ progress.filename || ('common.dash' | translate) }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'directory.historyStarted' | translate }}</dt>
+              <dd>{{ progress.startedAt ? (progress.startedAt | localeDate) : ('common.dash' | translate) }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'directory.percentLabel' | translate }}</dt>
+              <dd>{{ progress.percent !== null ? (progress.percent | localePercent) : ('common.dash' | translate) }}</dd>
+            </div>
+          </dl>
+          <div
+            class="import-track__bar"
+            role="progressbar"
+            [attr.aria-label]="'directory.progressAria' | translate"
+            [attr.aria-valuemin]="0"
+            [attr.aria-valuemax]="progress.expected || 100"
+            [attr.aria-valuenow]="progress.processed"
+          >
+            <span [style.width.%]="progress.percent ?? 0"></span>
+          </div>
+          <section class="directory-summary import-track__stats" [attr.aria-label]="'directory.progressAria' | translate">
+            <os-mini-stat [label]="'directory.totalRows' | translate" [value]="progress.expected | localeNumber" />
+            <os-mini-stat [label]="'directory.processedRows' | translate" [value]="progress.processed | localeNumber" />
+            <os-mini-stat [label]="'directory.pendingRows' | translate" [value]="progress.pending | localeNumber" />
+            <os-mini-stat [label]="'directory.stats.issues' | translate" [value]="progress.issueCount | localeNumber" />
+          </section>
+          @if (progress.kind === 'completed') {
+            <section class="directory-summary import-track__stats">
+              <os-mini-stat [label]="'directory.stats.created' | translate" [value]="progress.createdCount | localeNumber" />
+              <os-mini-stat [label]="'directory.stats.updated' | translate" [value]="progress.updatedCount | localeNumber" />
+              <os-mini-stat [label]="'directory.stats.unchanged' | translate" [value]="progress.unchangedCount | localeNumber" />
+            </section>
+          }
+          @if (progress.stale) {
+            <p class="import-track__stale">{{ 'directory.stale' | translate }}</p>
+          }
+          @if (progress.kind === 'failed' && (failureKey(progress.errorMessage) || progress.errorMessage)) {
+            <p class="import-error">
+              {{ (failureKey(progress.errorMessage) || 'directory.errors.failed') | translate }}
+              @if (progress.errorMessage && !failureKey(progress.errorMessage)) {
+                {{ progress.errorMessage }}
+              }
+            </p>
+          }
+          <div class="import-actions">
+            @if (progress.kind === 'completed') {
+              <button type="button" class="page-action page-action--secondary" (click)="openCatalog()">
+                {{ 'directory.goCatalog' | translate }}
+              </button>
+              <button type="button" class="page-action page-action--secondary" (click)="openHistory()">
+                {{ 'directory.goHistory' | translate }}
+              </button>
+            }
+            @if ((progress.kind === 'failed' || progress.kind === 'interrupted') && canAdminister()) {
+              <button type="button" class="page-action page-action--secondary" [disabled]="importBusy() || liveImport()" (click)="recoverImport(progress.id)">
+                {{ 'directory.recover' | translate }}
+              </button>
+            }
+          </div>
+        </div>
+      } @else if (persistStarted()) {
+        <div class="import-track" data-kind="running" role="status" aria-live="polite">
+          <div class="import-track__head">
+            <h3>{{ 'directory.runningTitle' | translate }}</h3>
+            <os-status-badge [label]="'directory.statusRunning' | translate" tone="review" />
+          </div>
+          <p>{{ 'directory.startingMessage' | translate }}</p>
+        </div>
+      } @else {
+        <p class="import-track__empty">{{ 'directory.trackEmpty' | translate }}</p>
+      }
+    </section>
+  </section>
+} @else if (tab() === 'history') {
+  @if (historyLoad() === 'error' && historyItems().length === 0) {
+    <os-error-state
+      [title]="'directory.historyErrorTitle' | translate"
+      [message]="'directory.historyErrorMessage' | translate"
+      [actionLabel]="'common.retry' | translate"
+      (action)="reload()"
+    />
+  } @else if (historyLoad() === 'loading' && historyItems().length === 0) {
+    <os-loading-state />
+  } @else if (historyItems().length === 0) {
+    <os-empty-state
+      [title]="'directory.emptyHistory' | translate"
+      [message]="'directory.emptyHistoryMessage' | translate"
+    />
+  } @else {
+    <os-data-table-shell [caption]="'directory.historyCaption' | translate" [fluid]="true" [stickyEnd]="true">
+      <table>
+        <thead>
+          <tr>
+            <th>{{ 'directory.historyId' | translate }}</th>
+            <th>{{ 'directory.historyFile' | translate }}</th>
+            <th>{{ 'directory.historyStatus' | translate }}</th>
+            <th>{{ 'directory.historyStarted' | translate }}</th>
+            <th>{{ 'directory.historyFinished' | translate }}</th>
+            <th>{{ 'directory.stats.processed' | translate }}</th>
+            <th>{{ 'directory.stats.created' | translate }}</th>
+            <th>{{ 'directory.stats.issues' | translate }}</th>
+            <th>{{ 'directory.viewIssues' | translate }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of historyItems(); track row.id) {
+            <tr>
+              <td>{{ row.id }}</td>
+              <td>{{ row.filename || ('common.dash' | translate) }}</td>
+              <td>{{ statusKey(row) | translate }}</td>
+              <td>{{ row.startedAt ? (row.startedAt | localeDate) : ('common.dash' | translate) }}</td>
+              <td>{{ row.finishedAt ? (row.finishedAt | localeDate) : ('common.dash' | translate) }}</td>
+              <td>{{ row.rowCount | localeNumber }}</td>
+              <td>{{ row.createdCount | localeNumber }}</td>
+              <td>{{ row.issueCount | localeNumber }}</td>
+              <td>
+                @if (row.issueCount > 0) {
+                  <button type="button" class="link-button" (click)="loadIssues(row.id)">
+                    {{ 'directory.viewIssues' | translate }}
+                  </button>
+                } @else {
+                  {{ 'common.dash' | translate }}
+                }
+              </td>
+            </tr>
+            @if (historyIssues()[row.id]; as issues) {
+              <tr>
+                <td colspan="9">
+                  @if (issues.length === 0) {
+                    {{ 'directory.noIssues' | translate }}
+                  } @else {
+                    <ul class="issue-list">
+                      @for (issue of issues; track $index) {
+                        <li>{{ 'directory.issueRow' | translate }} {{ issue.sourceRowNumber }} · {{ ('directory.codes.' + issue.code) | translate }}</li>
+                      }
+                    </ul>
+                  }
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </os-data-table-shell>
+  }
+} @else {
+  <section
+    class="directory-summary"
+    [class.is-updating]="statsUpdating()"
+    [attr.aria-busy]="statsUpdating()"
+    [attr.aria-label]="'directory.stats.title' | translate"
+  >
+    <os-mini-stat [label]="'directory.stats.total' | translate" [value]="(stats()?.total | localeNumber) || ('common.dash' | translate)" />
+    <os-mini-stat [label]="'directory.stats.active' | translate" [value]="(stats()?.active | localeNumber) || ('common.dash' | translate)" />
+    <os-mini-stat [label]="'directory.stats.inactive' | translate" [value]="(stats()?.inactive | localeNumber) || ('common.dash' | translate)" />
+    <os-mini-stat [label]="'directory.stats.withPureLink' | translate" [value]="(stats()?.withPureLink | localeNumber) || ('common.dash' | translate)" />
+  </section>
+  @if (hasActiveFilters()) {
+    <p class="filtered-summary">
+      {{ 'directory.filteredSummary' | translate: { count: (stats()?.total | localeNumber) || 0 } }}
+      <button type="button" class="link-button" (click)="clearFilters()">{{ 'directory.clearFilters' | translate }}</button>
+    </p>
+  }
+  <div class="directory-filters">
+    <os-filter-bar>
+      <os-search-box
+        [control]="search"
+        [placeholder]="'directory.searchPlaceholder' | translate"
+        [label]="'directory.search' | translate"
+        [hint]="'directory.searchHint' | translate"
+      />
+      <label class="filter-field">
+        <span>{{ 'directory.presence' | translate }}</span>
+        <select class="os-control" [formControl]="presence">
+          <option value="ACTIVE">{{ 'directory.active' | translate }}</option>
+          <option value="INACTIVE">{{ 'directory.inactive' | translate }}</option>
+          <option value="ALL">{{ 'directory.allPresence' | translate }}</option>
+        </select>
+      </label>
+    </os-filter-bar>
+  </div>
+  @let vm = result();
+  @if (vm.status === 'loading') {
+    <os-loading-state />
+  } @else if (vm.status === 'error') {
+    <os-error-state
+      [title]="'directory.errorTitle' | translate"
+      [message]="'directory.errorMessage' | translate"
+      [actionLabel]="'common.retry' | translate"
+      (action)="reload()"
+    />
+  } @else if (vm.data.total === 0) {
+    <os-empty-state
+      [title]="(hasActiveFilters() ? 'directory.filteredTitle' : 'directory.emptyTitle') | translate"
+      [message]="(hasActiveFilters() ? 'directory.filteredMessage' : 'directory.emptyMessage') | translate"
+      [actionLabel]="hasActiveFilters() ? ('directory.clearFilters' | translate) : ''"
+      (action)="clearFilters()"
+    />
+  } @else {
+    <os-data-table-shell [caption]="'directory.caption' | translate" [fluid]="true" [stickyStart]="true" [stickyEnd]="true">
+      <table class="directory-table">
+        <thead>
+          <tr>
+            <th>{{ 'directory.name' | translate }}</th>
+            <th>{{ 'directory.email' | translate }}</th>
+            <th>{{ 'directory.campus' | translate }}</th>
+            <th>{{ 'directory.faculty' | translate }}</th>
+            <th>{{ 'directory.position' | translate }}</th>
+            <th>{{ 'directory.presence' | translate }}</th>
+            <th>{{ 'directory.actions' | translate }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of vm.data.items; track row.id) {
+            <tr>
+              <td>{{ row.displayName || ('common.dash' | translate) }}</td>
+              <td>{{ row.email || ('common.dash' | translate) }}</td>
+              <td>{{ row.campusName || ('common.dash' | translate) }}</td>
+              <td>{{ row.faculty || ('common.dash' | translate) }}</td>
+              <td>{{ row.positionTitle || ('common.dash' | translate) }}</td>
+              <td>{{ (row.activeInDirectory ? 'directory.activeBadge' : 'directory.inactiveBadge') | translate }}</td>
+              <td>
+                <a [routerLink]="['/directory', row.id]">{{ 'directory.viewDetail' | translate }}</a>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </os-data-table-shell>
+    <os-pagination
+      [page]="vm.data.page"
+      [pageSize]="vm.data.pageSize"
+      [total]="vm.data.total"
+      (pageChange)="onPageChange($event)"
+    />
+  }
+}

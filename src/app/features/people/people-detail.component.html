@@ -1,0 +1,331 @@
+@let state = vm();
+@if (state.status === 'loading') {
+  <os-loading-state />
+} @else if (state.status === 'error') {
+  <os-error-state
+    [title]="'people.errorTitle' | translate"
+    [message]="'people.errorMessage' | translate"
+  />
+} @else if (state.status === 'notfound') {
+  <os-error-state
+    [title]="'people.notFoundTitle' | translate"
+    [message]="'people.notFoundMessage' | translate"
+  />
+} @else {
+  <os-page-header
+    [title]="displayName() || ('common.dash' | translate)"
+    [subtitle]="headerSubtitle() ? headerSubtitle() : ('people.noPosition' | translate)"
+  >
+    <a routerLink="/people">{{ 'people.backToList' | translate }}</a>
+    @if (state.person.activeInPure === false) {
+      <span class="inactive-badge">{{ 'sync.inactiveBadge' | translate }}</span>
+    }
+  </os-page-header>
+
+  <os-detail-section-nav
+    [items]="sectionNav"
+    [ariaLabel]="'people.sections' | translate"
+  />
+
+  <section id="resumen" class="panel">
+    <h2>{{ 'people.summary' | translate }}</h2>
+    <dl>
+      <div>
+        <dt>{{ 'people.name' | translate }}</dt>
+        <dd>{{ displayName() || ('common.dash' | translate) }}</dd>
+      </div>
+      <div>
+        <dt>{{ 'people.position' | translate }}</dt>
+        <dd>{{ state.person.position || ('people.noPosition' | translate) }}</dd>
+      </div>
+      <div>
+        <dt>{{ 'people.institutionalEmail' | translate }}</dt>
+        <dd>{{ state.person.email || ('common.dash' | translate) }}</dd>
+      </div>
+      @if (state.person.publicationCount != null) {
+        <div>
+          <dt>{{ 'people.publications' | translate }}</dt>
+          <dd>{{ state.person.publicationCount | localeNumber }}</dd>
+        </div>
+      }
+      <div>
+        <dt>{{ 'common.createdBy' | translate }}</dt>
+        <dd>{{ state.person.createdBy || ('common.dash' | translate) }}</dd>
+      </div>
+      <div>
+        <dt>{{ 'common.modifiedBy' | translate }}</dt>
+        <dd>{{ state.person.modifiedBy || ('common.dash' | translate) }}</dd>
+      </div>
+    </dl>
+  </section>
+
+  <section id="identidad-institucional" class="panel">
+    <h2>{{ 'people.institutionalIdentity' | translate }}</h2>
+    <os-identifier-row
+      [label]="'common.pureId' | translate"
+      [value]="state.person.pureId"
+      [tooltip]="'common.pureIdTooltip' | translate"
+      copyLabelKey="common.copyPureId"
+    />
+    <os-identifier-row
+      [label]="'people.uuidPure' | translate"
+      [value]="state.person.uuid"
+      copyLabelKey="common.copyUuid"
+    />
+    <os-identifier-row
+      [label]="'people.primaryId' | translate"
+      [value]="state.person.primaryId"
+      copyLabelKey="common.copyPrimaryId"
+    />
+  </section>
+
+  <section id="organizaciones" class="panel">
+    <h2>{{ 'people.affiliations' | translate }}</h2>
+    @if (state.person.affiliations.length === 0) {
+      <p>{{ 'people.noAffiliations' | translate }}</p>
+    } @else {
+      <ul class="record-list">
+        @for (affiliation of state.person.affiliations; track affiliation.organizationUuid ?? affiliation.pureId) {
+          <li>
+            <strong>
+              @if (affiliation.resolved && affiliation.organizationId) {
+                <a [routerLink]="['/organizations', affiliation.organizationId]">{{ affiliationName(affiliation) }}</a>
+              } @else {
+                {{ affiliationName(affiliation) }}
+              }
+            </strong>
+            @if (affiliationType(affiliation)) {
+              <p>{{ affiliationType(affiliation) }}</p>
+            }
+            @if (affiliation.jobTitle || affiliation.employmentType) {
+              <p>{{ affiliation.jobTitle || affiliation.employmentType }}</p>
+            }
+            @if (affiliation.fte != null) {
+              <p>{{ 'people.affiliationFte' | translate }} {{ affiliation.fte }}</p>
+            }
+            @if (affiliation.startDate || affiliation.endDate) {
+              <p>{{ 'people.affiliationPeriod' | translate }} {{ affiliation.startDate || ('common.dash' | translate) }} — {{ affiliation.endDate || ('common.dash' | translate) }}</p>
+            }
+            @if (!affiliation.resolved && affiliation.organizationUuid) {
+              <p class="secondary-uuid">{{ affiliation.organizationUuid }}</p>
+            }
+          </li>
+        }
+      </ul>
+    }
+  </section>
+
+  <section id="metricas" class="panel">
+    <h2>{{ 'metrics.title' | translate }}</h2>
+    @if (!metrics()) {
+      <p>{{ 'metrics.unavailable' | translate }}</p>
+    } @else {
+      <p class="metric-status">{{ metricFetchKey() | translate }}</p>
+      @if (metrics()?.hIndex?.lastSyncedAt) {
+        <p class="metric-updated">{{ 'metrics.lastUpdated' | translate }}: {{ metrics()?.hIndex?.lastSyncedAt | localeDate }}</p>
+      }
+      @if (metricRows().length === 0) {
+        <p>{{ metricFetchKindFailed() ? ('metrics.fetchFailed' | translate) : ('metrics.noHindex' | translate) }}</p>
+      } @else {
+        <table class="metric-table">
+          <thead>
+            <tr>
+              <th>{{ 'metrics.source' | translate }}</th>
+              <th>{{ 'metrics.period' | translate }}</th>
+              <th>{{ 'metrics.hindex' | translate }}</th>
+              <th>{{ 'metrics.citations' | translate }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of metricRows(); track (row.sourceUri ?? '') + (row.categoryUri ?? '') + $index) {
+              <tr>
+                <td>{{ sourceLabel(row) || ('common.dash' | translate) }}</td>
+                <td>{{ periodLabel(row) || ('common.dash' | translate) }}</td>
+                <td>{{ row.hindex == null ? ('common.dash' | translate) : row.hindex }}</td>
+                <td>{{ row.citations == null ? ('common.dash' | translate) : (row.citations | localeNumber) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    }
+  </section>
+
+  <section id="identidad" class="panel">
+    <h2>{{ 'people.identity' | translate }}</h2>
+    <os-identifier-row
+      [label]="'people.orcid' | translate"
+      [value]="state.person.orcid"
+      [href]="state.person.orcid ? orcidHref(state.person.orcid) : null"
+      copyLabelKey="common.copyOrcid"
+      [external]="true"
+    />
+    @if (state.person.orcidFirstSeenAt || state.person.orcidFirstSeenSource) {
+      <p class="orcid-first-seen">
+        {{ orcidFirstSeenKey(state.person.orcidFirstSeenSource) | translate }}
+        @if (state.person.orcidFirstSeenAt) {
+          · {{ state.person.orcidFirstSeenAt | localeDate: 'date' }}
+        }
+      </p>
+    }
+    <div class="auth-row">
+      <span>{{ 'people.lastOrcidSync' | translate }}</span>
+      <strong>
+        @if (state.person.lastOrcidSyncAt || orcidWorks()?.lastOrcidSyncAt) {
+          {{ (orcidWorks()?.lastOrcidSyncAt || state.person.lastOrcidSyncAt) | localeDate }}
+        } @else {
+          {{ 'sync.never' | translate }}
+        }
+      </strong>
+    </div>
+    @if (canSyncOrcid()) {
+      <div class="orcid-sync">
+        <button type="button" class="page-action page-action--secondary" [disabled]="orcidBusy()" (click)="syncOrcid()">
+          {{ (orcidBusy() ? 'people.orcidSyncing' : 'people.syncOrcid') | translate }}
+        </button>
+        @if (orcidMessage(); as key) {
+          <p class="orcid-sync__message">{{ key | translate }}</p>
+        }
+      </div>
+    }
+    <div class="auth-row">
+      <span>{{ 'people.orcidAuthenticated' | translate }}</span>
+      <strong>
+        @if (state.person.orcidAuthenticated === true) {
+          {{ 'people.verified' | translate }}
+        } @else if (state.person.orcidAuthenticated === false) {
+          {{ 'people.notVerified' | translate }}
+        } @else {
+          {{ 'common.dash' | translate }}
+        }
+      </strong>
+    </div>
+    @if (state.person.scopusIds.length === 0) {
+      <os-identifier-row [label]="'people.scopusAuthorId' | translate" [value]="null" />
+    } @else {
+      @for (scopusId of state.person.scopusIds; track scopusId) {
+        <os-identifier-row
+          [label]="'people.scopusAuthorId' | translate"
+          [value]="scopusId"
+          copyLabelKey="common.copyScopus"
+        />
+      }
+    }
+
+    <h3>{{ 'people.externalIdentities' | translate }}</h3>
+    <os-identifier-row
+      [label]="'people.openalexId' | translate"
+      [value]="state.person.openalexAuthorId ?? null"
+      [href]="state.person.openalexUrl ?? null"
+      copyLabelKey="common.copy"
+      [external]="true"
+    />
+    @if (state.person.openalexAuthorId) {
+      <p class="oa-identity-status">
+        {{ (state.person.openalexConfirmed ? 'people.openalexConfirmed' : 'people.openalexCandidate') | translate }}
+        @if (state.person.openalexDisplayName) {
+          · {{ state.person.openalexDisplayName }}
+        }
+      </p>
+    }
+
+    @if (state.person.identities.length > 0) {
+      <h3>{{ 'people.otherIdentifiers' | translate }}</h3>
+      @for (identity of state.person.identities; track $index) {
+        <os-identifier-row
+          [label]="identityLabel(identity) || ('common.dash' | translate)"
+          [value]="identity.value ?? null"
+          copyLabelKey="common.copy"
+        />
+      }
+    }
+  </section>
+
+  <section id="orcid-works" class="panel">
+    <h2>{{ 'people.orcidWorks' | translate }}</h2>
+    <p class="orcid-works-copy">{{ 'people.orcidWorksCopy' | translate }}</p>
+    @if (orcidWorks(); as works) {
+      <p class="orcid-works-summary">
+        {{ 'people.orcidMatchSummary' | translate: {
+          matched: works.matchedByDoi,
+          orcidOnly: works.orcidOnly,
+          pureOnly: works.pureOnly,
+          noDoi: works.noDoi
+        } }}
+      </p>
+      <p class="orcid-works-counts">
+        {{ 'people.orcidWorksCount' | translate: { count: works.workGroupCount } }}
+        ·
+        {{ 'people.orcidAssertionsCount' | translate: { count: works.workAssertionCount } }}
+      </p>
+      @if (works.groups.length === 0) {
+        <p>{{ 'people.orcidWorksEmpty' | translate }}</p>
+      } @else {
+        <table class="orcid-works-table">
+          <thead>
+            <tr>
+              <th>{{ 'people.orcidWorkTitle' | translate }}</th>
+              <th>{{ 'people.orcidWorkYear' | translate }}</th>
+              <th>{{ 'people.orcidWorkJournal' | translate }}</th>
+              <th>{{ 'people.orcidWorkDoi' | translate }}</th>
+              <th>{{ 'people.orcidWorkSources' | translate }}</th>
+              <th>{{ 'people.orcidWorkMatch' | translate }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (group of works.groups; track group.id) {
+              <tr>
+                <td>{{ group.title || ('common.dash' | translate) }}</td>
+                <td>{{ group.publicationYear || ('common.dash' | translate) }}</td>
+                <td>{{ group.journalTitle || ('common.dash' | translate) }}</td>
+                <td>
+                  @if (group.doi) {
+                    {{ group.doi }}
+                  } @else {
+                    {{ 'common.dash' | translate }}
+                  }
+                </td>
+                <td>
+                  <div class="orcid-source-chips">
+                    @for (source of group.sources; track source) {
+                      <span class="orcid-source-chip">{{ source }}</span>
+                    } @empty {
+                      {{ group.sourceCount || ('common.dash' | translate) }}
+                    }
+                  </div>
+                </td>
+                <td>{{ ('people.match.' + (group.matchStatus || 'NO_DOI')) | translate }}</td>
+              </tr>
+              @if (group.assertions.length > 0) {
+                <tr class="orcid-assertions-row">
+                  <td colspan="6">
+                    <details>
+                      <summary>{{ 'people.orcidAssertions' | translate }} ({{ group.assertions.length }})</summary>
+                      <ul class="orcid-assertion-list">
+                        @for (assertion of group.assertions; track assertion.id ?? assertion.putCode) {
+                          <li>
+                            <strong>{{ assertion.sourceName || ('common.dash' | translate) }}</strong>
+                            · put-code {{ assertion.putCode || ('common.dash' | translate) }}
+                            @if (assertion.eid) {
+                              · EID {{ assertion.eid }}
+                            }
+                            @if (issnOf(assertion); as issn) {
+                              · ISSN {{ issn }}
+                            }
+                            · {{ 'people.orcidContributors' | translate }}: {{ assertion.contributorCount }}
+                          </li>
+                        }
+                      </ul>
+                    </details>
+                  </td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      }
+    } @else {
+      <p>{{ 'people.orcidWorksUnavailable' | translate }}</p>
+    }
+  </section>
+}

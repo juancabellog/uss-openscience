@@ -1,0 +1,212 @@
+<os-page-header
+  [title]="'unpaywall.title' | translate"
+  [subtitle]="'unpaywall.subtitle' | translate"
+>
+  <os-sync-export-bar
+    entity="UNPAYWALL"
+    [unpaywallQuery]="currentQuery()"
+    (completed)="reload()"
+  />
+</os-page-header>
+
+<section class="upw-stats" [attr.aria-label]="'unpaywall.title' | translate">
+  <os-mini-stat [label]="'unpaywall.uniqueDois' | translate" [value]="(stats()?.uniqueDois | localeNumber) || ('common.dash' | translate)" />
+  <os-mini-stat [label]="'unpaywall.evaluated' | translate" [value]="(stats()?.evaluated | localeNumber) || ('common.dash' | translate)" />
+  <os-mini-stat [label]="'unpaywall.oaCount' | translate" [value]="(stats()?.oa | localeNumber) || ('common.dash' | translate)" />
+  <os-mini-stat [label]="'unpaywall.nonOaCount' | translate" [value]="(stats()?.nonOa | localeNumber) || ('common.dash' | translate)" />
+  <os-mini-stat [label]="'unpaywall.repositoryCount' | translate" [value]="(stats()?.repositoryCopy | localeNumber) || ('common.dash' | translate)" />
+  <os-mini-stat [label]="'unpaywall.notFoundCount' | translate" [value]="(stats()?.notFound | localeNumber) || ('common.dash' | translate)" />
+</section>
+
+<os-filter-bar>
+  <os-search-box
+    [control]="search"
+    [placeholder]="'unpaywall.searchPlaceholder' | translate"
+    [label]="'unpaywall.search' | translate"
+  />
+  <label class="filter-field">
+    <span>{{ 'unpaywall.oaStatus' | translate }}</span>
+    <select class="os-control" [formControl]="oaStatus">
+      <option value="">{{ 'unpaywall.allStatuses' | translate }}</option>
+      @for (status of filters().oaStatuses; track status) {
+        <option [value]="status">{{ status }}</option>
+      }
+    </select>
+  </label>
+  <label class="filter-field">
+    <span>{{ 'unpaywall.host' | translate }}</span>
+    <select class="os-control" [formControl]="hostType">
+      <option value="">{{ 'unpaywall.allHosts' | translate }}</option>
+      @for (host of filters().hostTypes; track host) {
+        <option [value]="host">{{ host }}</option>
+      }
+    </select>
+  </label>
+  <label class="filter-field">
+    <span>{{ 'unpaywall.license' | translate }}</span>
+    <select class="os-control" [formControl]="license">
+      <option value="">{{ 'unpaywall.allLicenses' | translate }}</option>
+      @for (item of filters().licenses; track item) {
+        <option [value]="item">{{ item }}</option>
+      }
+    </select>
+  </label>
+  <label class="filter-field">
+    <span>{{ 'unpaywall.version' | translate }}</span>
+    <select class="os-control" [formControl]="version">
+      <option value="">{{ 'unpaywall.allVersions' | translate }}</option>
+      @for (item of filters().versions; track item) {
+        <option [value]="item">{{ item }}</option>
+      }
+    </select>
+  </label>
+  <label class="filter-field">
+    <span>{{ 'unpaywall.oa' | translate }}</span>
+    <select class="os-control" [formControl]="isOa">
+      <option value="">{{ 'unpaywall.allOutcomes' | translate }}</option>
+      <option value="yes">{{ 'unpaywall.openAccess' | translate }}</option>
+      <option value="no">{{ 'unpaywall.noOpenAccess' | translate }}</option>
+    </select>
+  </label>
+  <label class="filter-field">
+    <span>{{ 'unpaywall.repository' | translate }}</span>
+    <select class="os-control" [formControl]="repository">
+      <option value="">{{ 'unpaywall.allRepository' | translate }}</option>
+      <option value="yes">{{ 'unpaywall.withRepository' | translate }}</option>
+      <option value="no">{{ 'unpaywall.withoutRepository' | translate }}</option>
+    </select>
+  </label>
+  <label class="filter-field">
+    <span>{{ 'unpaywall.outcome' | translate }}</span>
+    <select class="os-control" [formControl]="outcome">
+      <option value="">{{ 'unpaywall.allOutcomes' | translate }}</option>
+      <option value="FOUND">{{ 'unpaywall.found' | translate }}</option>
+      <option value="NOT_FOUND">{{ 'unpaywall.notFound' | translate }}</option>
+    </select>
+  </label>
+</os-filter-bar>
+
+@if (result(); as vm) {
+  @if (vm.status === 'loading') {
+    <os-loading-state />
+  } @else if (vm.status === 'error') {
+    <os-error-state [message]="'unpaywall.loadError' | translate" />
+  } @else if (vm.data.items.length === 0) {
+    <os-empty-state [title]="'unpaywall.empty' | translate" />
+  } @else {
+    <os-data-table-shell>
+      <table>
+        <thead>
+          <tr>
+            <th><os-sortable-header field="doi" [label]="'unpaywall.doi' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" /></th>
+            <th><os-sortable-header field="title" [label]="'unpaywall.publication' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" /></th>
+            <th><os-sortable-header field="isOa" [label]="'unpaywall.oa' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" /></th>
+            <th><os-sortable-header field="oaStatus" [label]="'unpaywall.oaStatus' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" /></th>
+            <th>{{ 'unpaywall.bestLocation' | translate }}</th>
+            <th><os-sortable-header field="bestOaHostType" [label]="'unpaywall.hostCol' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" /></th>
+            <th><os-sortable-header field="bestOaLicense" [label]="'unpaywall.licenseCol' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" /></th>
+            <th><os-sortable-header field="bestOaVersion" [label]="'unpaywall.versionCol' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" /></th>
+            <th><os-sortable-header field="hasRepositoryCopy" [label]="'unpaywall.repositoryCol' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" /></th>
+            <th><os-sortable-header field="retrievedAt" [label]="'unpaywall.lastChecked' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" /></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of vm.data.items; track row.id) {
+            <tr (click)="openDetail(row)">
+              <td>
+                @if (doiHref(row.normalizedDoi || row.doi); as href) {
+                  <a [href]="href" target="_blank" rel="noopener noreferrer" (click)="$event.stopPropagation()">{{ row.normalizedDoi || row.doi }}</a>
+                } @else {
+                  {{ 'common.dash' | translate }}
+                }
+              </td>
+              <td>
+                {{ row.publicationTitle || row.title || ('common.dash' | translate) }}
+                @if (row.researchOutputCount > 1) {
+                  <span class="upw-more">+{{ row.researchOutputCount - 1 }}</span>
+                }
+              </td>
+              <td>
+                <span [class.upw-oa]="row.isOa === true" [class.upw-closed]="row.isOa === false">
+                  {{ oaLabel(row) | translate }}
+                </span>
+              </td>
+              <td>{{ row.oaStatus || ('common.dash' | translate) }}</td>
+              <td>
+                @if (row.bestOaUrl) {
+                  <a [href]="row.bestOaUrl" target="_blank" rel="noopener noreferrer" (click)="$event.stopPropagation()">{{ 'unpaywall.openOa' | translate }}</a>
+                } @else {
+                  {{ 'common.dash' | translate }}
+                }
+                @if (row.bestOaPdfUrl) {
+                  <a class="upw-pdf" [href]="row.bestOaPdfUrl" target="_blank" rel="noopener noreferrer" (click)="$event.stopPropagation()">{{ 'unpaywall.openPdf' | translate }}</a>
+                }
+              </td>
+              <td>{{ row.bestOaHostType || ('common.dash' | translate) }}</td>
+              <td>{{ row.bestOaLicense || ('common.dash' | translate) }}</td>
+              <td>{{ row.bestOaVersion || ('common.dash' | translate) }}</td>
+              <td>{{ row.hasRepositoryCopy === true ? ('unpaywall.yes' | translate) : row.hasRepositoryCopy === false ? ('unpaywall.no' | translate) : ('common.dash' | translate) }}</td>
+              <td>{{ row.retrievedAt ? (row.retrievedAt | localeDate) : ('common.dash' | translate) }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </os-data-table-shell>
+    <os-pagination
+      [page]="vm.data.page"
+      [pageSize]="vm.data.pageSize"
+      [total]="vm.data.total"
+      (pageChange)="goToPage($event)"
+    />
+  }
+}
+
+@if (detail(); as current) {
+  <div class="upw-drawer" role="dialog" aria-modal="true">
+    <button type="button" class="upw-drawer__backdrop" (click)="closeDetail()" tabindex="-1" aria-hidden="true"></button>
+    <aside class="upw-drawer__panel">
+      <header class="upw-drawer__header">
+        <h2>{{ 'unpaywall.detailTitle' | translate }}</h2>
+        <button type="button" class="page-action page-action--secondary upw-drawer__close-action" (click)="closeDetail()" [attr.aria-label]="'common.close' | translate">{{ 'common.close' | translate }}</button>
+      </header>
+      <p>
+        @if (doiHref(current.normalizedDoi || current.doi); as href) {
+          <a [href]="href" target="_blank" rel="noopener noreferrer">{{ current.normalizedDoi || current.doi }}</a>
+        }
+      </p>
+      <p>{{ current.title || ('common.dash' | translate) }}</p>
+      <p>{{ oaLabel(current) | translate }} · {{ current.oaStatus || ('common.dash' | translate) }}</p>
+      <h3>{{ 'unpaywall.outputs' | translate }}</h3>
+      <ul>
+        @for (output of current.researchOutputs; track output.researchOutputId + '-' + (output.electronicVersionId ?? 0)) {
+          <li>
+            <a [routerLink]="['/research-output', output.researchOutputId]">{{ output.title || output.uuid }}</a>
+          </li>
+        }
+      </ul>
+      <h3>{{ 'unpaywall.locations' | translate }}</h3>
+      @if (current.locations.length === 0) {
+        <p>{{ 'unpaywall.noLocations' | translate }}</p>
+      } @else {
+        <ul>
+          @for (location of current.locations; track location.id) {
+            <li>
+              {{ location.hostType || ('common.dash' | translate) }}
+              · {{ location.version || ('common.dash' | translate) }}
+              · {{ location.license || ('common.dash' | translate) }}
+              @if (location.best) { · best }
+              @if (location.url) {
+                <a [href]="location.url" target="_blank" rel="noopener noreferrer">{{ 'unpaywall.openOa' | translate }}</a>
+              }
+              @if (location.urlForPdf) {
+                <a [href]="location.urlForPdf" target="_blank" rel="noopener noreferrer">{{ 'unpaywall.openPdf' | translate }}</a>
+              }
+            </li>
+          }
+        </ul>
+      }
+      <p>{{ 'unpaywall.retrieved' | translate }}: {{ current.retrievedAt ? (current.retrievedAt | localeDate) : ('common.dash' | translate) }}</p>
+      <p>{{ 'unpaywall.apiUpdated' | translate }}: {{ current.apiUpdatedAt ? (current.apiUpdatedAt | localeDate) : ('common.dash' | translate) }}</p>
+    </aside>
+  </div>
+}

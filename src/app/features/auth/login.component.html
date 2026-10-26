@@ -1,0 +1,69 @@
+<os-institutional-header />
+<main class="auth-page">
+  <section class="auth-card">
+    <header class="auth-card__intro">
+      <h1>{{ 'auth.loginTitle' | translate }}</h1>
+      <p>{{ 'auth.loginSubtitle' | translate }}</p>
+    </header>
+    @if (passwordUpdated()) {
+      <p class="auth-banner auth-banner--success" role="status">
+        {{ 'auth.passwordUpdated' | translate }}
+      </p>
+    }
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <label class="filter-field">
+        <span>{{ 'auth.email' | translate }}</span>
+        <input
+          class="os-control"
+          type="email"
+          name="email"
+          formControlName="email"
+          autocomplete="email"
+          inputmode="email"
+          [attr.placeholder]="'auth.emailPlaceholder' | translate"
+        />
+        @if (emailError(); as emailKey) {
+          <span class="auth-field-error">{{ emailKey | translate }}</span>
+        }
+      </label>
+      <label class="filter-field">
+        <span>{{ 'auth.password' | translate }}</span>
+        <span class="auth-password">
+          <input
+            class="os-control"
+            [type]="showPassword() ? 'text' : 'password'"
+            name="password"
+            formControlName="password"
+            autocomplete="current-password"
+          />
+          <button
+            type="button"
+            class="auth-password__toggle"
+            [attr.aria-label]="(showPassword() ? 'auth.hidePassword' : 'auth.showPassword') | translate"
+            [attr.aria-pressed]="showPassword()"
+            (click)="togglePassword()"
+          >
+            <os-icon [name]="showPassword() ? 'eye-off' : 'eye'" />
+          </button>
+        </span>
+        @if (passwordError(); as passwordKey) {
+          <span class="auth-field-error">{{ passwordKey | translate }}</span>
+        }
+      </label>
+      <a routerLink="/auth/forgot-password" class="auth-forgot">{{ 'auth.forgot' | translate }}</a>
+      @if (error(); as key) {
+        <p class="auth-banner auth-banner--error" role="alert">{{ key | translate }}</p>
+      }
+      <button type="submit" class="page-action page-action--primary auth-submit" [disabled]="busy()">
+        @if (busy()) {
+          <os-icon name="sync" class="auth-submit__spin" />
+        }
+        {{ (busy() ? 'auth.signingIn' : 'auth.signIn') | translate }}
+      </button>
+    </form>
+    <p class="auth-switch">
+      {{ 'auth.noAccount' | translate }}
+      <a routerLink="/auth/register" class="auth-secondary-link">{{ 'auth.createAccount' | translate }}</a>
+    </p>
+  </section>
+</main>

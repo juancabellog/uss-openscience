@@ -1,0 +1,40 @@
+:host {
+  display: block;
+}
+
+.back-link {
+  margin-right: var(--os-space-sm);
+}
+
+.inactive-badge {
+  display: inline-block;
+  margin-left: var(--os-space-sm);
+  font-size: 0.85rem;
+  color: var(--os-text-secondary);
+}
+
+.panel {
+  margin-bottom: var(--os-space-lg);
+}
+
+.record-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--os-space-sm);
+}
+
+.record-list li {
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--os-border);
+  border-radius: var(--os-radius-sm);
+}
+
+.record-list p {
+  margin: 0.2rem 0 0;
+  color: var(--os-text-secondary);
+  font-size: var(--os-fs-sm);
+  font-weight: 500;
+}

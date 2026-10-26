@@ -1,0 +1,20 @@
+<div class="layers">
+  <os-section-card [title]="'indicators.identity.title' | translate" [description]="'indicators.identity.homeDescription' | translate">
+    <p><a routerLink="/indicators/identity">{{ 'indicators.identity.view' | translate }}</a></p>
+  </os-section-card>
+  <os-section-card [title]="'indicators.crossref.title' | translate" [description]="'indicators.crossref.homeDescription' | translate">
+    <p><a routerLink="/integrations/crossref">{{ 'indicators.crossref.view' | translate }}</a></p>
+  </os-section-card>
+  <os-section-card [title]="'indicators.layer1Title' | translate" [description]="'indicators.layer1Description' | translate">
+    <os-status-badge [label]="'status.unavailable' | translate" tone="pending" />
+    <p><a routerLink="/indicators/layer-1">{{ 'indicators.viewLayer1' | translate }}</a></p>
+  </os-section-card>
+  <os-section-card [title]="'indicators.layer2Title' | translate" [description]="'indicators.layer2Description' | translate">
+    <os-status-badge [label]="'status.pending_measurement' | translate" tone="pending" />
+    <p><a routerLink="/indicators/layer-2">{{ 'indicators.viewLayer2' | translate }}</a></p>
+  </os-section-card>
+  <os-section-card [title]="'indicators.layer3Title' | translate" [description]="'indicators.layer3Description' | translate">
+    <os-status-badge [label]="'status.unavailable' | translate" tone="pending" />
+    <p><a routerLink="/indicators/layer-3">{{ 'indicators.viewLayer3' | translate }}</a></p>
+  </os-section-card>
+</div>

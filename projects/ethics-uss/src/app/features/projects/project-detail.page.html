@@ -1,0 +1,127 @@
+@if (row(); as row) {
+  <section>
+    <p class="muted">{{ row.project.code }} · {{ row.project.fundingSource }}</p>
+    <h1>{{ row.project.title }}</h1>
+    <p>{{ 'projects.ir' | translate }}: {{ row.researcher?.displayName }} · <eth-status-chip [value]="row.globalStatus" /></p>
+    <div class="steps">
+      <button type="button" class="ghost" (click)="tab.set('resumen')">{{ 'projects.summary' | translate }}</button>
+      <button type="button" class="ghost" (click)="tab.set('docs')">{{ 'projects.documents' | translate }}</button>
+      @for (item of row.cases; track item.id) {
+        <button type="button" class="ghost" (click)="tab.set(item.committee)">{{ committees[item.committee] | translate }}</button>
+      }
+      <button type="button" class="ghost" (click)="tab.set('historial')">{{ 'projects.history' | translate }}</button>
+    </div>
+
+    @if (tab() === 'resumen') {
+      <div class="grid-2">
+        @for (item of row.cases; track item.id) {
+          <article class="card">
+            <h2>{{ committees[item.committee] | translate }}</h2>
+            <eth-status-chip [value]="item.status" />
+            <p>{{ 'projects.received' | translate }}: {{ item.receivedAt | localeDate }}</p>
+            @if (item.approvalExpiresAt) {
+              <p>{{ 'projects.expires' | translate }}: {{ item.approvalExpiresAt | localeDate }}</p>
+            }
+            <a [routerLink]="['/expedientes', item.id]">{{ 'projects.openCase' | translate }}</a>
+          </article>
+        }
+      </div>
+      @if (row.globalStatus === 'APPROVED' || row.cases.some(c => c.status === 'APPROVED')) {
+        <p class="muted">{{ 'projects.comingSoon' | translate }}</p>
+      }
+    }
+
+    @if (tab() === 'docs') {
+      @for (item of row.cases; track item.id) {
+        <article class="panel">
+          <h2>{{ committees[item.committee] | translate }}</h2>
+          @let done = completion(item.id);
+          <p>{{ 'projects.requirementsComplete' | translate: { done: done.done, total: done.total } }}</p>
+          @for (req of required(item.id); track req.key) {
+            <p>
+              {{ docLabel(req.key, req.label) }}
+              @if (docs(item.id).some(d => d.requirementKey === req.key)) { ✓ }
+              @else if (!item.packageFrozen) {
+                <input type="file" accept="application/pdf" (change)="upload(item.id, req.key, $event)" />
+              }
+            </p>
+          }
+          @if (!item.packageFrozen && done.done === done.total && done.total > 0) {
+            <button type="button" class="btn" (click)="askNotify(item.id)">{{ 'projects.notifyCommittee' | translate }}</button>
+          }
+          @if (item.packageFrozen) {
+            <p class="alert">{{ 'projects.packageClosed' | translate }}</p>
+          }
+        </article>
+      }
+    }
+
+    @for (item of row.cases; track item.id) {
+      @if (tab() === item.committee) {
+        <article class="panel">
+          <h2>{{ committees[item.committee] | translate }}</h2>
+          <eth-status-chip [value]="item.status" />
+          <p>{{ 'projects.received' | translate }} {{ item.receivedAt | localeDate }} · {{ 'projects.cycle' | translate: { cycle: item.currentCycle } }}</p>
+          @if (expiry(item.id); as exp) {
+            <p>{{ 'projects.semaphore' | translate: { semaphore: semaphoreLabel(exp.semaphore), days: exp.daysLeft } }}</p>
+            @if (exp.semaphore === 'VENCIDO') {
+              <p class="alert danger">{{ 'projects.expiredAlert' | translate }}</p>
+            }
+          }
+          @if (resolution(item.id); as res) {
+            <p>{{ 'projects.resolution' | translate: { correlative: res.correlative } }} · <eth-privacy-badge level="PUBLICABLE" /></p>
+            <button type="button" class="ghost" (click)="download(item.id)">{{ 'projects.downloadResolution' | translate }}</button>
+          }
+          <div class="timeline">
+            @for (point of timelineKeys; track point) {
+              <span>{{ point | translate }}</span>
+            }
+          </div>
+          @if (obs(item.id).length) {
+            <h3>{{ 'projects.committeeRequestedChanges' | translate }}</h3>
+            @for (observation of obs(item.id); track observation.id) {
+              <article class="card">
+                <strong>{{ observation.code }} · {{ observation.topic }}</strong>
+                <eth-privacy-badge [level]="observation.privacy" />
+                <p>{{ observation.text }}</p>
+                @if (observation.status !== 'ANSWERED' && user()?.role === 'RESEARCHER') {
+                  <textarea [value]="answer()[observation.id] || ''" (input)="setAnswer(observation.id, $any($event.target).value)" [placeholder]="'projects.answerPlaceholder' | translate"></textarea>
+                  <button type="button" class="secondary" (click)="reply(observation.id)">{{ 'projects.saveAnswer' | translate }}</button>
+                } @else {
+                  <p class="muted">{{ (observation.status === 'ANSWERED' ? 'projects.answered' : 'projects.pending') | translate }}</p>
+                }
+              </article>
+            }
+            @if (user()?.role === 'RESEARCHER' && obs(item.id).every(o => o.status === 'ANSWERED')) {
+              <button type="button" class="btn" (click)="sendAnswers(item.id)">{{ 'projects.sendAnswers' | translate }}</button>
+            }
+          }
+        </article>
+      }
+    }
+
+    @if (tab() === 'historial') {
+      <div class="timeline">
+        @for (event of history(); track event.id) {
+          <article class="card">
+            <strong>{{ event.date | localeDate }} · {{ event.actorName }}</strong>
+            <p>{{ i18n.auditAction(event.action, event.description) }}</p>
+            @if (event.reason) { <p class="muted">{{ 'projects.reason' | translate: { reason: event.reason } }}</p> }
+          </article>
+        }
+      </div>
+    }
+  </section>
+}
+
+@if (confirmCase()) {
+  <div class="modal">
+    <div class="modal-card">
+      <p>{{ 'projects.notifyConfirm' | translate }}</p>
+      <div class="actions">
+        <button type="button" class="btn" (click)="notify()">{{ 'projects.confirmSend' | translate }}</button>
+        <button type="button" class="ghost" (click)="confirmCase.set(null)">{{ 'common.cancel' | translate }}</button>
+      </div>
+    </div>
+  </div>
+}

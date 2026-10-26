@@ -1,0 +1,71 @@
+:host {
+  display: block;
+  height: 100%;
+  min-width: 0;
+}
+
+.metric-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--os-surface);
+  border: 1px solid var(--os-border);
+  border-radius: var(--os-radius-md);
+  padding: var(--os-space-lg);
+  box-shadow: var(--os-shadow-sm);
+}
+
+.metric-card__label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+  min-height: calc(var(--os-fs-sm) * 1.35 * 2);
+  color: var(--os-text-secondary);
+  font-size: var(--os-fs-sm);
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.metric-card__label-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.metric-card__label os-info-hint {
+  margin-top: 0.08rem;
+}
+
+.metric-card__value {
+  color: var(--os-primary-dark);
+  font-size: 1.85rem;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  margin-top: var(--os-space-xs);
+}
+
+.metric-card__footer {
+  margin-top: auto;
+  padding-top: var(--os-space-sm);
+  min-height: calc(var(--os-fs-xs) * 1.4 * 2);
+}
+
+.metric-card__hint,
+.metric-card__detail,
+.metric-card__demo {
+  color: var(--os-text-secondary);
+  font-size: var(--os-fs-xs);
+  line-height: 1.4;
+}
+
+.metric-card__detail {
+  margin-top: 0.15rem;
+}
+
+.metric-card__demo {
+  margin-top: var(--os-space-2xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--uss-primary);
+}

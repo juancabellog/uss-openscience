@@ -1,0 +1,108 @@
+@if (person() === undefined) {
+  <os-loading-state />
+} @else if (person() === null) {
+  <os-error-state
+    [title]="'researchers.notFoundTitle' | translate"
+    [message]="'researchers.notFoundMessage' | translate"
+  />
+} @else {
+  <os-page-header [title]="displayName()" [subtitle]="headerSubtitle()">
+    <os-status-badge
+      [label]="'researchers.qualityPrefix' | translate: { status: (qualityKey(person()!.dataQualityStatus) | translate) }"
+      [tone]="qualityTone(person()!.dataQualityStatus)"
+    />
+  </os-page-header>
+
+  <os-detail-section-nav
+    [items]="sectionNav"
+    [ariaLabel]="'researchers.sections' | translate"
+  />
+
+  <section id="resumen" class="panel">
+    <h2>{{ 'researchers.summary' | translate }}</h2>
+    <dl>
+      <div><dt>{{ 'researchers.name' | translate }}</dt><dd>{{ displayName() }}</dd></div>
+      <div><dt>{{ 'researchers.position' | translate }}</dt><dd>{{ person()!.position || ('common.dash' | translate) }}</dd></div>
+      <div><dt>{{ 'researchers.faculty' | translate }}</dt><dd>{{ person()!.faculty || ('common.dash' | translate) }}</dd></div>
+      <div><dt>{{ 'researchers.institutionalEmail' | translate }}</dt><dd>{{ person()!.email }}</dd></div>
+    </dl>
+  </section>
+
+  <section id="identidad" class="panel">
+    <h2>{{ 'researchers.identity' | translate }}</h2>
+    <dl>
+      <div><dt>{{ 'researchers.uuidPure' | translate }}</dt><dd>{{ person()!.uuid }}</dd></div>
+      <div><dt>{{ 'researchers.primaryId' | translate }}</dt><dd>{{ person()!.primaryId || ('common.dash' | translate) }}</dd></div>
+      <div><dt>{{ 'researchers.orcid' | translate }}</dt><dd>{{ person()!.orcid || ('researchers.absent' | translate) }}</dd></div>
+      <div>
+        <dt>{{ 'researchers.orcidAuthenticated' | translate }}</dt>
+        <dd>
+          @if (person()!.orcidVerified === true) {
+            {{ 'researchers.verified' | translate }}
+          } @else if (person()!.orcidVerified === false) {
+            {{ 'researchers.notVerified' | translate }}
+          } @else {
+            {{ 'common.dash' | translate }}
+          }
+        </dd>
+      </div>
+      <div><dt>{{ 'researchers.scopusAuthorId' | translate }}</dt><dd>{{ person()!.scopusIds.join(', ') || ('common.dash' | translate) }}</dd></div>
+      <div>
+        <dt>{{ 'researchers.scopusAffiliations' | translate }}</dt>
+        <dd>
+          @if (person()!.scopusAffiliations.length === 0) {
+            {{ 'common.dash' | translate }}
+          } @else {
+            @for (aff of person()!.scopusAffiliations; track aff.affiliationId) {
+              <span>{{ aff.affiliationName }} ({{ aff.affiliationId }})</span><br />
+            }
+          }
+        </dd>
+      </div>
+    </dl>
+  </section>
+
+  <section id="publicaciones" class="panel">
+    <h2>{{ 'researchers.publications' | translate }}</h2>
+    @if (person()!.publications.length === 0) {
+      <p>{{ 'researchers.noPublications' | translate }}</p>
+    } @else {
+      <os-data-table-shell>
+        <table>
+          <thead>
+            <tr>
+              <th>{{ 'outputs.titleColumn' | translate }}</th>
+              <th>{{ 'researchers.year' | translate }}</th>
+              <th>{{ 'researchers.doi' | translate }}</th>
+              <th>{{ 'researchers.type' | translate }}</th>
+              <th>{{ 'researchers.journal' | translate }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (output of person()!.publications; track output.id) {
+              <tr>
+                <td>{{ output.title }}</td>
+                <td>{{ output.year === null || output.year === undefined ? ('common.dash' | translate) : output.year }}</td>
+                <td>{{ output.doi || ('common.dash' | translate) }}</td>
+                <td>{{ output.type }}</td>
+                <td>{{ output.journal || ('common.dash' | translate) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </os-data-table-shell>
+    }
+  </section>
+
+  <section id="calidad" class="panel">
+    <h2>{{ 'researchers.quality' | translate }}</h2>
+    <p>{{ 'researchers.qualityNote' | translate }}</p>
+    <a routerLink="/data-quality">{{ 'researchers.viewIssues' | translate }}</a>
+  </section>
+
+  <section id="auditoria" class="panel">
+    <h2>{{ 'researchers.audit' | translate }}</h2>
+    <p>{{ 'researchers.auditNote' | translate }}</p>
+    <a routerLink="/audit">{{ 'researchers.openAudit' | translate }}</a>
+  </section>
+}

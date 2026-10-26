@@ -1,0 +1,25 @@
+target/
+.idea/
+*.iml
+.DS_Store
+node_modules/
+dist/
+.angular/
+.vscode/
+*.log
+
+# Secretos locales. No versionar.
+backend/src/main/liberty/config/server.env
+backend/src/main/liberty/config/bootstrap.properties
+backend/src/main/liberty/config/configDropins/overrides/openscience-db-password.xml
+backend/prod.env
+backend/prod.env.example
+tools/src/main/resources/application.properties
+tools/consultas
+
+# Exportaciones y copias locales, no código fuente.
+tools/*.xlsx
+tools/*.csv
+tools/*.jar
+docs/*.xlsx
+ethics-uss_BACKUP_POST_DISEI_2026-10-26/

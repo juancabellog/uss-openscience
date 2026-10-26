@@ -1,0 +1,17 @@
+<header class="brand-bar" [attr.aria-label]="'branding.bar' | translate">
+  <div class="brand-bar__uss">
+    <img
+      class="brand-bar__logo brand-bar__logo--uss"
+      [src]="ussLogoUrl"
+      [alt]="'branding.ussAlt' | translate"
+    />
+  </div>
+
+  <a routerLink="/dashboard" class="brand-bar__openscience" [attr.aria-label]="'branding.home' | translate">
+    <img
+      class="brand-bar__logo brand-bar__logo--openscience"
+      [src]="openscienceLogoUrl"
+      [alt]="'branding.openscienceAlt' | translate"
+    />
+  </a>
+</header>

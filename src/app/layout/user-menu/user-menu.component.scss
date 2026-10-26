@@ -1,0 +1,112 @@
+:host {
+  position: relative;
+  display: inline-flex;
+}
+
+.user-menu {
+  position: relative;
+}
+
+.user-menu__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.4rem;
+  max-width: 16rem;
+  padding: 0 0.45rem 0 0.3rem;
+  border: 0;
+  border-radius: var(--os-radius-sm);
+  background: transparent;
+  color: var(--uss-primary);
+  cursor: pointer;
+}
+
+.user-menu__trigger:hover {
+  background: rgba(16, 43, 66, 0.06);
+}
+
+.user-menu__avatar {
+  flex: 0 0 1.85rem;
+  width: 1.85rem;
+  height: 1.85rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--uss-primary);
+  color: var(--os-text-inverse);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.user-menu__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--os-fs-sm);
+  font-weight: 600;
+}
+
+.user-menu--open .user-menu__trigger os-icon {
+  transform: rotate(180deg);
+}
+
+.user-menu__panel {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  right: 0;
+  z-index: var(--os-z-dropdown);
+  min-width: 16rem;
+  padding: var(--os-space-xs);
+  background: var(--os-surface);
+  border: 1px solid var(--os-border);
+  border-radius: var(--os-radius-sm);
+  box-shadow: var(--os-shadow-md);
+}
+
+.user-menu__identity {
+  padding: 0.45rem 0.7rem 0.7rem;
+  border-bottom: 1px solid var(--os-border);
+  margin-bottom: var(--os-space-2xs);
+}
+
+.user-menu__identity strong,
+.user-menu__identity small {
+  display: block;
+}
+
+.user-menu__identity strong {
+  font-size: var(--os-fs-sm);
+}
+
+.user-menu__identity small {
+  color: var(--os-text-secondary);
+  font-size: var(--os-fs-xs);
+}
+
+.user-menu__item {
+  display: block;
+  width: 100%;
+  padding: 0.5rem 0.7rem;
+  border: 0;
+  border-radius: var(--os-radius-sm);
+  background: transparent;
+  color: var(--uss-primary);
+  text-align: left;
+  cursor: pointer;
+}
+
+.user-menu__item:hover {
+  background: var(--os-surface-muted);
+}
+
+@media (max-width: 960px) {
+  .user-menu__name {
+    display: none;
+  }
+
+  .user-menu__trigger {
+    padding-right: 0.3rem;
+  }
+}

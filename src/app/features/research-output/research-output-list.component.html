@@ -1,0 +1,417 @@
+<os-page-header
+  [title]="'outputs.title' | translate"
+  [subtitle]="'outputs.subtitle' | translate"
+>
+  <os-sync-export-bar
+    entity="RESEARCH_OUTPUT"
+    metricsEntity="RESEARCH_OUTPUT_METRICS"
+    [outputQuery]="currentQuery()"
+    (completed)="reload()"
+  />
+</os-page-header>
+
+<nav class="tabs" [attr.aria-label]="'outputs.tabs' | translate">
+  <button type="button" [class.is-active]="tab() === 'catalog'" (click)="tab.set('catalog')">
+    {{ 'outputs.tabCatalog' | translate }}
+  </button>
+  <button type="button" [class.is-active]="tab() === 'history'" (click)="tab.set('history')">
+    {{ 'outputs.tabHistory' | translate }}
+  </button>
+</nav>
+
+@if (tab() === 'history') {
+  @let historyVm = historyState();
+  @if (historyVm.status === 'loading') {
+    <os-loading-state />
+  } @else if (historyVm.status === 'error') {
+    <os-error-state
+      [title]="'outputs.historyErrorTitle' | translate"
+      [message]="'outputs.historyErrorMessage' | translate"
+      [actionLabel]="'common.retry' | translate"
+      (action)="reload()"
+    />
+  } @else if (historyVm.items.length === 0) {
+    <os-empty-state
+      [title]="'outputs.emptyHistory' | translate"
+      [message]="'outputs.emptyHistoryMessage' | translate"
+    />
+  } @else {
+    <os-data-table-shell [caption]="'outputs.historyCaption' | translate" [fluid]="true" [stickyEnd]="true">
+      <table>
+        <thead>
+          <tr>
+            <th>{{ 'outputs.historyId' | translate }}</th>
+            <th>{{ 'outputs.historyOperation' | translate }}</th>
+            <th>{{ 'outputs.historyMode' | translate }}</th>
+            <th>{{ 'outputs.historyStatus' | translate }}</th>
+            <th>{{ 'outputs.historyStarted' | translate }}</th>
+            <th>{{ 'outputs.historyFinished' | translate }}</th>
+            <th>{{ 'outputs.historyProcessed' | translate }}</th>
+            <th>{{ 'outputs.historyErrors' | translate }}</th>
+            <th>{{ 'outputs.viewDetail' | translate }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of historyVm.items; track row.syncId) {
+            <tr>
+              <td>{{ row.syncId }}</td>
+              <td>{{ operationKey(row.entity) | translate }}</td>
+              <td>{{ modeKey(row.syncMode) | translate }}</td>
+              <td>{{ statusKey(row.status) | translate }}</td>
+              <td>{{ row.startedAt ? (row.startedAt | localeDate) : ('common.dash' | translate) }}</td>
+              <td>{{ row.finishedAt ? (row.finishedAt | localeDate) : ('common.dash' | translate) }}</td>
+              <td>{{ row.processed | localeNumber }}</td>
+              <td>{{ row.errors | localeNumber }}</td>
+              <td>
+                <button type="button" class="link-button" (click)="openHistoryDetail(row.syncId)">
+                  {{ 'outputs.viewDetail' | translate }}
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </os-data-table-shell>
+  }
+} @else {
+<section
+  class="outputs-doi-summary"
+  [class.is-updating]="statsUpdating()"
+  [attr.aria-busy]="statsUpdating()"
+  [attr.aria-label]="'outputs.stats.title' | translate"
+>
+  <os-mini-stat
+    [label]="'outputs.stats.total' | translate"
+    [value]="(stats()?.total | localeNumber) || ('common.dash' | translate)"
+  />
+  <os-mini-stat
+    [label]="'outputs.stats.withoutDoi' | translate"
+    [value]="(stats()?.withoutDoi | localeNumber) || ('common.dash' | translate)"
+  />
+  <os-mini-stat
+    [label]="'outputs.stats.withDoi' | translate"
+    [value]="(stats()?.withDoi | localeNumber) || ('common.dash' | translate)"
+  />
+  <os-mini-stat
+    [label]="'outputs.stats.withMultipleDoiVersions' | translate"
+    [value]="(stats()?.withMultipleDoiVersions | localeNumber) || ('common.dash' | translate)"
+    [tooltip]="'outputs.stats.multipleDoiVersionsTooltip' | translate"
+  />
+  <os-mini-stat
+    [label]="'outputs.stats.withSharedDoi' | translate"
+    [value]="(stats()?.withSharedDoi | localeNumber) || ('common.dash' | translate)"
+    [tooltip]="'outputs.stats.sharedDoiTooltip' | translate"
+  />
+  <os-mini-stat
+    [label]="'outputs.stats.withFwci' | translate"
+    [value]="(stats()?.withFwci | localeNumber) || ('common.dash' | translate)"
+    [tooltip]="'outputs.stats.withFwciTooltip' | translate"
+  />
+</section>
+@if (hasActiveFilters()) {
+  <p class="filtered-summary">
+    {{ 'outputs.filteredSummary' | translate: { count: (stats()?.total | localeNumber) || 0 } }}
+    <button type="button" class="link-button" (click)="clearFilters()">{{ 'outputs.clearFilters' | translate }}</button>
+  </p>
+} @else {
+  <p class="outputs-doi-universe">{{ 'outputs.stats.universe' | translate }}</p>
+}
+
+<os-filter-bar>
+  <os-search-box
+    [control]="search"
+    [placeholder]="'outputs.searchPlaceholder' | translate"
+    [label]="'outputs.search' | translate"
+  />
+  <label class="filter-field">
+    <span>{{ 'outputs.type' | translate }}</span>
+    <select class="os-control" [formControl]="type">
+      <option value="">{{ 'outputs.allTypes' | translate }}</option>
+      @for (option of filters().types; track option.code) {
+        <option [value]="option.code">{{ typeLabel(option.typeEn, option.typeEs) }}</option>
+      }
+    </select>
+  </label>
+  <label class="filter-field">
+    <span>{{ 'outputs.year' | translate }}</span>
+    <select class="os-control" [formControl]="year">
+      <option value="">{{ 'outputs.allYears' | translate }}</option>
+      @for (yearOption of filters().years; track yearOption) {
+        <option [value]="yearOption">{{ yearOption }}</option>
+      }
+    </select>
+  </label>
+  <label class="filter-field">
+    <span>{{ 'outputs.doiStatus' | translate }}</span>
+    <select class="os-control" [formControl]="doiStatus">
+      <option value="ALL">{{ 'outputs.allDoi' | translate }}</option>
+      <option value="WITH_DOI">{{ 'outputs.withDoi' | translate }}</option>
+      <option value="WITHOUT_DOI">{{ 'outputs.withoutDoi' | translate }}</option>
+      <option value="MULTIPLE_DOI_VERSIONS">{{ 'outputs.multipleDoiVersions' | translate }}</option>
+      <option value="SHARED_DOI">{{ 'outputs.sharedDoi' | translate }}</option>
+    </select>
+  </label>
+  <label class="filter-field">
+    <span>{{ 'outputs.status' | translate }}</span>
+    <select class="os-control" [formControl]="workflowStep">
+      <option value="">{{ 'outputs.allStatuses' | translate }}</option>
+      @for (option of filters().workflows; track option.step) {
+        <option [value]="option.step">{{ workflowLabel(option) || option.step }}</option>
+      }
+    </select>
+  </label>
+</os-filter-bar>
+
+@let vm = result();
+@if (vm.status === 'loading') {
+  <os-loading-state />
+} @else if (vm.status === 'error') {
+  <os-error-state
+    [title]="'outputs.errorTitle' | translate"
+    [message]="'outputs.errorMessage' | translate"
+    [actionLabel]="'common.retry' | translate"
+    (action)="reload()"
+  />
+} @else if (vm.data.items.length === 0) {
+  <os-empty-state
+    [title]="(hasActiveFilters() ? 'outputs.filteredTitle' : 'outputs.emptyTitle') | translate"
+    [message]="(hasActiveFilters() ? 'outputs.filteredMessage' : 'outputs.emptyMessage') | translate"
+    [actionLabel]="hasActiveFilters() ? ('outputs.clearFilters' | translate) : ''"
+    (action)="clearFilters()"
+  />
+} @else {
+  <os-data-table-shell [caption]="'outputs.caption' | translate" [fluid]="true" [stickyStart]="true">
+    <table class="outputs-table">
+      <colgroup>
+        <col class="col-pure-id">
+        <col class="col-title">
+        <col class="col-year">
+        <col class="col-fwci">
+        <col class="col-type">
+        <col class="col-workflow">
+        <col class="col-doi">
+        <col class="col-doi-versions">
+        <col class="col-journal">
+        <col class="col-contributors">
+        <col class="col-audit">
+        <col class="col-audit">
+      </colgroup>
+      <thead>
+        <tr>
+          <th class="col-id" [attr.aria-sort]="ariaSort('pureId')" [attr.title]="'common.pureIdTooltip' | translate">
+            <os-sortable-header
+              field="pureId"
+              [label]="'common.pureId' | translate"
+              [activeField]="sortField()"
+              [direction]="sortDirection()"
+              (sortChange)="onSort($event)"
+            />
+          </th>
+          <th class="col-title col-sticky-start" [attr.aria-sort]="ariaSort('title')">
+            <os-sortable-header
+              field="title"
+              [label]="'outputs.titleColumn' | translate"
+              [activeField]="sortField()"
+              [direction]="sortDirection()"
+              (sortChange)="onSort($event)"
+            />
+          </th>
+          <th class="col-year" [attr.aria-sort]="ariaSort('year')">
+            <os-sortable-header
+              field="year"
+              [label]="'outputs.year' | translate"
+              [activeField]="sortField()"
+              [direction]="sortDirection()"
+              [numeric]="true"
+              (sortChange)="onSort($event)"
+            />
+          </th>
+          <th
+            class="col-fwci"
+            [attr.aria-sort]="ariaSort('fwci')"
+            [attr.title]="'outputs.fwciTooltip' | translate"
+          >
+            <os-sortable-header
+              field="fwci"
+              [label]="'outputs.fwci' | translate"
+              [activeField]="sortField()"
+              [direction]="sortDirection()"
+              [numeric]="true"
+              (sortChange)="onSort($event)"
+            />
+          </th>
+          <th class="col-type" [attr.aria-sort]="ariaSort('type')">
+            <os-sortable-header
+              field="type"
+              [label]="'outputs.type' | translate"
+              [activeField]="sortField()"
+              [direction]="sortDirection()"
+              (sortChange)="onSort($event)"
+            />
+          </th>
+          <th class="col-workflow" [attr.aria-sort]="ariaSort('workflow')">
+            <os-sortable-header
+              field="workflow"
+              [label]="'outputs.status' | translate"
+              [activeField]="sortField()"
+              [direction]="sortDirection()"
+              (sortChange)="onSort($event)"
+            />
+          </th>
+          <th class="col-doi" [attr.aria-sort]="ariaSort('doi')">
+            <os-sortable-header
+              field="doi"
+              [label]="'outputs.doi' | translate"
+              [activeField]="sortField()"
+              [direction]="sortDirection()"
+              (sortChange)="onSort($event)"
+            />
+          </th>
+          <th class="col-doi-versions" [attr.aria-sort]="ariaSort('doiVersionCount')">
+            <os-sortable-header
+              field="doiVersionCount"
+              [label]="'outputs.doiVersions' | translate"
+              [activeField]="sortField()"
+              [direction]="sortDirection()"
+              [numeric]="true"
+              (sortChange)="onSort($event)"
+            />
+          </th>
+          <th class="col-journal" [attr.aria-sort]="ariaSort('journal')">
+            <os-sortable-header
+              field="journal"
+              [label]="'outputs.journal' | translate"
+              [activeField]="sortField()"
+              [direction]="sortDirection()"
+              (sortChange)="onSort($event)"
+            />
+          </th>
+          <th class="col-count" [attr.aria-sort]="ariaSort('contributorsCount')">
+            <os-sortable-header
+              field="contributorsCount"
+              [label]="'outputs.contributors' | translate"
+              [activeField]="sortField()"
+              [direction]="sortDirection()"
+              [numeric]="true"
+              (sortChange)="onSort($event)"
+            />
+          </th>
+          <th class="col-audit" [attr.aria-sort]="ariaSort('createdBy')">
+            <os-sortable-header
+              field="createdBy"
+              [label]="'common.createdBy' | translate"
+              [activeField]="sortField()"
+              [direction]="sortDirection()"
+              (sortChange)="onSort($event)"
+            />
+          </th>
+          <th class="col-audit" [attr.aria-sort]="ariaSort('modifiedBy')">
+            <os-sortable-header
+              field="modifiedBy"
+              [label]="'common.modifiedBy' | translate"
+              [activeField]="sortField()"
+              [direction]="sortDirection()"
+              (sortChange)="onSort($event)"
+            />
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of vm.data.items; track item.id) {
+          <tr>
+            <td class="col-id">
+              @if (item.pureId != null) {
+                <a
+                  class="entity-link id-link"
+                  [routerLink]="['/research-output', item.id]"
+                  [title]="'common.pureIdTooltip' | translate"
+                >
+                  {{ item.pureId }}
+                </a>
+              } @else {
+                {{ 'common.dash' | translate }}
+              }
+            </td>
+            <td class="col-title col-sticky-start">
+              <a class="entity-link" [routerLink]="['/research-output', item.id]">
+                {{ item.title || ('common.dash' | translate) }}
+              </a>
+            </td>
+            <td class="col-year">{{ item.year == null ? ('common.dash' | translate) : item.year }}</td>
+            <td class="col-fwci numeric-cell" [attr.title]="'outputs.fwciTooltip' | translate">
+              @if (item.fwci == null) {
+                {{ 'common.dash' | translate }}
+              } @else {
+                {{ item.fwci }}
+              }
+            </td>
+            <td class="col-type">{{ item.type || ('common.dash' | translate) }}</td>
+            <td class="col-workflow">
+              @let statusLabel = workflowLabel(item);
+              @if (statusLabel) {
+                <span class="workflow-badge" [title]="statusLabel">{{ statusLabel }}</span>
+              } @else {
+                {{ 'common.dash' | translate }}
+              }
+            </td>
+            <td class="col-doi doi-cell">
+              @if (item.doi) {
+                <a
+                  class="external-link doi-link"
+                  [href]="doiHref(item.doi)"
+                  [title]="item.doi"
+                  [attr.aria-label]="'outputs.openDoiValue' | translate: { doi: item.doi }"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {{ item.doi }}
+                </a>
+              } @else {
+                {{ 'common.dash' | translate }}
+              }
+            </td>
+            <td class="col-doi-versions numeric-cell">
+              <os-doi-versions-cell
+                [researchOutputId]="item.id"
+                [title]="item.title"
+                [count]="item.doiVersionCount ?? 0"
+                (corrected)="reload()"
+              />
+            </td>
+            <td class="col-journal journal-cell">
+              <div class="cell-clamp">
+                @if (item.journal) {
+                  {{ item.journal }}
+                } @else if (item.journalUuid) {
+                  {{ 'outputs.journalNotSynced' | translate }}
+                } @else {
+                  {{ 'common.dash' | translate }}
+                }
+              </div>
+            </td>
+            <td class="col-count numeric-cell">
+              @if (item.contributorCount == null) {
+                {{ 'common.dash' | translate }}
+              } @else {
+                {{ item.contributorCount | localeNumber }}
+              }
+            </td>
+            <td class="col-audit" [title]="item.createdBy || ''">
+              {{ item.createdBy || ('common.dash' | translate) }}
+            </td>
+            <td class="col-audit" [title]="item.modifiedBy || ''">
+              {{ item.modifiedBy || ('common.dash' | translate) }}
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </os-data-table-shell>
+  <os-pagination
+    [page]="vm.data.page"
+    [pageSize]="vm.data.pageSize"
+    [total]="vm.data.total"
+    (pageChange)="onPageChange($event)"
+  />
+}
+}

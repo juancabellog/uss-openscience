@@ -1,0 +1,50 @@
+<p><a routerLink="/admin/eventos">{{ 'form.back' | translate }}</a></p>
+<ose-event-admin-tabs [eventId]="id()" />
+<section class="panel">
+  <h1>{{ 'documents.title' | translate }}</h1>
+  <p>{{ 'documents.intro' | translate }}</p>
+  <form [formGroup]="form" (ngSubmit)="upload()">
+    <label>
+      {{ 'documents.kindLabel' | translate }}
+      <select formControlName="kind">
+        <option value="SIGNED_MINUTES">{{ 'documents.kind.SIGNED_MINUTES' | translate }}</option>
+        <option value="PHOTO">{{ 'documents.kind.PHOTO' | translate }}</option>
+        <option value="COMPLEMENTARY">{{ 'documents.kind.COMPLEMENTARY' | translate }}</option>
+      </select>
+    </label>
+    <label>{{ 'documents.note' | translate }} <input type="text" formControlName="note" /></label>
+    <label>{{ 'documents.file' | translate }} <input type="file" (change)="onFile($event)" /></label>
+    <button type="submit" [disabled]="busy()">{{ 'documents.upload' | translate }}</button>
+  </form>
+</section>
+@if (errorKey(); as key) {
+  <p class="error">{{ key | translate }}</p>
+}
+@if (items().length === 0) {
+  <section class="panel"><p>{{ 'documents.empty' | translate }}</p></section>
+} @else {
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>{{ 'documents.kindLabel' | translate }}</th>
+          <th>{{ 'documents.file' | translate }}</th>
+          <th>{{ 'documents.hash' | translate }}</th>
+          <th>{{ 'documents.note' | translate }}</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of items(); track item.id) {
+          <tr>
+            <td>{{ kindKey(item.kind) | translate }}</td>
+            <td>{{ item.filename }}</td>
+            <td class="muted">{{ item.sha256 }}</td>
+            <td>{{ item.note }}</td>
+            <td><a [href]="download(item)">{{ 'common.download' | translate }}</a></td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}

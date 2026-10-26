@@ -1,0 +1,644 @@
+<os-page-header
+  [eyebrow]="'integrations.title' | translate"
+  [title]="'integrations.orcid.discovery.title' | translate"
+  [subtitle]="'integrations.orcid.discovery.subtitle' | translate"
+>
+  <div class="discovery-actions">
+    @if (canAdminister()) {
+      <button
+        type="button"
+        class="page-action page-action--secondary"
+        [disabled]="!execution() || running() || busy()"
+        (click)="confirmRecalculate.set(true)"
+      >
+        {{ 'integrations.orcid.discovery.recalculate' | translate }}
+      </button>
+      <button
+        type="button"
+        class="page-action page-action--secondary"
+        [disabled]="!execution() || running() || busy()"
+        (click)="selectStrong()"
+      >
+        {{ 'integrations.orcid.discovery.selectStrong' | translate }}
+      </button>
+      <button
+        type="button"
+        class="page-action page-action--secondary"
+        [disabled]="selectedCount() === 0 || running() || busy() || applying()"
+        (click)="confirmApply.set(true)"
+      >
+        <os-icon name="sync" class="discovery-sync-icon" [class.discovery-sync-icon--spinning]="applying()" />
+        {{ (applying() ? 'integrations.orcid.discovery.applyingButton' : applyButtonKey()) | translate: { count: selectedCount() } }}
+      </button>
+      <button
+        type="button"
+        class="page-action page-action--primary"
+        [disabled]="running() || busy()"
+        (click)="confirmSearch.set(true)"
+      >
+        <os-icon name="sync" class="discovery-sync-icon" [class.discovery-sync-icon--spinning]="running()" />
+        {{ (running() ? 'integrations.orcid.discovery.searchingButton' : 'integrations.orcid.discovery.search') | translate }}
+      </button>
+    }
+  </div>
+</os-page-header>
+
+<section class="discovery-stats" [attr.aria-label]="'integrations.orcid.discovery.stats' | translate">
+  <os-mini-stat [label]="'integrations.orcid.discovery.people' | translate" [value]="(stats()?.people | localeNumber) || ('common.dash' | translate)" />
+  <os-mini-stat [label]="'integrations.orcid.peopleWithOrcid' | translate" [value]="(stats()?.withOrcid | localeNumber) || ('common.dash' | translate)" />
+  <os-mini-stat [label]="'integrations.orcid.discovery.withoutOrcid' | translate" [value]="(stats()?.withoutOrcid | localeNumber) || ('common.dash' | translate)" />
+  <os-mini-stat [label]="'integrations.orcid.discovery.withCandidates' | translate" [value]="(((running() ? execution()?.peopleWithCandidates : stats()?.withCandidates) | localeNumber) || ('common.dash' | translate))" />
+  <os-mini-stat [label]="'integrations.orcid.discovery.strong' | translate" [value]="(((running() ? execution()?.strongMatchCount : stats()?.strongMatches) | localeNumber) || ('common.dash' | translate))" />
+</section>
+@if (identity(); as identityStats) {
+  <p class="identity-secondary">
+    {{ 'integrations.orcid.identityNormalized' | translate }}
+    {{ identityStats.normalizedUssOrcidAffiliation.numerator | localeNumber }}
+    /
+    {{ identityStats.normalizedUssOrcidAffiliation.denominator | localeNumber }}
+    ·
+    {{ identityStats.normalizedUssOrcidAffiliation.percentage | localePercent }}
+    @if (auth.canConsult('INDICATORS')) {
+      <a routerLink="/indicators/identity/cases/normalizedUssOrcidAffiliation">
+        {{ 'integrations.orcid.identityViewCases' | translate }}
+      </a>
+    }
+  </p>
+}
+
+@if (running() && execution(); as run) {
+  <section class="discovery-progress" aria-live="polite">
+    <header class="discovery-progress__head">
+      <h2>{{ 'integrations.orcid.discovery.progressTitle' | translate }}</h2>
+      <os-status-badge [label]="statusKey(run.status) | translate" [tone]="statusTone(run.status)" />
+    </header>
+    <p>{{ 'integrations.orcid.discovery.processedOf' | translate: { processed: run.processedPeople, total: run.totalPeople } }}</p>
+    <div
+      class="discovery-progress__bar"
+      role="progressbar"
+      [attr.aria-valuemin]="0"
+      [attr.aria-valuenow]="run.processedPeople"
+      [attr.aria-valuemax]="run.totalPeople"
+    >
+      <span [style.width.%]="progressPercent(run)"></span>
+    </div>
+    <dl class="discovery-progress__metrics">
+      <div>
+        <dt>{{ 'integrations.orcid.discovery.withCandidates' | translate }}</dt>
+        <dd>{{ run.peopleWithCandidates | localeNumber }}</dd>
+      </div>
+      <div>
+        <dt>{{ 'integrations.orcid.discovery.strong' | translate }}</dt>
+        <dd>{{ run.strongMatchCount | localeNumber }}</dd>
+      </div>
+      <div>
+        <dt>{{ 'integrations.orcid.discovery.manual' | translate }}</dt>
+        <dd>{{ run.manualReviewCount | localeNumber }}</dd>
+      </div>
+      <div>
+        <dt>{{ 'integrations.orcid.discovery.none' | translate }}</dt>
+        <dd>{{ run.noCandidateCount | localeNumber }}</dd>
+      </div>
+      <div>
+        <dt>{{ 'integrations.orcid.discovery.tooMany' | translate }}</dt>
+        <dd>{{ run.tooManyCount | localeNumber }}</dd>
+      </div>
+      <div>
+        <dt>{{ 'integrations.orcid.discovery.errors' | translate }}</dt>
+        <dd>{{ run.errorCount | localeNumber }}</dd>
+      </div>
+    </dl>
+    <p class="discovery-progress__hint">{{ 'integrations.orcid.discovery.backgroundHint' | translate }}</p>
+    @if (newResults()) {
+      <p class="discovery-progress__new">
+        {{ 'integrations.orcid.discovery.newResults' | translate }}
+        <button type="button" class="link-button" (click)="refreshResults()">
+          {{ 'integrations.orcid.discovery.refreshResults' | translate }}
+        </button>
+      </p>
+    }
+  </section>
+}
+
+@if (execution(); as run) {
+  <section class="discovery-history" [attr.aria-label]="'integrations.orcid.discovery.history' | translate">
+    <h2>{{ (running() ? 'integrations.orcid.discovery.searchInProgress' : 'integrations.orcid.discovery.lastSearch') | translate }}</h2>
+    <p>
+      <os-status-badge [label]="statusKey(run.status) | translate" [tone]="statusTone(run.status)" />
+      · {{ run.startedAt | localeDate }}
+      @if (run.finishedAt) {
+        · {{ run.finishedAt | localeDate }}
+      }
+    </p>
+    @if (!running()) {
+      <p>
+        {{ 'integrations.orcid.discovery.historySummary' | translate: {
+          processed: run.processedPeople,
+          candidates: run.peopleWithCandidates,
+          strong: run.strongMatchCount,
+          manual: run.manualReviewCount,
+          none: run.noCandidateCount,
+          tooMany: run.tooManyCount,
+          errors: run.errorCount
+        } }}
+      </p>
+    }
+  </section>
+}
+
+<div class="discovery-filters">
+  <os-filter-bar>
+    <os-search-box
+      [control]="search"
+      [placeholder]="'integrations.orcid.discovery.searchPlaceholder' | translate"
+      [label]="'common.search' | translate"
+    />
+    <label class="filter-field">
+      <span>{{ 'integrations.orcid.discovery.state' | translate }}</span>
+      <select class="os-control" [formControl]="status">
+        <option value="ALL">{{ 'common.all' | translate }}</option>
+        <option value="STRONG">{{ 'integrations.orcid.discovery.status.STRONG' | translate }}</option>
+        <option value="MANUAL_REVIEW">{{ 'integrations.orcid.discovery.status.MANUAL_REVIEW' | translate }}</option>
+        <option value="CONFLICT">{{ 'integrations.orcid.discovery.status.CONFLICT' | translate }}</option>
+        <option value="NO_CANDIDATE">{{ 'integrations.orcid.discovery.status.NO_CANDIDATE' | translate }}</option>
+        <option value="SYNCED">{{ 'integrations.orcid.discovery.status.SYNCED' | translate }}</option>
+      </select>
+    </label>
+    <label class="filter-field">
+      <span>{{ 'people.position' | translate }}</span>
+      <select class="os-control" [formControl]="cargo">
+        <option value="">{{ 'people.allPositions' | translate }}</option>
+        @for (position of cargos(); track position) {
+          <option [value]="position">{{ position }}</option>
+        }
+        <option value="SIN_CARGO">{{ 'people.noPosition' | translate }}</option>
+      </select>
+    </label>
+  </os-filter-bar>
+</div>
+
+@let vm = table();
+@if (!execution()) {
+  <os-empty-state
+    [title]="'integrations.orcid.discovery.emptyTitle' | translate"
+    [message]="'integrations.orcid.discovery.emptyMessage' | translate"
+  />
+} @else if (vm.status === 'loading') {
+  <os-loading-state />
+} @else if (vm.status === 'error') {
+  <os-error-state
+    [title]="'common.errorTitle' | translate"
+    [message]="'integrations.orcid.discovery.loadError' | translate"
+    [actionLabel]="'common.retry' | translate"
+    (action)="retryTable()"
+  />
+} @else if (vm.data.items.length === 0) {
+  <os-empty-state
+    [title]="'common.emptyTitle' | translate"
+    [message]="'common.emptyMessage' | translate"
+  />
+} @else {
+  <os-data-table-shell [caption]="'integrations.orcid.discovery.caption' | translate">
+    <table class="discovery-table">
+      <colgroup>
+        @if (canAdminister()) {
+          <col class="col-check">
+        }
+        <col class="col-pure-id">
+        <col class="col-name">
+        <col class="col-position">
+        <col class="col-status">
+        <col class="col-orcid">
+        <col class="col-candidates">
+        <col class="col-doi">
+        <col class="col-action">
+      </colgroup>
+      <thead>
+        <tr>
+          @if (canAdminister()) {
+            <th class="col-check">{{ 'integrations.orcid.discovery.selection' | translate }}</th>
+          }
+          <th class="col-id" [attr.aria-sort]="ariaSort('pureId')">
+            <os-sortable-header field="pureId" [label]="'common.pureId' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" />
+          </th>
+          <th class="col-name" [attr.aria-sort]="ariaSort('name')">
+            <os-sortable-header field="name" [label]="'people.name' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" />
+          </th>
+          <th class="col-position" [attr.aria-sort]="ariaSort('cargo')">
+            <os-sortable-header field="cargo" [label]="'people.position' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" />
+          </th>
+          <th class="col-status" [attr.aria-sort]="ariaSort('status')">
+            <os-sortable-header field="status" [label]="'integrations.orcid.discovery.state' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" />
+          </th>
+          <th [attr.aria-sort]="ariaSort('foundOrcid')">
+            <os-sortable-header field="foundOrcid" [label]="'integrations.orcid.discovery.selectedOrcid' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" />
+          </th>
+          <th class="col-candidates" [attr.aria-sort]="ariaSort('candidateCount')">
+            <os-sortable-header field="candidateCount" [label]="'integrations.orcid.discovery.candidates' | translate" [activeField]="sortField()" [direction]="sortDirection()" [numeric]="true" (sortChange)="onSort($event)" />
+          </th>
+          <th class="col-doi" [attr.aria-sort]="ariaSort('doiMatchCount')">
+            <os-sortable-header field="doiMatchCount" [label]="'integrations.orcid.discovery.doiMatches' | translate" [activeField]="sortField()" [direction]="sortDirection()" [numeric]="true" (sortChange)="onSort($event)" />
+          </th>
+          <th class="col-action">{{ 'integrations.orcid.discovery.actions' | translate }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (person of vm.data.items; track person.personId) {
+          <tr>
+            @if (canAdminister()) {
+              <td class="col-check">
+                <input
+                  type="checkbox"
+                  [checked]="isSelectedForSync(person)"
+                  [disabled]="!canToggle(person) || running() || applying() || isSelectionPending(person.personId)"
+                  [attr.aria-label]="'integrations.orcid.discovery.selectPerson' | translate"
+                  [attr.title]="checkboxTitle(person) || null"
+                  [attr.aria-description]="checkboxTitle(person) || null"
+                  (change)="togglePerson(person, $event)"
+                >
+              </td>
+            }
+            <td class="col-id">
+              @if (person.pureId != null) {
+                <a class="entity-link id-link" [routerLink]="['/people', person.personId]">{{ person.pureId }}</a>
+              } @else {
+                {{ 'common.dash' | translate }}
+              }
+            </td>
+            <td class="col-name">{{ person.fullName || ('common.dash' | translate) }}</td>
+            <td class="col-position">{{ person.cargo || ('common.dash' | translate) }}</td>
+            <td class="col-status">
+              <os-status-badge [label]="statusKey(person.personStatus) | translate" [tone]="statusTone(person.personStatus)" />
+              @if (statusReason(person); as reason) {
+                <p class="hint" [title]="tooManyHint(person)">
+                  {{ ('integrations.orcid.discovery.reason.' + reason) | translate: { limit: searchLimit(), found: person.searchHitCount } }}
+                </p>
+              }
+              @if (person.personStatus === 'SYNC_FAILED') {
+                <button type="button" class="link-button" (click)="retryLocal(person)">
+                  {{ 'integrations.orcid.discovery.retryLocal' | translate }}
+                </button>
+              }
+              @if (person.personStatus === 'ALREADY_USED') {
+                <p class="hint">{{ 'integrations.orcid.discovery.alreadyUsed' | translate }}</p>
+              }
+              @if (person.personStatus === 'REMOTE_CHANGED') {
+                <p class="hint">{{ 'integrations.orcid.discovery.remoteChanged' | translate }}</p>
+              }
+            </td>
+            <td>
+              @if (displayedOrcid(person); as orcid) {
+                <a class="external-link" [href]="orcidHref(orcid)" target="_blank" rel="noopener noreferrer">{{ orcid }}</a>
+              } @else {
+                {{ 'common.dash' | translate }}
+              }
+            </td>
+            <td class="col-candidates">
+              @if (canOpenCandidates(person)) {
+                <button
+                  type="button"
+                  class="candidate-link"
+                  [attr.aria-label]="candidatesAriaLabel(person)"
+                  (click)="openCandidates(person)"
+                >
+                  <span>{{ candidateLabel(displayedCandidateCount(person)) }}</span>
+                  <os-icon name="arrow-right" />
+                </button>
+              } @else {
+                {{ 'common.dash' | translate }}
+              }
+            </td>
+            <td class="col-doi col-count">{{ person.doiMatchCount | localeNumber }}</td>
+            <td class="col-action">
+              @if (hasEvidence(person)) {
+                <button
+                  type="button"
+                  class="link-button evidence-link"
+                  [attr.aria-label]="evidenceAriaLabel(person)"
+                  (click)="openCandidates(person, true)"
+                >
+                  {{ 'integrations.orcid.discovery.viewEvidence' | translate }}
+                </button>
+              } @else {
+                {{ 'common.dash' | translate }}
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </os-data-table-shell>
+  <os-pagination [page]="vm.data.page" [pageSize]="vm.data.pageSize" [total]="vm.data.total" (pageChange)="onPageChange($event)" />
+}
+
+@if (history().length > 1) {
+  <section class="history-list">
+    <h2>{{ 'integrations.orcid.discovery.history' | translate }}</h2>
+    <ul>
+      @for (item of history(); track item.id) {
+        <li>
+          <os-status-badge [label]="statusKey(item.status) | translate" [tone]="statusTone(item.status)" />
+          {{ item.startedAt | localeDate }}
+          · {{ 'integrations.orcid.discovery.progress' | translate: { processed: item.processedPeople, total: item.totalPeople } }}
+        </li>
+      }
+    </ul>
+  </section>
+}
+
+@if (confirmRecalculate()) {
+  <div class="sync-dialog" role="dialog" aria-modal="true" aria-labelledby="orcid-recalculate-title">
+    <div class="sync-dialog__panel">
+      <h2 id="orcid-recalculate-title">{{ 'integrations.orcid.discovery.recalculate' | translate }}</h2>
+      <p>{{ 'integrations.orcid.discovery.recalculateConfirm' | translate }}</p>
+      <div class="sync-dialog__actions">
+        <button type="button" class="page-action page-action--secondary" (click)="confirmRecalculate.set(false)">{{ 'common.cancel' | translate }}</button>
+        <button type="button" class="page-action page-action--primary" (click)="recalculateMatches()">{{ 'integrations.orcid.discovery.recalculateAction' | translate }}</button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (confirmSearch()) {
+  <div class="sync-dialog" role="dialog" aria-modal="true" aria-labelledby="orcid-search-title">
+    <div class="sync-dialog__panel">
+      <h2 id="orcid-search-title">{{ 'integrations.orcid.discovery.search' | translate }}</h2>
+      <p>{{ 'integrations.orcid.discovery.searchConfirm' | translate }}</p>
+      <div class="sync-dialog__actions">
+        <button type="button" class="page-action page-action--secondary" (click)="confirmSearch.set(false)">{{ 'common.cancel' | translate }}</button>
+        <button type="button" class="page-action page-action--primary" (click)="startSearch()">{{ 'integrations.orcid.discovery.startSearch' | translate }}</button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (confirmApply()) {
+  <div class="sync-dialog" role="dialog" aria-modal="true" aria-labelledby="orcid-apply-title">
+    <div class="sync-dialog__panel">
+      <h2 id="orcid-apply-title">{{ 'integrations.orcid.discovery.applyTitle' | translate }}</h2>
+      <p>{{ applyConfirmKey() | translate: { count: selectedCount() } }}</p>
+      @if (selectedCount() > 0) {
+        <p class="hint">
+          {{ 'integrations.orcid.discovery.applyBreakdown' | translate: { strong: queuedStrongCount(), manual: queuedManualCount() } }}
+        </p>
+        <table class="candidate-table apply-preview-table">
+          <thead>
+            <tr>
+              <th>{{ 'people.name' | translate }}</th>
+              <th>{{ 'common.orcid' | translate }}</th>
+              <th>{{ 'integrations.orcid.discovery.origin' | translate }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of queued(); track item.personId) {
+              <tr>
+                <td>{{ item.displayName || ('common.dash' | translate) }}</td>
+                <td>{{ item.orcid || ('common.dash' | translate) }}</td>
+                <td>{{ originLabelKey(item) | translate }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+      <div class="sync-dialog__actions">
+        <button type="button" class="page-action page-action--secondary" [disabled]="applying()" (click)="confirmApply.set(false)">{{ 'common.cancel' | translate }}</button>
+        <button type="button" class="page-action page-action--primary" [disabled]="applying()" (click)="applySelected()">
+          <os-icon name="sync" class="discovery-sync-icon" [class.discovery-sync-icon--spinning]="applying()" />
+          {{ (applying() ? 'integrations.orcid.discovery.applyingButton' : 'integrations.orcid.discovery.applyAction') | translate }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (applyResult(); as result) {
+  <div class="discovery-drawer" role="dialog" aria-modal="true" aria-labelledby="orcid-apply-result-title">
+    <button type="button" class="discovery-drawer__backdrop" (click)="closeApplyResult()" tabindex="-1" aria-hidden="true"></button>
+    <aside class="discovery-drawer__panel">
+      <header class="discovery-drawer__header">
+        <div>
+          <h2 id="orcid-apply-result-title">{{ 'integrations.orcid.discovery.applyResultTitle' | translate }}</h2>
+          <p>{{ 'integrations.orcid.discovery.applyResultSummary' | translate: { requested: result.selected, succeeded: result.succeeded, failed: result.failed } }}</p>
+        </div>
+        <button type="button" class="page-action page-action--secondary" (click)="closeApplyResult()">{{ 'common.close' | translate }}</button>
+      </header>
+      <table class="candidate-table apply-result-table">
+        <thead>
+          <tr>
+            <th>{{ 'people.name' | translate }}</th>
+            <th>{{ 'common.pureId' | translate }}</th>
+            <th>{{ 'common.orcid' | translate }}</th>
+            <th>{{ 'integrations.orcid.discovery.result' | translate }}</th>
+            <th>{{ 'audit.message' | translate }}</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of result.items; track item.localParentId ?? $index) {
+            <tr>
+              <td>
+                @if (item.localParentId != null) {
+                  <a class="entity-link" [routerLink]="['/people', item.localParentId]">{{ item.displayName || ('common.dash' | translate) }}</a>
+                } @else {
+                  {{ item.displayName || ('common.dash' | translate) }}
+                }
+              </td>
+              <td>{{ item.pureId == null ? ('common.dash' | translate) : item.pureId }}</td>
+              <td>
+                @if (item.childValue) {
+                  <a class="external-link" [href]="orcidHref(item.childValue)" target="_blank" rel="noopener noreferrer">{{ item.childValue }}</a>
+                } @else {
+                  {{ 'common.dash' | translate }}
+                }
+              </td>
+              <td>
+                <os-status-badge [label]="applyItemStatusKey(item.status) | translate" [tone]="applyItemTone(item.status)" />
+              </td>
+              <td>{{ applyItemMessage(item) }}</td>
+              <td>
+                @if (canRetryLocal(item)) {
+                  <button type="button" class="link-button" [disabled]="busy()" (click)="retryLocalById(item.localParentId!)">
+                    {{ 'integrations.orcid.discovery.retryLocal' | translate }}
+                  </button>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </aside>
+  </div>
+}
+
+@if (detailPerson(); as person) {
+  <div class="discovery-drawer" role="dialog" aria-modal="true" aria-labelledby="orcid-detail-title">
+    <button type="button" class="discovery-drawer__backdrop" (click)="closeDetail()" tabindex="-1" aria-hidden="true"></button>
+    <aside class="discovery-drawer__panel">
+      <header class="discovery-drawer__header">
+        <div>
+          <h2 id="orcid-detail-title">{{ person.fullName }}</h2>
+          <p>
+            {{ person.cargo || ('people.noPosition' | translate) }}
+            · {{ 'common.pureId' | translate }}
+            {{ person.pureId == null ? ('common.dash' | translate) : person.pureId }}
+          </p>
+        </div>
+        <button type="button" class="page-action page-action--secondary" (click)="closeDetail()" autofocus>{{ 'common.close' | translate }}</button>
+      </header>
+      <os-status-badge [label]="statusKey(person.personStatus) | translate" [tone]="statusTone(person.personStatus)" />
+      @if (selectedManually(person)) {
+        <p class="hint">{{ 'integrations.orcid.discovery.selectedManually' | translate }}</p>
+      }
+      @if (person.selectedOrcid) {
+        <p>{{ 'integrations.orcid.discovery.selectedOrcid' | translate }} {{ person.selectedOrcid }}</p>
+      }
+      @if (statusReason(person); as reason) {
+        <p class="hint">{{ ('integrations.orcid.discovery.reason.' + reason) | translate: { limit: searchLimit(), found: person.searchHitCount } }}</p>
+        <p class="hint">{{ tooManyHint(person) }}</p>
+      }
+      @if (person.searchGivenName || person.searchFamilyName) {
+        <p class="hint">
+          {{ 'integrations.orcid.discovery.searchQuery' | translate: {
+            given: person.searchGivenName || ('common.dash' | translate),
+            family: person.searchFamilyName || ('common.dash' | translate)
+          } }}
+        </p>
+      }
+      <h3>{{ 'integrations.orcid.discovery.candidates' | translate }}</h3>
+      @if (person.candidates.length === 0) {
+        <p class="hint">{{ 'integrations.orcid.discovery.noStoredCandidates' | translate }}</p>
+        @if (isTooMany(person)) {
+          <p class="hint">{{ tooManyHint(person) }}</p>
+        }
+      } @else {
+        @if (isTooMany(person) || (person.searchHitCount > person.candidateCount && person.searchHitCount > 0)) {
+          <p class="hint">{{ 'integrations.orcid.discovery.shownSubset' | translate: { shown: person.candidateCount, found: person.searchHitCount } }}</p>
+        }
+        <table class="candidate-table">
+          <thead>
+            <tr>
+              <th>{{ 'integrations.orcid.discovery.candidate' | translate }}</th>
+              <th>{{ 'integrations.orcid.discovery.doiMatches' | translate }}</th>
+              <th>{{ 'integrations.orcid.discovery.name' | translate }}</th>
+              <th>{{ 'integrations.orcid.discovery.position' | translate }}</th>
+              <th>{{ 'integrations.orcid.discovery.result' | translate }}</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (candidate of person.candidates; track candidate.id) {
+              <tr [class.candidate-row--chosen]="isChosenCandidate(person, candidate)">
+                <td>
+                  <a class="external-link" [href]="orcidHref(candidate.orcid)" target="_blank" rel="noopener noreferrer">{{ candidate.orcid }}</a>
+                </td>
+                <td>{{ candidate.doiMatchCount | localeNumber }}</td>
+                <td>{{ markKey(candidate.nameMatch) | translate }}</td>
+                <td>{{ candidatePositionKey(candidate) | translate }}</td>
+                <td><os-status-badge [label]="statusKey(candidate.matchLevel) | translate" [tone]="statusTone(candidate.matchLevel)" /></td>
+                <td>
+                  @if (candidate.evidence.length > 0 || candidate.doiMatchCount > 0) {
+                    <button type="button" class="link-button" (click)="evidenceCandidate.set(candidate)">{{ 'integrations.orcid.discovery.viewEvidence' | translate }}</button>
+                  }
+                  <a class="external-link" [href]="orcidHref(candidate.orcid)" target="_blank" rel="noopener noreferrer">{{ 'integrations.orcid.discovery.openOrcid' | translate }}</a>
+                  @if (canAdminister()) {
+                    <button
+                      type="button"
+                      class="link-button"
+                      [disabled]="candidate.alreadyUsedPersonId != null || candidate.matchLevel === 'CONFLICT' || running() || busy()"
+                      (click)="selectCandidate(person, candidate)"
+                    >
+                      {{ (isChosenCandidate(person, candidate) ? 'integrations.orcid.discovery.usingThisOrcid' : 'integrations.orcid.discovery.useThisOrcid') | translate }}
+                    </button>
+                    @if (isChosenCandidate(person, candidate)) {
+                      <button type="button" class="link-button" [disabled]="running() || busy()" (click)="clearCandidate(person)">
+                        {{ 'integrations.orcid.discovery.clearSelection' | translate }}
+                      </button>
+                    }
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+      @if (evidenceCandidate(); as candidate) {
+        <section class="evidence">
+          <h3>{{ 'integrations.orcid.discovery.evidenceTitle' | translate }}</h3>
+          <p>{{ 'integrations.orcid.discovery.purePerson' | translate }} {{ givenFamilyName(person.firstName, person.lastName) || person.fullName }}</p>
+          <p>ORCID: {{ candidate.orcid }}</p>
+          @for (item of candidate.evidence; track item.id) {
+            <article class="evidence-card">
+              @if (item.doi) {
+                <p class="evidence-ok">{{ 'integrations.orcid.discovery.samePublication' | translate }} · DOI: {{ item.doi }}</p>
+              }
+              <p>
+                {{ 'integrations.orcid.discovery.personFullName' | translate }}
+                {{ item.personFullName || givenFamilyName(item.personFirstName, item.personLastName) || givenFamilyName(person.firstName, person.lastName) || ('common.dash' | translate) }}
+              </p>
+              <p>
+                {{ 'integrations.orcid.discovery.contributorFullName' | translate }}
+                {{ item.contributorFullName || item.localAuthor || ('common.dash' | translate) }}
+              </p>
+              @if (item.personFirstName || item.personLastName || person.firstName || person.lastName) {
+                <p class="evidence-info">
+                  {{ 'integrations.orcid.discovery.personPartition' | translate }}
+                  first_name: {{ item.personFirstName || person.firstName || ('common.dash' | translate) }}
+                  · last_name: {{ item.personLastName || person.lastName || ('common.dash' | translate) }}
+                </p>
+              }
+              @if (item.contributorFirstName || item.contributorLastName) {
+                <p class="evidence-info">
+                  {{ 'integrations.orcid.discovery.contributorPartition' | translate }}
+                  first_name: {{ item.contributorFirstName || ('common.dash' | translate) }}
+                  · last_name: {{ item.contributorLastName || ('common.dash' | translate) }}
+                </p>
+              }
+              @if (item.nameMatch) {
+                <p class="evidence-ok">{{ 'integrations.orcid.discovery.fullNameMatch' | translate }}</p>
+              } @else if (item.nameMatch === false) {
+                <p>{{ 'integrations.orcid.discovery.matcher' | translate }} {{ markKey(item.nameMatch) | translate }}</p>
+              }
+              @if (item.namePartitionDifferent || hasReason(item, 'NAME_PARTITION_DIFFERENT')) {
+                <p class="evidence-info">{{ 'integrations.orcid.discovery.namePartitionNote' | translate }}</p>
+                <p class="evidence-info">
+                  {{ 'integrations.orcid.discovery.personPartitionShort' | translate }}
+                  {{ item.personFirstName || person.firstName || ('common.dash' | translate) }}
+                  |
+                  {{ item.personLastName || person.lastName || ('common.dash' | translate) }}
+                </p>
+                <p class="evidence-info">
+                  {{ 'integrations.orcid.discovery.contributorPartitionShort' | translate }}
+                  {{ item.contributorFirstName || ('common.dash' | translate) }}
+                  |
+                  {{ item.contributorLastName || ('common.dash' | translate) }}
+                </p>
+              }
+              <p>
+                {{ 'integrations.orcid.discovery.localPosition' | translate }}
+                {{ item.localPosition == null ? ('common.dash' | translate) : item.localPosition }}
+              </p>
+              <p>
+                {{ 'integrations.orcid.discovery.orcidPosition' | translate }}
+                {{ item.orcidPosition == null ? ('common.dash' | translate) : item.orcidPosition }}
+              </p>
+              @if (evidencePositionKey(item); as positionKey) {
+                <p class="evidence-info">{{ positionKey | translate }}</p>
+              }
+              @if (candidate.matchLevel === 'STRONG') {
+                <p class="evidence-ok">{{ 'integrations.orcid.discovery.status.STRONG' | translate }}</p>
+              }
+              @if (item.orcidAuthor) {
+                <p>{{ 'integrations.orcid.discovery.orcidAuthor' | translate }} {{ item.orcidAuthor }}</p>
+              }
+              @if (item.note && item.nameMatch !== true) {
+                <p>{{ item.note }}</p>
+              }
+            </article>
+          } @empty {
+            <p class="hint">{{ 'integrations.orcid.discovery.noEvidence' | translate }}</p>
+          }
+        </section>
+      }
+    </aside>
+  </div>
+}

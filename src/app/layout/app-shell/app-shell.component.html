@@ -1,0 +1,27 @@
+<div class="shell" [class.shell--drawer-open]="!layout.sidebarCollapsed()">
+  <os-institutional-header />
+  <div class="shell__workspace">
+    @if (!layout.sidebarCollapsed()) {
+      <button
+        type="button"
+        class="shell__backdrop"
+        (click)="layout.collapse()"
+        tabindex="-1"
+        aria-hidden="true"
+      ></button>
+    }
+    <os-sidebar />
+    <div class="shell__main">
+      <os-header />
+      <main
+        class="shell__content"
+        [class.shell__content--wide]="contentWidth() === 'wide'"
+      >
+        <router-outlet />
+        <os-footer />
+      </main>
+    </div>
+  </div>
+  <os-toast-host />
+  <os-sync-detail-dialog />
+</div>

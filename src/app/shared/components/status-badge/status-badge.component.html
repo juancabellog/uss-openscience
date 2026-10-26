@@ -1,0 +1,25 @@
+@if (hint(); as hintText) {
+  <os-info-hint
+    [text]="hintText"
+    [ariaLabel]="hintAriaLabel() || label()"
+    [actionLabel]="hintActionLabel()"
+    [showIcon]="false"
+    [embedded]="true"
+    (action)="onHintAction()"
+  >
+    <span class="badge badge--interactive" [attr.data-tone]="tone()">
+      @if (icon(); as iconName) {
+        <os-icon [name]="iconName" />
+      }
+      <span class="badge__label">{{ label() }}</span>
+      <os-icon name="info" />
+    </span>
+  </os-info-hint>
+} @else {
+  <span class="badge" [attr.data-tone]="tone()">
+    @if (icon(); as iconName) {
+      <os-icon [name]="iconName" />
+    }
+    <span class="badge__label">{{ label() }}</span>
+  </span>
+}

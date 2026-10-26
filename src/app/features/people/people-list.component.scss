@@ -1,0 +1,236 @@
+:host {
+  display: block;
+}
+
+:host ::ng-deep os-page-header .page-header {
+  margin-bottom: var(--os-space-md);
+}
+
+.tabs {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: var(--os-space-md);
+}
+
+.tabs button {
+  border: 0;
+  background: transparent;
+  padding: 0.35rem 0;
+  font-weight: 650;
+  color: var(--os-text-secondary);
+  cursor: pointer;
+}
+
+.tabs button.is-active {
+  color: var(--os-primary);
+  box-shadow: inset 0 -2px 0 var(--os-primary);
+}
+
+.people-scopus-summary {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(8.5rem, 1fr));
+  align-items: stretch;
+  gap: var(--os-space-sm);
+  margin-bottom: var(--os-space-md);
+}
+
+.people-scopus-summary.is-updating {
+  opacity: 0.72;
+}
+
+.filtered-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--os-space-sm);
+  margin: 0 0 var(--os-space-md);
+  color: var(--os-text-secondary);
+  font-size: var(--os-fs-sm);
+}
+
+.link-button {
+  border: 0;
+  background: transparent;
+  color: var(--os-info, #2563eb);
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 0.16em;
+}
+
+@media (max-width: 72rem) {
+  .people-scopus-summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 40rem) {
+  .people-scopus-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 22rem) {
+  .people-scopus-summary {
+    grid-template-columns: 1fr;
+  }
+}
+
+.people-filters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--os-space-xs);
+  margin-bottom: var(--os-space-md);
+}
+
+.people-filters os-filter-bar {
+  display: block;
+  width: 100%;
+  margin-bottom: 0;
+}
+
+.people-filters os-search-box {
+  flex: 1 1 22rem;
+  min-width: min(100%, 18rem);
+}
+
+.people-filters .filter-field,
+.people-filters__population {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: var(--os-fs-sm);
+  color: var(--os-text-secondary);
+}
+
+.people-filters os-filter-bar .filter-field {
+  flex: 0 1 12.5rem;
+  width: 12.5rem;
+  min-width: 11.5rem;
+}
+
+.people-filters select {
+  min-width: 0;
+}
+
+:host ::ng-deep .people-table {
+  table-layout: auto;
+  width: max-content;
+  min-width: 96rem;
+}
+
+:host ::ng-deep .people-table col.col-pure-id,
+:host ::ng-deep .people-table .col-id {
+  width: 6.25rem;
+}
+
+:host ::ng-deep .people-table col.col-name,
+:host ::ng-deep .people-table .col-name {
+  width: auto;
+  min-width: 18.75rem;
+}
+
+:host ::ng-deep .people-table col.col-position,
+:host ::ng-deep .people-table .col-position {
+  width: 12rem;
+}
+
+:host ::ng-deep .people-table col.col-orcid,
+:host ::ng-deep .people-table .col-orcid {
+  width: 11.875rem;
+}
+
+:host ::ng-deep .people-table col.col-scopus,
+:host ::ng-deep .people-table .col-scopus {
+  width: 10.5rem;
+}
+
+:host ::ng-deep .people-table col.col-hindex,
+:host ::ng-deep .people-table .col-hindex {
+  width: 8rem;
+  text-align: center;
+  white-space: nowrap;
+}
+
+:host ::ng-deep .people-table col.col-publications,
+:host ::ng-deep .people-table .col-count {
+  width: 10rem;
+  text-align: center;
+}
+
+:host ::ng-deep .people-table col.col-audit,
+:host ::ng-deep .people-table .col-audit {
+  width: 9.5rem;
+}
+
+:host ::ng-deep .people-table tbody .col-name,
+:host ::ng-deep .people-table tbody .col-position,
+:host ::ng-deep .people-table tbody .col-scopus {
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+:host ::ng-deep .people-table tbody .col-orcid {
+  white-space: nowrap;
+}
+
+.people-filters select:focus-visible {
+  outline: none;
+  box-shadow: var(--os-focus);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.chips button {
+  background: var(--os-surface);
+  border: 1px solid var(--os-border);
+  border-radius: 999px;
+  padding: 0.45rem 0.85rem;
+  color: var(--os-text-primary);
+  font-weight: 600;
+  font-size: var(--os-fs-sm);
+}
+
+.chips button.active {
+  background: var(--os-primary, #102b42);
+  border-color: var(--os-primary, #102b42);
+  color: #fff;
+}
+
+.chip-with-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.population-note {
+  margin-top: 0.15rem;
+  color: var(--os-text-secondary);
+  font-size: var(--os-fs-xs);
+  line-height: 1.4;
+  max-width: 42rem;
+}
+
+.orcid-cell {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  max-width: 100%;
+}
+
+.verified {
+  display: inline-flex;
+  align-items: center;
+  background: color-mix(in srgb, var(--os-primary, #102b42) 12%, white);
+  border-radius: 999px;
+  padding: 0.1rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--os-primary, #102b42);
+}

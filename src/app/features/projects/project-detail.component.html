@@ -1,0 +1,274 @@
+@let state = vm();
+@if (state.status === 'loading') {
+  <os-loading-state />
+} @else if (state.status === 'error') {
+  <os-error-state
+    [title]="'projects.errorTitle' | translate"
+    [message]="'projects.errorMessage' | translate"
+  />
+} @else if (state.status === 'notfound') {
+  <os-error-state
+    [title]="'projects.notFoundTitle' | translate"
+    [message]="'projects.notFoundMessage' | translate"
+  />
+} @else {
+  <os-page-header
+    [title]="displayTitle()"
+    [subtitle]="'projects.detailSubtitle' | translate"
+  >
+    <a routerLink="/projects" class="back-link">{{ 'projects.backToList' | translate }}</a>
+    @if (state.project.activeInPure === false) {
+      <span class="inactive-badge">{{ 'sync.inactiveBadge' | translate }}</span>
+    }
+  </os-page-header>
+
+  <os-detail-section-nav
+    [items]="sectionNav"
+    [ariaLabel]="'projects.sections' | translate"
+  />
+
+  <section id="identidad" class="panel">
+    <h2>{{ 'projects.identity' | translate }}</h2>
+    @if (state.project.titleEs) {
+      <dl>
+        <div>
+          <dt>{{ 'projects.titleEs' | translate }}</dt>
+          <dd>{{ state.project.titleEs }}</dd>
+        </div>
+      </dl>
+    }
+    @if (state.project.titleEn) {
+      <dl>
+        <div>
+          <dt>{{ 'projects.titleEn' | translate }}</dt>
+          <dd>{{ state.project.titleEn }}</dd>
+        </div>
+      </dl>
+    }
+    @if (state.project.acronym) {
+      <dl>
+        <div>
+          <dt>{{ 'projects.acronym' | translate }}</dt>
+          <dd>{{ state.project.acronym }}</dd>
+        </div>
+      </dl>
+    }
+    <os-identifier-row
+      [label]="'common.pureId' | translate"
+      [value]="state.project.pureId"
+      [tooltip]="'common.pureIdTooltip' | translate"
+      copyLabelKey="common.copyPureId"
+    />
+    <os-identifier-row
+      [label]="'projects.uuidPure' | translate"
+      [value]="state.project.uuid"
+      copyLabelKey="common.copyUuid"
+    />
+    @if (state.project.projectId) {
+      <os-identifier-row
+        [label]="'projects.projectId' | translate"
+        [value]="state.project.projectId"
+      />
+    }
+    @if (state.project.funderReference) {
+      <os-identifier-row
+        [label]="'projects.funderReference' | translate"
+        [value]="state.project.funderReference"
+      />
+    }
+    @if (state.project.portalUrl) {
+      <p>
+        <a [href]="state.project.portalUrl" target="_blank" rel="noopener noreferrer">
+          {{ 'projects.openPortal' | translate }}
+        </a>
+      </p>
+    }
+  </section>
+
+  <section id="periodo" class="panel">
+    <h2>{{ 'projects.period' | translate }}</h2>
+    <dl>
+      @if (state.project.periodStartDate) {
+        <div>
+          <dt>{{ 'projects.periodStart' | translate }}</dt>
+          <dd>{{ state.project.periodStartDate }}</dd>
+        </div>
+      }
+      @if (state.project.periodEndDate) {
+        <div>
+          <dt>{{ 'projects.periodEnd' | translate }}</dt>
+          <dd>{{ state.project.periodEndDate }}</dd>
+        </div>
+      }
+    </dl>
+  </section>
+
+  <section id="clasificacion" class="panel">
+    <h2>{{ 'projects.classification' | translate }}</h2>
+    <dl>
+      @if (typeLabel(state.project)) {
+        <div>
+          <dt>{{ 'projects.type' | translate }}</dt>
+          <dd>{{ typeLabel(state.project) }}</dd>
+        </div>
+      }
+      @if (workflowLabel(state.project)) {
+        <div>
+          <dt>{{ 'projects.workflow' | translate }}</dt>
+          <dd>{{ workflowLabel(state.project) }}</dd>
+        </div>
+      }
+      @if (visibilityLabel(state.project)) {
+        <div>
+          <dt>{{ 'projects.visibility' | translate }}</dt>
+          <dd>{{ visibilityLabel(state.project) }}</dd>
+        </div>
+      }
+    </dl>
+    <h3>{{ 'projects.natureTypes' | translate }}</h3>
+    @if (state.project.natureTypes.length === 0) {
+      <p>{{ 'projects.noNatureTypes' | translate }}</p>
+    } @else {
+      <ul class="record-list">
+        @for (nature of state.project.natureTypes; track nature.uri) {
+          <li>
+            <strong>{{ natureLabel(nature) || ('common.dash' | translate) }}</strong>
+            @if (nature.uri) {
+              <p>{{ nature.uri }}</p>
+            }
+          </li>
+        }
+      </ul>
+    }
+    <h3>{{ 'projects.identifiers' | translate }}</h3>
+    @if (state.project.identifiers.length === 0) {
+      <p>{{ 'projects.noIdentifiers' | translate }}</p>
+    } @else {
+      <ul class="record-list">
+        @for (identifier of state.project.identifiers; track identifier.pureId ?? identifier.value) {
+          <li>
+            <strong>{{ identifier.value || ('common.dash' | translate) }}</strong>
+            <p>{{ identifierType(identifier) || ('common.dash' | translate) }}</p>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+
+  <section id="participantes" class="panel">
+    <h2>{{ 'projects.participants' | translate }}</h2>
+    @if (state.project.participants.length === 0) {
+      <p>{{ 'projects.noParticipants' | translate }}</p>
+    } @else {
+      <ul class="record-list">
+        @for (participant of state.project.participants; track participant.pureId ?? participant.personUuid ?? participant.displayName) {
+          <li>
+            <strong>{{ participantName(participant) }}</strong>
+            @if (roleLabel(participant)) {
+              <p>{{ roleLabel(participant) }}</p>
+            }
+            @if (participant.personId) {
+              <p>
+                <a [routerLink]="['/people', participant.personId]">{{ 'projects.openPerson' | translate }}</a>
+              </p>
+            } @else if (participant.personUuid) {
+              <p>{{ 'projects.personUuid' | translate }} {{ participant.personUuid }}</p>
+            }
+            @for (organization of participant.organizations; track organization.organizationUuid) {
+              <p>
+                @if (organization.resolved && organization.organizationId) {
+                  <a [routerLink]="['/organizations', organization.organizationId]">{{ organizationName(organization) }}</a>
+                } @else {
+                  {{ organizationName(organization) }}
+                }
+              </p>
+              @if (!organization.resolved && organization.organizationUuid) {
+                <p>{{ organization.organizationUuid }}</p>
+              }
+            }
+          </li>
+        }
+      </ul>
+    }
+  </section>
+
+  <section id="organizaciones" class="panel">
+    <h2>{{ 'projects.organizations' | translate }}</h2>
+    @if (state.project.managingOrganizationUuid) {
+      <dl>
+        <div>
+          <dt>{{ 'projects.managingOrganization' | translate }}</dt>
+          <dd>
+            @if (state.project.managingOrganizationResolved && state.project.managingOrganizationId) {
+              <a [routerLink]="['/organizations', state.project.managingOrganizationId]">{{ managingOrganizationName(state.project) }}</a>
+            } @else {
+              {{ managingOrganizationName(state.project) }}
+            }
+            @if (!state.project.managingOrganizationResolved && state.project.managingOrganizationUuid) {
+              <span> · {{ state.project.managingOrganizationUuid }}</span>
+            }
+          </dd>
+        </div>
+      </dl>
+    }
+    @if (state.project.organizations.length === 0) {
+      <p>{{ 'projects.noOrganizations' | translate }}</p>
+    } @else {
+      <ul class="record-list">
+        @for (organization of state.project.organizations; track organization.organizationUuid) {
+          <li>
+            <strong>
+              @if (organization.resolved && organization.organizationId) {
+                <a [routerLink]="['/organizations', organization.organizationId]">{{ organizationName(organization) }}</a>
+              } @else {
+                {{ organizationName(organization) }}
+              }
+            </strong>
+            @if (organization.managing) {
+              <p>{{ 'projects.managingOrganization' | translate }}</p>
+            }
+            @if (!organization.resolved && organization.organizationUuid) {
+              <p>{{ organization.organizationUuid }}</p>
+            }
+          </li>
+        }
+      </ul>
+    }
+  </section>
+
+  <section id="auditoria" class="panel">
+    <h2>{{ 'projects.pureAudit' | translate }}</h2>
+    <dl>
+      @if (state.project.createdBy) {
+        <div>
+          <dt>{{ 'projects.createdBy' | translate }}</dt>
+          <dd>{{ state.project.createdBy }}</dd>
+        </div>
+      }
+      @if (state.project.createdDatePure) {
+        <div>
+          <dt>{{ 'projects.createdDatePure' | translate }}</dt>
+          <dd>{{ state.project.createdDatePure }}</dd>
+        </div>
+      }
+      @if (state.project.modifiedBy) {
+        <div>
+          <dt>{{ 'projects.modifiedBy' | translate }}</dt>
+          <dd>{{ state.project.modifiedBy }}</dd>
+        </div>
+      }
+      @if (state.project.modifiedDatePure) {
+        <div>
+          <dt>{{ 'projects.modifiedDatePure' | translate }}</dt>
+          <dd>{{ state.project.modifiedDatePure }}</dd>
+        </div>
+      }
+      @if (state.project.version) {
+        <div>
+          <dt>{{ 'projects.version' | translate }}</dt>
+          <dd>{{ state.project.version }}</dd>
+        </div>
+      }
+    </dl>
+  </section>
+}

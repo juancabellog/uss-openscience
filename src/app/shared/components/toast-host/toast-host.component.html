@@ -1,0 +1,21 @@
+<div class="toast-host" aria-live="polite">
+  @for (toast of notifications.notifications(); track toast.id) {
+    <article [class]="'toast toast--' + toast.kind" role="status">
+      <div class="toast__body">
+        <p class="toast__title">{{ toast.title }}</p>
+        <p>{{ toast.body }}</p>
+        @if (toast.detail) {
+          <p class="toast__detail">{{ toast.detail }}</p>
+        }
+        @if (toast.action; as action) {
+          <button type="button" class="toast__action" (click)="runAction(toast.id, action)">
+            {{ action.label }}
+          </button>
+        }
+      </div>
+      <button type="button" class="toast__close" (click)="dismiss(toast.id)" [attr.aria-label]="'common.close' | translate">
+        ×
+      </button>
+    </article>
+  }
+</div>

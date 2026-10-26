@@ -1,0 +1,129 @@
+<os-page-header [title]="'admin.usersTitle' | translate" [subtitle]="'admin.usersManage' | translate">
+  @if (auth.canAdminister('ADMINISTRATION')) {
+    <button type="button" class="page-action page-action--primary" (click)="editing.set('new')">
+      {{ 'admin.users.new' | translate }}
+    </button>
+  }
+  <a routerLink="/admin">{{ 'admin.back' | translate }}</a>
+</os-page-header>
+
+@if (message(); as key) {
+  <p>{{ key | translate }}</p>
+}
+
+<os-filter-bar>
+  <os-search-box [control]="search" [label]="'admin.users.search' | translate" />
+  <label class="filter-field">
+    <span>{{ 'admin.users.status' | translate }}</span>
+    <select class="os-control" [formControl]="status">
+      <option value="">{{ 'admin.users.allStatuses' | translate }}</option>
+      <option value="PENDING_ACTIVATION">{{ 'admin.status.PENDING_ACTIVATION' | translate }}</option>
+      <option value="ACTIVE">{{ 'admin.status.ACTIVE' | translate }}</option>
+      <option value="DISABLED">{{ 'admin.status.DISABLED' | translate }}</option>
+      <option value="LOCKED">{{ 'admin.status.LOCKED' | translate }}</option>
+      <option value="DELETED">{{ 'admin.status.DELETED' | translate }}</option>
+    </select>
+  </label>
+  <label class="filter-field">
+    <span>{{ 'admin.users.role' | translate }}</span>
+    <select class="os-control" [formControl]="roleId">
+      <option value="">{{ 'admin.users.allRoles' | translate }}</option>
+      @for (role of roles(); track role.id) {
+        <option [value]="role.id">{{ role.name }}</option>
+      }
+    </select>
+  </label>
+</os-filter-bar>
+
+@if (result(); as vm) {
+  @if (vm.status === 'loading') {
+    <os-loading-state />
+  } @else if (vm.status === 'error') {
+    <os-error-state />
+  } @else if (vm.data.items.length === 0) {
+    <os-empty-state [title]="'admin.users.empty' | translate" />
+  } @else {
+    <os-data-table-shell [fluid]="true">
+      <table>
+        <thead>
+          <tr>
+            <th class="col-name"><os-sortable-header field="name" [label]="'admin.users.name' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" /></th>
+            <th class="col-email"><os-sortable-header field="email" [label]="'admin.users.email' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" /></th>
+            <th class="col-status"><os-sortable-header field="status" [label]="'admin.users.status' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" /></th>
+            <th class="col-roles">{{ 'admin.users.roles' | translate }}</th>
+            <th class="col-date"><os-sortable-header field="lastLoginAt" [label]="'admin.users.lastAccess' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" /></th>
+            <th class="col-date"><os-sortable-header field="createdAt" [label]="'admin.users.createdAt' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" /></th>
+            <th class="col-actions">{{ 'admin.users.actions' | translate }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of vm.data.items; track row.id) {
+            <tr>
+              <td class="col-name">{{ row.displayName }}</td>
+              <td class="col-email">{{ row.email }}</td>
+              <td class="col-status">{{ ('admin.status.' + row.status) | translate }}</td>
+              <td class="col-roles">{{ row.roles.join(', ') || ('common.dash' | translate) }}</td>
+              <td class="col-date">{{ row.lastLoginAt ? (row.lastLoginAt | localeDate) : ('common.dash' | translate) }}</td>
+              <td class="col-date">{{ row.createdAt ? (row.createdAt | localeDate) : ('common.dash' | translate) }}</td>
+              <td class="col-actions">
+                <div class="table-actions">
+                  @if (canMutate(row)) {
+                    <button type="button" (click)="editing.set(row)">{{ 'admin.users.edit' | translate }}</button>
+                    @if (row.status === 'PENDING_ACTIVATION') {
+                      <button type="button" (click)="resend(row)">{{ 'admin.users.resend' | translate }}</button>
+                    }
+                    @if (row.status === 'DISABLED') {
+                      <button type="button" (click)="enable(row)">{{ 'admin.users.enable' | translate }}</button>
+                    } @else {
+                      <button type="button" (click)="disable(row)">{{ 'admin.users.disable' | translate }}</button>
+                    }
+                  }
+                  @if (canDelete(row)) {
+                    <button type="button" class="table-actions__danger" (click)="askDelete(row)">
+                      {{ 'admin.users.delete' | translate }}
+                    </button>
+                  }
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </os-data-table-shell>
+    <os-pagination [page]="vm.data.page" [pageSize]="vm.data.pageSize" [total]="vm.data.total" (pageChange)="goToPage($event)" />
+  }
+}
+
+@if (editing(); as current) {
+  <os-user-form
+    [user]="current === 'new' ? null : current"
+    [roles]="roles()"
+    (closed)="editing.set(null)"
+    (saved)="editing.set(null); message.set($event); reload()"
+  />
+}
+
+@if (deleting(); as target) {
+  <div class="delete-dialog" role="dialog" aria-modal="true" aria-labelledby="user-delete-title">
+    <button type="button" class="delete-dialog__backdrop" (click)="cancelDelete()" [disabled]="deleteBusy()"></button>
+    <section class="delete-dialog__panel">
+      <h2 id="user-delete-title">{{ 'admin.users.deleteTitle' | translate }}</h2>
+      <p>{{ 'admin.users.deleteLead' | translate }}</p>
+      <p class="delete-dialog__email">{{ target.email }}</p>
+      <p>{{ 'admin.users.deleteBody' | translate }}</p>
+      <div class="delete-dialog__actions">
+        <button type="button" class="page-action" (click)="cancelDelete()" [disabled]="deleteBusy()">
+          {{ 'common.cancel' | translate }}
+        </button>
+        <button
+          type="button"
+          class="page-action page-action--danger"
+          (click)="confirmDelete()"
+          [disabled]="deleteBusy()"
+        >
+          {{ 'admin.users.deleteConfirm' | translate }}
+        </button>
+      </div>
+    </section>
+  </div>
+}

@@ -1,0 +1,228 @@
+{
+  "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
+  "version": 1,
+  "newProjectRoot": "projects",
+  "cli": {
+    "analytics": false,
+    "schematicCollections": ["@schematics/angular"]
+  },
+  "schematics": {
+    "@schematics/angular:component": {
+      "style": "scss",
+      "skipTests": true,
+      "changeDetection": "OnPush"
+    }
+  },
+  "projects": {
+    "openscience-uss": {
+      "projectType": "application",
+      "root": "",
+      "sourceRoot": "src",
+      "prefix": "os",
+      "architect": {
+        "build": {
+          "builder": "@angular/build:application",
+          "options": {
+            "browser": "src/main.ts",
+            "polyfills": [],
+            "tsConfig": "tsconfig.app.json",
+            "inlineStyleLanguage": "scss",
+            "assets": [
+              {
+                "glob": "**/*",
+                "input": "public"
+              }
+            ],
+            "styles": ["src/styles.scss"],
+            "outputPath": "dist/openscience-uss"
+          },
+          "configurations": {
+            "production": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "700kB",
+                  "maximumError": "1.5MB"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "8kB",
+                  "maximumError": "16kB"
+                }
+              ],
+              "outputHashing": "all",
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.production.ts"
+                }
+              ]
+            },
+            "development": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular/build:dev-server",
+          "options": {
+            "port": 4200,
+            "host": "0.0.0.0",
+            "allowedHosts": ["10.221.30.53"],
+            "proxyConfig": "proxy.conf.json"
+          },
+          "configurations": {
+            "production": {
+              "buildTarget": "openscience-uss:build:production"
+            },
+            "development": {
+              "buildTarget": "openscience-uss:build:development"
+            }
+          },
+          "defaultConfiguration": "development"
+        }
+      }
+    },
+    "openscience-events": {
+      "projectType": "application",
+      "root": "projects/openscience-events",
+      "sourceRoot": "projects/openscience-events/src",
+      "prefix": "ose",
+      "architect": {
+        "build": {
+          "builder": "@angular/build:application",
+          "options": {
+            "browser": "projects/openscience-events/src/main.ts",
+            "index": "projects/openscience-events/src/index.html",
+            "polyfills": [],
+            "tsConfig": "projects/openscience-events/tsconfig.app.json",
+            "inlineStyleLanguage": "scss",
+            "assets": [
+              {
+                "glob": "**/*",
+                "input": "projects/openscience-events/public"
+              }
+            ],
+            "styles": ["projects/openscience-events/src/styles.scss"],
+            "outputPath": "dist/openscience-events"
+          },
+          "configurations": {
+            "production": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "700kB",
+                  "maximumError": "1.5MB"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "8kB",
+                  "maximumError": "16kB"
+                }
+              ],
+              "outputHashing": "all",
+              "fileReplacements": [
+                {
+                  "replace": "projects/openscience-events/src/environments/environment.ts",
+                  "with": "projects/openscience-events/src/environments/environment.production.ts"
+                }
+              ]
+            },
+            "development": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular/build:dev-server",
+          "options": {
+            "port": 4300,
+            "host": "0.0.0.0",
+            "proxyConfig": "projects/openscience-events/proxy.conf.json"
+          },
+          "configurations": {
+            "production": {
+              "buildTarget": "openscience-events:build:production"
+            },
+            "development": {
+              "buildTarget": "openscience-events:build:development"
+            }
+          },
+          "defaultConfiguration": "development"
+        }
+      }
+    },
+    "ethics-uss": {
+      "projectType": "application",
+      "root": "projects/ethics-uss",
+      "sourceRoot": "projects/ethics-uss/src",
+      "prefix": "eth",
+      "architect": {
+        "build": {
+          "builder": "@angular/build:application",
+          "options": {
+            "browser": "projects/ethics-uss/src/main.ts",
+            "index": "projects/ethics-uss/src/index.html",
+            "polyfills": [],
+            "tsConfig": "projects/ethics-uss/tsconfig.app.json",
+            "inlineStyleLanguage": "scss",
+            "assets": [
+              {
+                "glob": "**/*",
+                "input": "projects/ethics-uss/public"
+              }
+            ],
+            "styles": ["projects/ethics-uss/src/styles.scss"],
+            "outputPath": "dist/ethics-uss"
+          },
+          "configurations": {
+            "production": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "700kB",
+                  "maximumError": "1.5MB"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "10kB",
+                  "maximumError": "20kB"
+                }
+              ],
+              "outputHashing": "all"
+            },
+            "development": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular/build:dev-server",
+          "options": {
+            "port": 4400,
+            "host": "0.0.0.0"
+          },
+          "configurations": {
+            "production": {
+              "buildTarget": "ethics-uss:build:production"
+            },
+            "development": {
+              "buildTarget": "ethics-uss:build:development"
+            }
+          },
+          "defaultConfiguration": "development"
+        }
+      }
+    }
+  }
+}
+

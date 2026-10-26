@@ -1,0 +1,30 @@
+{
+  "defaultModel": "gpt-5.2-codex",
+  "inlineModel": "gpt-5.2",
+  "rules": [
+    {
+      "pattern": "src/app/core/**",
+      "model": "gpt-5.2-pro"
+    },
+    {
+      "pattern": "src/app/**",
+      "model": "gpt-5.2-codex"
+    },
+    {
+      "pattern": "src/main/java/**",
+      "model": "gpt-5.2-codex"
+    },
+    {
+      "pattern": "**/*.md",
+      "model": "gpt-5.2"
+    },
+    {
+      "pattern": "**/*test*.*",
+      "model": "gpt-5.1-codex-mini"
+    },
+    {
+      "pattern": "**/*.spec.ts",
+      "model": "gpt-5.1-codex-mini"
+    }
+  ]
+}

@@ -1,0 +1,363 @@
+:host {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.table-shell {
+  max-width: 100%;
+  min-width: 0;
+  isolation: isolate;
+  background: var(--os-surface);
+  border: 1px solid var(--os-border);
+  border-radius: var(--os-radius-md);
+  box-shadow: var(--os-shadow-sm);
+}
+
+.table-shell__caption {
+  padding: var(--os-space-md) var(--os-space-lg) 0;
+  color: var(--os-text-secondary);
+  font-size: var(--os-fs-sm);
+}
+
+.table-shell__scroll {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: auto;
+}
+
+:host.table-shell-host--sticky .table-shell__scroll {
+  max-height: var(
+    --os-table-viewport-max,
+    min(42vh, calc(100dvh - var(--os-brand-bar-height) - var(--os-header-height) - 16rem))
+  );
+}
+
+:host ::ng-deep table {
+  table-layout: auto;
+  width: max-content;
+  min-width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+:host ::ng-deep th,
+:host ::ng-deep td {
+  padding: 0.75rem 0.9rem;
+  text-align: left;
+  border-bottom: 1px solid var(--os-border);
+}
+
+:host ::ng-deep td {
+  vertical-align: top;
+  overflow-wrap: break-word;
+  word-break: normal;
+  white-space: normal;
+}
+
+:host ::ng-deep th {
+  position: sticky;
+  top: 0;
+  z-index: var(--os-z-table-header);
+  vertical-align: middle;
+  font-size: var(--os-fs-xs);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--os-text-secondary);
+  background: var(--os-surface-muted);
+  box-shadow: inset 0 -1px 0 var(--os-border);
+  white-space: nowrap;
+  overflow: visible;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+:host ::ng-deep thead th,
+:host ::ng-deep thead th * {
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+:host ::ng-deep tbody tr:hover {
+  background: color-mix(in srgb, var(--os-surface-muted) 70%, white);
+}
+
+:host ::ng-deep a.entity-link,
+:host ::ng-deep a.external-link {
+  display: inline;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
+  text-decoration: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+:host ::ng-deep a.entity-link {
+  font-weight: 600;
+  color: var(--os-text-primary);
+}
+
+:host ::ng-deep a.external-link {
+  font-weight: 500;
+  color: var(--os-info);
+}
+
+:host ::ng-deep a.entity-link:visited,
+:host ::ng-deep a.external-link:visited {
+  background: transparent;
+}
+
+:host ::ng-deep a.entity-link:hover,
+:host ::ng-deep a.entity-link:focus-visible,
+:host ::ng-deep a.external-link:hover,
+:host ::ng-deep a.external-link:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 0.16em;
+}
+
+:host ::ng-deep a.entity-link:focus-visible,
+:host ::ng-deep a.external-link:focus-visible {
+  outline: none;
+  box-shadow: var(--os-focus);
+  border-radius: 2px;
+}
+
+:host ::ng-deep .col-id {
+  width: 6.25rem;
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+:host ::ng-deep .col-id a.entity-link,
+:host ::ng-deep .col-id a.id-link {
+  color: var(--os-secondary);
+  font-weight: 500;
+  background: transparent;
+}
+
+:host ::ng-deep .col-id a.entity-link:visited,
+:host ::ng-deep .col-id a.id-link:visited,
+:host ::ng-deep .col-id a.entity-link:hover,
+:host ::ng-deep .col-id a.id-link:hover,
+:host ::ng-deep .col-id a.entity-link:active,
+:host ::ng-deep .col-id a.id-link:active {
+  color: var(--os-secondary);
+  background: transparent;
+}
+
+:host ::ng-deep .col-title,
+:host ::ng-deep .col-name {
+  width: auto;
+  min-width: 18rem;
+}
+
+:host ::ng-deep .col-year {
+  width: 5rem;
+  text-align: center;
+}
+
+:host ::ng-deep .col-type {
+  width: 8.125rem;
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+:host ::ng-deep .col-position {
+  width: 12rem;
+}
+
+:host ::ng-deep .col-doi {
+  width: 16.75rem;
+}
+
+:host ::ng-deep .col-doi-versions {
+  width: 10rem;
+  text-align: center;
+}
+
+:host ::ng-deep .col-journal {
+  width: 13.75rem;
+}
+
+:host ::ng-deep .col-orcid {
+  width: 11.875rem;
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+:host ::ng-deep .col-scopus {
+  width: 10.5rem;
+}
+
+:host ::ng-deep .col-count {
+  width: 10rem;
+  text-align: center;
+}
+
+:host ::ng-deep .col-workflow {
+  width: 9.5rem;
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+:host ::ng-deep .col-audit {
+  width: 9.5rem;
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+:host ::ng-deep td.col-audit {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+:host ::ng-deep .workflow-badge {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  background: color-mix(in srgb, var(--os-primary, #102b42) 10%, white);
+  border-radius: 999px;
+  padding: 0.12rem 0.55rem;
+  font-size: 0.75rem;
+  font-weight: 650;
+  color: var(--os-text-primary);
+  white-space: nowrap;
+}
+
+:host ::ng-deep .col-email {
+  min-width: 16rem;
+}
+
+:host ::ng-deep .col-roles {
+  min-width: 12rem;
+}
+
+:host ::ng-deep .col-status {
+  min-width: 10.5rem;
+  width: 10.5rem;
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+:host ::ng-deep .col-date {
+  min-width: 10rem;
+  width: 10rem;
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+:host ::ng-deep .col-actions {
+  min-width: 18rem;
+  white-space: nowrap;
+  overflow: visible;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+:host ::ng-deep .table-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--os-space-xs);
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+:host ::ng-deep .table-actions button {
+  margin: 0;
+  flex: 0 0 auto;
+  min-height: 2rem;
+  padding: 0.25rem 0.55rem;
+  font-size: var(--os-fs-sm);
+}
+
+:host.table-shell-host--fluid ::ng-deep table {
+  table-layout: auto;
+  width: max-content;
+  min-width: 100%;
+}
+
+:host ::ng-deep td.col-count,
+:host ::ng-deep td.col-doi-versions,
+:host ::ng-deep td.col-year {
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: normal;
+  text-align: center;
+}
+
+:host ::ng-deep a.doi-link {
+  display: inline;
+  max-width: none;
+  overflow-wrap: normal;
+  word-break: normal;
+  white-space: nowrap;
+}
+
+:host.table-shell-host--sticky-start ::ng-deep table:not(:has(.col-sticky-start)) thead th:first-child,
+:host.table-shell-host--sticky-start ::ng-deep thead th.col-sticky-start,
+:host.table-shell-host--sticky-end ::ng-deep thead th:last-child {
+  z-index: var(--os-z-table-stuck-corner);
+}
+
+:host.table-shell-host--sticky-start ::ng-deep table:not(:has(.col-sticky-start)) thead th:first-child,
+:host.table-shell-host--sticky-start ::ng-deep table:not(:has(.col-sticky-start)) tbody td:first-child,
+:host.table-shell-host--sticky-start ::ng-deep thead th.col-sticky-start,
+:host.table-shell-host--sticky-start ::ng-deep tbody td.col-sticky-start {
+  position: sticky;
+  left: 0;
+}
+
+:host.table-shell-host--sticky-end ::ng-deep thead th:last-child,
+:host.table-shell-host--sticky-end ::ng-deep tbody td:last-child {
+  position: sticky;
+  right: 0;
+}
+
+:host.table-shell-host--sticky-start ::ng-deep table:not(:has(.col-sticky-start)) tbody td:first-child,
+:host.table-shell-host--sticky-start ::ng-deep tbody td.col-sticky-start,
+:host.table-shell-host--sticky-end ::ng-deep tbody td:last-child {
+  z-index: var(--os-z-table-stuck-column);
+  background: var(--os-surface);
+}
+
+:host.table-shell-host--sticky-start ::ng-deep table:not(:has(.col-sticky-start)) thead th:first-child,
+:host.table-shell-host--sticky-start ::ng-deep thead th.col-sticky-start {
+  box-shadow: inset -1px 0 0 var(--os-border), inset 0 -1px 0 var(--os-border);
+}
+
+:host.table-shell-host--sticky-end ::ng-deep thead th:last-child {
+  box-shadow: inset 1px 0 0 var(--os-border), inset 0 -1px 0 var(--os-border);
+}
+
+:host.table-shell-host--sticky-start ::ng-deep table:not(:has(.col-sticky-start)) tbody td:first-child,
+:host.table-shell-host--sticky-start ::ng-deep tbody td.col-sticky-start {
+  box-shadow: inset -1px 0 0 var(--os-border);
+}
+
+:host.table-shell-host--sticky-end ::ng-deep tbody td:last-child {
+  box-shadow: inset 1px 0 0 var(--os-border);
+}
+
+:host.table-shell-host--sticky-start ::ng-deep table:not(:has(.col-sticky-start)) tbody tr:hover td:first-child,
+:host.table-shell-host--sticky-start ::ng-deep tbody tr:hover td.col-sticky-start,
+:host.table-shell-host--sticky-end ::ng-deep tbody tr:hover td:last-child {
+  background: color-mix(in srgb, var(--os-surface-muted) 70%, white);
+}
+
+@media (max-width: 52rem) {
+  :host ::ng-deep table {
+    min-width: max(100%, 64rem);
+  }
+}

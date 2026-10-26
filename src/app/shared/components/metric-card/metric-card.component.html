@@ -1,0 +1,24 @@
+<article
+  class="metric-card"
+  [attr.title]="tooltip() || null"
+  [attr.aria-label]="tooltip() ? label() + '. ' + tooltip() : null"
+>
+  <p class="metric-card__label">
+    <span class="metric-card__label-text">{{ label() }}</span>
+    @if (infoText()) {
+      <os-info-hint [text]="infoText()" [ariaLabel]="infoAriaLabel() || infoText()" />
+    }
+  </p>
+  <p class="metric-card__value">{{ value() }}</p>
+  <div class="metric-card__footer">
+    @if (hint()) {
+      <p class="metric-card__hint">{{ hint() }}</p>
+    }
+    @if (detail()) {
+      <p class="metric-card__detail">{{ detail() }}</p>
+    }
+    @if (demo()) {
+      <p class="metric-card__demo">{{ 'common.demoMark' | translate }}</p>
+    }
+  </div>
+</article>

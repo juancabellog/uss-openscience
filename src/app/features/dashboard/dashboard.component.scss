@@ -1,0 +1,133 @@
+.updated,
+.section-copy,
+.muted,
+.chart-note,
+.unavailable {
+  color: var(--os-text-secondary);
+  font-size: var(--os-fs-sm);
+}
+
+.unavailable {
+  margin-bottom: var(--os-space-md);
+}
+
+.section-title {
+  margin: var(--os-space-lg) 0 var(--os-space-xs);
+  font-size: var(--os-fs-xl);
+}
+
+section[aria-labelledby='ops-title'] .section-title {
+  margin-top: 0;
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(14rem, 1fr));
+  align-items: stretch;
+  gap: var(--os-space-md);
+}
+
+.split {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  align-items: stretch;
+  gap: var(--os-space-lg);
+  margin-top: var(--os-space-xl);
+}
+
+.split a,
+.layers a {
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.bars {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.bars__item span {
+  display: block;
+  font-size: var(--os-fs-sm);
+  margin-bottom: 0.25rem;
+}
+
+.bars__fill {
+  display: block;
+  height: 0.55rem;
+  border-radius: 999px;
+  background: var(--uss-primary);
+  max-width: 100%;
+}
+
+.bars__fill--review {
+  background: var(--os-cyan);
+}
+
+.bars__fill--ok {
+  background: var(--os-green);
+}
+
+.chips {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.layers {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--os-space-md);
+}
+
+.layers article {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--os-surface);
+  border: 1px solid var(--os-border);
+  border-radius: var(--os-radius-md);
+  padding: var(--os-space-lg);
+}
+
+.layers h3 {
+  margin-bottom: 0.35rem;
+}
+
+.layers .muted {
+  margin: 0.75rem 0;
+}
+
+.layers a {
+  margin-top: auto;
+}
+
+.monitoring {
+  margin-top: var(--os-space-xl);
+}
+
+@media (min-width: 90rem) {
+  .metric-grid {
+    grid-template-columns: repeat(6, minmax(12rem, 1fr));
+  }
+}
+
+@media (max-width: 960px) {
+  .metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .split,
+  .layers {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 40rem) {
+  .metric-grid {
+    grid-template-columns: 1fr;
+  }
+}

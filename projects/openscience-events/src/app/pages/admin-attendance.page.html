@@ -1,0 +1,109 @@
+<p><a routerLink="/admin/eventos">{{ 'form.back' | translate }}</a></p>
+<ose-event-admin-tabs [eventId]="id()" />
+<section class="panel">
+  <h1>{{ 'attendance.title' | translate }}</h1>
+  <p>{{ 'attendance.intro' | translate }}</p>
+</section>
+
+<section class="panel">
+  <h2>{{ 'attendance.walkInTitle' | translate }}</h2>
+  <form [formGroup]="walkIn" (ngSubmit)="addWalkIn()">
+    <label>{{ 'attendance.email' | translate }} <input type="email" formControlName="email" /></label>
+    <div class="grid-2">
+      <label>{{ 'attendance.name' | translate }} <input type="text" formControlName="displayName" /></label>
+      <label>{{ 'attendance.faculty' | translate }} <input type="text" formControlName="facultyOrInstitution" /></label>
+    </div>
+    <div class="grid-2">
+      <label>{{ 'attendance.campus' | translate }} <input type="text" formControlName="campusName" /></label>
+      <label>{{ 'attendance.position' | translate }} <input type="text" formControlName="positionTitle" /></label>
+    </div>
+    <button type="submit" [disabled]="busy()">{{ 'attendance.registerWalkIn' | translate }}</button>
+  </form>
+</section>
+
+<section class="panel">
+  <h2>{{ 'attendance.importTitle' | translate }}</h2>
+  <p>{{ 'attendance.importHint' | translate }}</p>
+  <input type="file" accept=".csv,.xlsx,.xls" (change)="onImportFile($event)" />
+</section>
+
+@if (preview(); as current) {
+  <section class="panel">
+    <h2>{{ 'attendance.previewTitle' | translate: { id: current.id } }}</h2>
+    <p>{{ 'attendance.previewStats' | translate: { matched: current.matched, ambiguous: current.ambiguous, unmatched: current.unmatched } }}</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>{{ 'attendance.row' | translate }}</th>
+            <th>{{ 'attendance.code' | translate }}</th>
+            <th>{{ 'attendance.proposed' | translate }}</th>
+            <th>{{ 'attendance.match' | translate }}</th>
+            <th>{{ 'attendance.name' | translate }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of current.rows; track row.rowNumber) {
+            <tr>
+              <td>{{ row.rowNumber }}</td>
+              <td>{{ row.registrationCode }}</td>
+              <td>{{ row.proposedStatus }}</td>
+              <td>{{ row.matchStatus }}</td>
+              <td>{{ row.displayName }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <button type="button" [disabled]="busy()" (click)="confirmImport()">{{ 'attendance.confirmImport' | translate }}</button>
+  </section>
+}
+
+@if (messageKey(); as key) {
+  <p>{{ key | translate }}</p>
+}
+@if (errorKey(); as key) {
+  <p class="error">{{ key | translate }}</p>
+}
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>{{ 'attendance.number' | translate }}</th>
+        <th>{{ 'attendance.name' | translate }}</th>
+        <th>{{ 'attendance.code' | translate }}</th>
+        <th>{{ 'attendance.status' | translate }}</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (item of items(); track item.registrationId) {
+        <tr>
+          <td>{{ item.seqNo }}</td>
+          <td>
+            {{ item.displayName }}
+            <div class="muted">{{ item.email }}</div>
+          </td>
+          <td>{{ item.publicCode }}</td>
+          <td>
+            {{ item.status | catalog:'attendance' }}
+            @if (item.walkIn) {
+              · {{ 'attendance.walkInSuffix' | translate }}
+            }
+          </td>
+          <td class="actions">
+            <button type="button" class="linkish" (click)="setStatus(item, 'ASISTIO')">{{ 'attendance.present' | translate }}</button>
+            <button type="button" class="linkish" (click)="setStatus(item, 'NO_ASISTIO')">{{ 'attendance.absent' | translate }}</button>
+            <button type="button" class="linkish" (click)="setStatus(item, 'REVISAR')">{{ 'attendance.review' | translate }}</button>
+            <button type="button" class="linkish" (click)="setStatus(item, 'PENDIENTE')">{{ 'attendance.pending' | translate }}</button>
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+
+<section class="panel">
+  <button type="button" class="secondary" (click)="closeDocumentation()">{{ 'attendance.closeFile' | translate }}</button>
+</section>

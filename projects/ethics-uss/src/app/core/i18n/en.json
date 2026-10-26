@@ -1,0 +1,997 @@
+{
+  "common": {
+    "language": "Language",
+    "dash": "—",
+    "select": "Select…",
+    "cancel": "Cancel",
+    "save": "Save",
+    "continue": "Continue",
+    "back": "Back",
+    "open": "Open",
+    "view": "View",
+    "delete": "Remove",
+    "required": "*",
+    "yes": "Yes",
+    "no": "No",
+    "na": "Not applicable",
+    "noAnswer": "No answer",
+    "noTitle": "Untitled",
+    "untitledRequest": "Untitled application",
+    "selected": "Selected",
+    "notSelected": "Not selected",
+    "logout": "Sign out",
+    "switchProfile": "Switch profile",
+    "prototype": "Prototype",
+    "load": "load",
+    "of": "of",
+    "confirm": "Confirm"
+  },
+  "brand": {
+    "name": "Project Ethics",
+    "university": "Universidad San Sebastián",
+    "crumb": "Ethics Platform · Prototype",
+    "full": "Project Ethics Platform"
+  },
+  "navigation": {
+    "home": "Home",
+    "applications": "Applications",
+    "cases": "Cases",
+    "committees": "Committees",
+    "sessions": "Sessions",
+    "reviewers": "Reviewers",
+    "expirations": "Expirations",
+    "settings": "Settings",
+    "audit": "Audit",
+    "myProjects": "My projects",
+    "newApplication": "New application",
+    "notifications": "Notifications",
+    "history": "History",
+    "assignedReviews": "Assigned reviews"
+  },
+  "auth": {
+    "prototypeNote": "Functional prototype · no real authentication",
+    "selectProfile": "Select a demonstration profile to explore each role."
+  },
+  "dashboard": {
+    "home": "Home",
+    "myProjects": "My projects",
+    "underReview": "Under review",
+    "withComments": "With comments",
+    "activeApprovals": "Active approvals",
+    "expiringSoon": "Expiring soon",
+    "newEthicsApplication": "New ethics application",
+    "project": "Project",
+    "type": "Type",
+    "globalStatus": "Overall status",
+    "committees": "Committees",
+    "viewProject": "View project",
+    "assignments": "Assignments",
+    "pending": "Pending",
+    "inReview": "Under review",
+    "goAssignedReviews": "Go to assigned reviews",
+    "pendingClassification": "Certification applications pending",
+    "admissibility": "Admissibility",
+    "resolutions": "Resolutions",
+    "expiring": "Expiring soon",
+    "diseiApplications": "DISEI applications",
+    "cases": "Cases",
+    "pendingAdmissibility": "Pending admissibility",
+    "pendingAssignment": "Pending assignment",
+    "reviewsInProgress": "Reviews in progress",
+    "pendingSession": "Pending session",
+    "pendingResolution": "Pending resolution",
+    "openCaseInbox": "Open case inbox",
+    "typeNew": "New",
+    "typeValidation": "Validation"
+  },
+  "projects": {
+    "title": "Projects",
+    "emptyTitle": "No projects",
+    "emptyMessage": "Create an application to start a review.",
+    "viewProject": "View project",
+    "ir": "PI",
+    "summary": "Summary",
+    "documents": "Documents",
+    "history": "History",
+    "received": "Intake date",
+    "expires": "Expiry date",
+    "openCase": "Open case",
+    "comingSoon": "Coming soon: Amendment · Renewal · Follow-up",
+    "requirementsComplete": "{done} of {total} requirements complete.",
+    "notifyCommittee": "Notify committee",
+    "packageClosed": "Supporting package closed for this round.",
+    "cycle": "Cycle {cycle}",
+    "semaphore": "Status: {semaphore} · {days} days",
+    "expiredAlert": "Approval expired. 15 days to regularize renewal (planned, not automatic).",
+    "resolution": "Resolution {correlative}",
+    "downloadResolution": "Download PDF",
+    "committeeRequestedChanges": "The committee has requested changes.",
+    "answerPlaceholder": "Required response",
+    "saveAnswer": "Save response",
+    "answered": "Answered",
+    "pending": "Pending",
+    "sendAnswers": "Send responses to the committee",
+    "reason": "Reason: {reason}",
+    "notifyConfirm": "Sending the file to the committee will lock this version. You will not be able to change documents until a new round or return.",
+    "confirmSend": "Send",
+    "timeline": {
+      "application": "Application",
+      "documents": "Documents",
+      "send": "Submission",
+      "admissibility": "Admissibility",
+      "review": "Review",
+      "comments": "Comments",
+      "response": "Response",
+      "session": "Session",
+      "resolution": "Resolution"
+    },
+    "committeeCode": "Committee code",
+    "requiredProgress": "{done} of {total} required documents complete",
+    "requiredDocs": "Required documents",
+    "optionalDocs": "Optional documents",
+    "missing": "Missing",
+    "notLoaded": "Not uploaded",
+    "versionHistory": "Version history",
+    "chooseType": "Document type",
+    "version": "Version",
+    "uploadedAt": "Date",
+    "notifyDraft": "I report that the documents required for the project review have been uploaded.",
+    "notifyMessage": "Message",
+    "publishedObservations": "Published observations",
+    "download": "Download",
+    "resolutions": "Resolutions",
+    "resolutionTitle": "Resolution",
+    "amendmentResolution": "Amendment resolution",
+    "followUpResolution": "Follow-up resolution",
+    "requestAmendment": "Request amendment",
+    "requestFollowUp": "Request follow-up",
+    "followUpType": "Follow-up type",
+    "followUp": "Follow-up",
+    "closureFollowUp": "Project closure follow-up",
+    "justification": "Justification",
+    "amendmentUploadHint": "Upload new versions from the committee list. Approved versions are kept.",
+    "committeeHistory": "Committee history",
+    "contactCommittee": "Contact the committee",
+    "lockedAfterResolution": "Uploads and observations are read-only because the committee already issued a resolution.",
+    "noUploadedDocuments": "No documents have been uploaded."
+  },
+  "submission": {
+    "choice": {
+      "title": "New application",
+      "intro": "Select the application type. Each path uses a different form.",
+      "newTitle": "New project",
+      "newBody": "A project that starts the USS ethics review process.",
+      "validationTitle": "Project validation",
+      "validationBody": "A project with external approvals that requires USS validation."
+    },
+    "new": {
+      "title": "New project",
+      "tutorHighlight": "Highlighted by a prototype rule (PROTOTYPE_RULE): the PI role suggests a tutor is needed.",
+      "tutorOptional": "This section is not highlighted for the selected role. You may still complete it if applicable. DISEI review will show “Not applicable” if it remains empty.",
+      "preliminary": "Preliminary classification",
+      "selectForSuggestion": "Select at least one option to obtain a suggestion.",
+      "mayRequire": "Based on the information provided, this project may require review by:",
+      "preliminaryNote": "This classification is preliminary and will be validated by DISEI.",
+      "suggested": "Suggested classification:",
+      "draftSaved": "Draft saved.",
+      "completeToSubmit": "Complete the title and both declarations to submit.",
+      "saveDraft": "Save draft",
+      "submit": "Submit application"
+    },
+    "validation": {
+      "title": "Project validation",
+      "needActa": "Each selected committee requires the origin minutes and the approved protocol.",
+      "submit": "Submit application"
+    },
+    "notFound": "Application not found."
+  },
+  "validation": {
+    "transversal": "Cross-cutting documentation",
+    "letter": "Validation request letter",
+    "needLetter": "Upload the validation request letter.",
+    "needCommittee": "Select at least one committee.",
+    "removeCommittee": "Documents are associated with {committees}. Confirm to remove that association. The request letter stays.",
+    "docs": {
+      "acta": "Approval minutes or certificate from the committee of origin",
+      "protocolo": "Approved protocol or documentation",
+      "adjudicacion": "Award letter, if applicable",
+      "seguimiento": "Follow-up report, if applicable",
+      "enmiendas": "Amendments, if applicable",
+      "otros": "Other"
+    },
+    "required": "Required field",
+    "email": "Invalid email address",
+    "minOne": "Select at least one option",
+    "justification": "A justification is required",
+    "allComments": "All comments must be answered"
+  },
+  "cases": {
+    "waitingResearcher": "Waiting for the investigator response",
+    "waitingReviews": "The reviews for this round are not complete yet.",
+    "restricted": "You do not have access to this case.",
+    "title": "Cases",
+    "open": "Open",
+    "committee": "Committee",
+    "status": "Status",
+    "back": "Back",
+    "admissibility": "Admissibility",
+    "admissibilityHint": "Review that the file is complete before continuing with reviewer assignment.",
+    "completeFile": "Complete file",
+    "returnToFix": "Return for correction",
+    "returnTitle": "Return the file for correction",
+    "returnBody": "The researcher will be able to correct or complete the documentation before sending the file back to the committee.",
+    "returnReason": "Reason for return",
+    "returnReasonRequired": "Enter the reason for the return.",
+    "assignReviewers": "Reviewer assignment",
+    "assignHint": "Always two reviewers. Suggestions ordered by workload and specialty.",
+    "reviewer1": "Reviewer 1",
+    "reviewer2": "Reviewer 2",
+    "existingSession": "Existing ordinary session",
+    "unassigned": "Unassigned",
+    "newExtraordinary": "New extraordinary session",
+    "time": "Time",
+    "createExtraordinary": "Create extraordinary session",
+    "assignAndSession": "Assign reviewers and session",
+    "reviewN": "Review {n}",
+    "consolidatedObservation": "Consolidated comment for the researcher",
+    "topic": "Topic",
+    "text": "Text",
+    "addObservation": "Add comment",
+    "publishObservations": "Publish comments",
+    "prepareResolution": "Prepare resolution",
+    "decisionType": "Decision type",
+    "decisionCatalog": "Status catalog",
+    "rationale": "Rationale",
+    "sendToPresidency": "Send to the chair",
+    "correlative": "Reference {correlative} · {workflow}",
+    "validateResolution": "Validate resolution",
+    "publishConfirm": "Publish the comments to the researcher? Original reviews are not changed.",
+    "publish": "Publish",
+    "reviewerLoad": "{name} · {specialty} · load {load}",
+    "diseiCode": "DISEI code",
+    "committeeCode": "Committee code",
+    "action": "Action",
+    "consolidate": "Consolidate observations",
+    "previewPdf": "PDF preview",
+    "currentRound": "Current round",
+    "roundHistory": "Round history",
+    "roundLabel": "Observations {n}",
+    "published": "Published",
+    "closedRound": "Closed",
+    "publishDefault": "The committee recorded observations on the project. Review the detail in the platform and respond within the stated deadline.",
+    "publishMessageLabel": "Message to the investigator",
+    "preparedDocuments": "Prepared resolution and documents",
+    "attachedDocuments": "Documents accompanying the resolution",
+    "validationActions": "Validation actions",
+    "returnToSecretary": "Return to Executive Secretary",
+    "signaturePrototype": "Prototype signature",
+    "stampPrototype": "Prototype committee stamp"
+  },
+  "readonly": {
+    "type": "Type",
+    "status": "Status",
+    "receivedDate": "Submission date",
+    "formReceived": "Form received",
+    "questionsAnswered": "{answered} of {total} questions answered",
+    "newProjectType": "New project application",
+    "validationType": "Project validation application",
+    "classified": "Classified",
+    "previewUnavailable": "Preview is not available in the prototype (mock file)."
+  },
+  "forms": {
+    "noDerivation": "No referral",
+    "newProject": {
+      "title": "New project",
+      "sections": {
+        "A": "Project details",
+        "B": "Principal investigator",
+        "C": "Sponsor or tutor",
+        "D": "Project characteristics",
+        "E": "Team and outputs",
+        "F": "Methodology",
+        "G": "Declarations"
+      },
+      "questions": {
+        "NP001": {
+          "label": "Proposal title",
+          "help": "The same title must be used for every process with every committee."
+        },
+        "NP002": {
+          "label": "Project type or funding source",
+          "options": {
+            "ANID_Anillo": "ANID Anillo",
+            "ANID_Basal": "ANID Basal",
+            "ANID_Desafios_Publicos": "ANID Public Challenges",
+            "Centros_FONDAP": "FONDAP Centers",
+            "CORFO": "CORFO",
+            "FONDECYT_Exploracion": "FONDECYT Exploration",
+            "FONDECYT_Iniciacion": "FONDECYT Initiation",
+            "FONDECYT_Postdoctoral": "FONDECYT Postdoctoral",
+            "FONDECYT_Regular": "FONDECYT Regular",
+            "FONDEF_IDeA_I_D": "FONDEF IDeA R&D",
+            "FONDEF_IDeA_I_T": "FONDEF IDeA I+T",
+            "FONDEF_VIU": "FONDEF VIU",
+            "FONIS": "FONIS",
+            "Gobierno_Regional": "Regional Government",
+            "Internacional": "International",
+            "Nucleos_Milenio": "Millennium Nuclei",
+            "Fondos_Interno_USS": "USS Internal Funds",
+            "Fondos_Interno_USS_Inteligencia_Artificial": "USS Internal Funds: Artificial Intelligence",
+            "Fondo_Interno_USS_Proyectos_de_Vinculacion_con_el_Medio_VcM": "USS Internal Fund: Community Engagement Projects (VcM)",
+            "Fondo_Interno_USS_Innovacion_e_Investigacion_en_Docencia_Universitaria_CIES": "USS Internal Fund: Innovation and Research in University Teaching (CIES)",
+            "Fondo_Interno_USS_Investigacion_en_Politicas_Publicas_USS_IPSUSS": "USS Internal Fund: Public Policy Research (IPSUSS)",
+            "TESIS_Pregrado": "Undergraduate thesis",
+            "TESIS_Magister": "Master’s thesis",
+            "TESIS_Doctorado": "Doctoral thesis",
+            "Otros": "Other"
+          }
+        },
+        "NP003": {
+          "label": "Funding status",
+          "options": {
+            "AWARDED": "Awarded",
+            "APPLYING": "Under application",
+            "NOT_APPLICABLE": "Not applicable"
+          }
+        },
+        "NP004": {
+          "label": "First name of the Principal Investigator (PI)"
+        },
+        "NP005": {
+          "label": "Last name of the Principal Investigator (PI)"
+        },
+        "NP006": {
+          "label": "Email of the Principal Investigator (PI)"
+        },
+        "NP007": {
+          "label": "USS campus where the project is carried out",
+          "options": {
+            "Santiago_Bellavista": "Santiago - Bellavista",
+            "Santiago_Los_Leones": "Santiago - Los Leones",
+            "Santiago_Ciudad_Universitaria_Huechuraba": "Santiago - University City (Huechuraba)",
+            "Concepcion_Tres_Pascualas": "Concepción - Tres Pascualas",
+            "Concepcion_Paicavi": "Concepción - Paicaví",
+            "Valdivia_Sede": "Valdivia - Campus",
+            "Valdivia_Centro_de_Estudios_Cientificos": "Valdivia - Centro de Estudios Científicos",
+            "Patagonia": "Patagonia"
+          }
+        },
+        "NP008": {
+          "label": "Faculty/Unit",
+          "options": {
+            "Arquitectura_Arte_y_Diseno": "Architecture, Art and Design",
+            "Ciencias": "Sciences",
+            "Ciencias_de_la_Rehabilitacion_y_Calidad_de_Vida": "Rehabilitation Sciences and Quality of Life",
+            "Ciencias_para_el_cuidado_de_la_Salud": "Health Care Sciences",
+            "Derecho_y_Ciencias_Sociales": "Law and Social Sciences",
+            "Economia_Negocios_y_Gobierno": "Economics, Business and Government",
+            "Educacion": "Education",
+            "Ingenieria": "Engineering",
+            "Medicina": "Medicine",
+            "Medicina_Veterinaria": "Veterinary Medicine",
+            "Odontologia": "Dentistry"
+          }
+        },
+        "NP009": {
+          "label": "Program, degree or other",
+          "help": "If not applicable, enter N/A."
+        },
+        "NP010": {
+          "label": "Position type",
+          "options": {
+            "Estudiante_de_pregrado": "Undergraduate student",
+            "Estudiante_de_magister": "Master’s student",
+            "Estudiante_de_doctorado": "Doctoral student",
+            "Postdoctorante": "Postdoctoral fellow",
+            "Asistente_de_Investigacion": "Research assistant",
+            "Personal_Tecnico": "Technical staff",
+            "Docente": "Faculty member",
+            "Co_Investigador": "Co-investigator",
+            "Investigador": "Researcher",
+            "Director_Unidad_Administrativa": "Administrative unit director"
+          }
+        },
+        "NP011": {
+          "label": "Sponsor or tutor first name"
+        },
+        "NP012": {
+          "label": "Sponsor or tutor last name"
+        },
+        "NP013": {
+          "label": "Sponsor or tutor email"
+        },
+        "NP014": {
+          "label": "USS campus of the sponsor or tutor",
+          "options": {
+            "Santiago_Bellavista": "Santiago - Bellavista",
+            "Santiago_Los_Leones": "Santiago - Los Leones",
+            "Santiago_Ciudad_Universitaria_Huechuraba": "Santiago - University City (Huechuraba)",
+            "Concepcion_Tres_Pascualas": "Concepción - Tres Pascualas",
+            "Concepcion_Paicavi": "Concepción - Paicaví",
+            "Valdivia_Sede": "Valdivia - Campus",
+            "Valdivia_Centro_de_Estudios_Cientificos": "Valdivia - Centro de Estudios Científicos",
+            "Patagonia": "Patagonia"
+          }
+        },
+        "NP015": {
+          "label": "Faculty/Unit of the sponsor or tutor",
+          "options": {
+            "Arquitectura_Arte_y_Diseno": "Architecture, Art and Design",
+            "Ciencias": "Sciences",
+            "Ciencias_de_la_Rehabilitacion_y_Calidad_de_Vida": "Rehabilitation Sciences and Quality of Life",
+            "Ciencias_para_el_cuidado_de_la_Salud": "Health Care Sciences",
+            "Derecho_y_Ciencias_Sociales": "Law and Social Sciences",
+            "Economia_Negocios_y_Gobierno": "Economics, Business and Government",
+            "Educacion": "Education",
+            "Ingenieria": "Engineering",
+            "Medicina": "Medicine",
+            "Medicina_Veterinaria": "Veterinary Medicine",
+            "Odontologia": "Dentistry"
+          }
+        },
+        "NP016": {
+          "label": "Position type of the sponsor or tutor",
+          "options": {
+            "Docente": "Faculty member",
+            "Docente_Investigador": "Faculty researcher",
+            "Investigador": "Researcher"
+          }
+        },
+        "NP017": {
+          "label": "This proposal",
+          "options": {
+            "Es_un_proyecto_original": "It is an original project",
+            "Se_enmarca_en_un_proyecto_vigente_de_mi_tutor_o_patrocinante_sin_incorporar_cambios": "It is part of an active project of my tutor or sponsor, with no changes",
+            "Se_enmarca_en_un_proyecto_vigente_de_mi_tutor_o_patrocinante_incorporando_cambios_o_nuevos_elementos": "It is part of an active project of my tutor or sponsor, incorporating changes or new elements"
+          }
+        },
+        "NP018": {
+          "label": "Activity type",
+          "help": "Select all that apply.",
+          "options": {
+            "Actividad_de_graduacion_de_pregrado": "Undergraduate graduation activity",
+            "Actividad_de_graduacion_de_Magister": "Master’s graduation activity",
+            "Asesorias_Tecnicas_Especializadas": "Specialized technical advice",
+            "Curso_proyecto_de_investigacion": "Research project course",
+            "Curso_metodologia_de_la_investigacion_de_pregrado": "Undergraduate research methods course",
+            "Estudio_de_Caso": "Case study",
+            "Proyecto_de_Investigacion": "Research project",
+            "Proyecto_de_Vinculacion_con_el_Medio": "Community engagement project",
+            "Proyecto_Piloto_pruebas_de_concepto_obtencion_de_datos_preliminares_pruebas_de_metodologias_etc": "Pilot project (proof of concept, preliminary data, methodology testing, etc.)",
+            "Revision_Bibliografica": "Literature review",
+            "Trabajo_entorno_a_necesidades_del_comercio_la_industria_y_sociedad": "Work addressing needs of commerce, industry and society",
+            "Tesis_de_Pregrado": "Undergraduate thesis",
+            "Tesis_de_Magister": "Master’s thesis",
+            "Tesis_de_Doctorado": "Doctoral thesis"
+          }
+        },
+        "NP019": {
+          "label": "This activity",
+          "options": {
+            "Es_un_proyecto_original": "It is an original project",
+            "Se_enmarca_en_un_proyecto_vigente_que_cuenta_con_certificaciones_eticas_y_o_bioseguridad_y_NO_incorpora_cambios_o_nuevos_elementos": "It is part of an active project with ethics and/or biosafety certifications and does NOT add changes or new elements",
+            "Se_enmarca_en_un_proyecto_vigente_que_cuenta_con_certificaciones_eticas_y_o_bioseguridad_y_SI_incorpora_cambios_o_nuevos_elementos": "It is part of an active project with ethics and/or biosafety certifications and DOES add changes or new elements"
+          }
+        },
+        "NP020": {
+          "label": "Indicate the execution site at USS",
+          "help": "Where data will be obtained."
+        },
+        "NP021": {
+          "label": "Indicate the external execution site, not USS",
+          "help": "Where data will be obtained."
+        },
+        "NP022": {
+          "label": "The project will be carried out by",
+          "help": "Select all that apply.",
+          "options": {
+            "Estudiantes_de_pregrado": "Undergraduate students",
+            "Estudiantes_de_postgrado": "Graduate students",
+            "Docentes": "Faculty members",
+            "Docentes_investigadores": "Faculty researchers",
+            "Investigadores": "Researchers",
+            "Personal_Tecnico_de_apoyo_a_la_Investigacion": "Technical research support staff",
+            "Personal_Administrativo": "Administrative staff"
+          }
+        },
+        "NP023": {
+          "label": "Expected product(s)",
+          "help": "Select all that apply.",
+          "options": {
+            "Envio_publicacion_en_revista_de_especialidad": "Submission/publication in a specialist journal",
+            "Libro_o_capitulo_de_libro": "Book or book chapter",
+            "Informe_final_de_curso_de_metodologia_de_investigacion_de_pregrado": "Final report of an undergraduate research methods course",
+            "Informe_final_de_curso_proyecto_de_investigacion_de_pregrado": "Final report of an undergraduate research project course",
+            "Tesis_o_seminario_de_grado": "Thesis or degree seminar",
+            "Producto_susceptible_a_proteccion_de_propiedad_intelectual": "Output eligible for intellectual property protection",
+            "Postulacion_presentacion_en_congresos_simposios_o_seminarios": "Application/presentation at congresses, symposia or seminars",
+            "Postulacion_a_Fondos_externos_concursables": "Application to competitive external funds",
+            "Generacion_de_Material_Metodologia_otro_para_mejorar_la_docencia_aprendizaje_en_la_USS": "Creation of material/methodology/other to improve teaching/learning at USS",
+            "Generacion_de_Material_Metodologia_otro_para_mejorar_la_docencia_aprendizaje_general": "Creation of material/methodology/other to improve teaching/learning in general",
+            "Generacion_de_Bases_de_Datos": "Database generation",
+            "Indicaciones_para_politicas_publicas": "Guidance for public policy",
+            "Material_informativo_para_la_comunidad": "Informative material for the community"
+          }
+        },
+        "NP024": {
+          "label": "The proposal methodology includes the following study objects/subjects",
+          "help": "Select all that apply.",
+          "options": {
+            "cec_samples": "Individuals from whom biological samples will be collected (blood, tissue, secretions, etc.)",
+            "cec_drugs": "Individuals who will receive drugs or on whom medical devices will be used",
+            "cec_surveys": "Individuals who will participate in surveys, interviews, questionnaires, etc.",
+            "cec_records": "Individuals from whom location records (GPS) or graphic and/or sound records (audio, video, photographs) will be collected",
+            "cec_vulnerable": "Minors, people from Indigenous peoples, students, persons deprived of liberty, people with a disability requiring additional safeguards, or other persons requiring additional safeguards",
+            "cec_records_clinical": "Clinical, psychological or social records",
+            "cec_social": "Manipulation of the social and/or cultural environment (e.g. ethnographic studies, urban interventions, etc.)",
+            "cec_public_db_1": "Public-domain databases",
+            "cec_public_db_2": "Public-domain databases",
+            "cecua_vertebrates": "Vertebrate animals",
+            "cecua_samples": "Collection of biological samples from animals and/or anatomical parts derived from animals",
+            "cecua_prior": "Previously obtained biological samples from animals and/or anatomical parts derived from animals",
+            "cecua_commercial": "Commercially sourced biological samples from animals",
+            "bio_reagents": "Use of chemical reagents, drugs, hormones, radioisotopes",
+            "bio_human": "Use of biological samples from people",
+            "bio_animal": "Use of biological samples from animals",
+            "bio_cell_commercial": "Use of commercial cell lines",
+            "bio_cell_generated": "Generation of cell lines from animal or human samples",
+            "bio_agents": "Use and/or generation of biological agents (such as bacteria, viruses, fungi, parasites, infectious material, genetically modified organisms)",
+            "bio_env_samples": "Manipulation of the natural environment: collection and use of environmental samples",
+            "bio_env_apply": "Manipulation of the natural environment: application of external elements to the environment",
+            "NONE": "None of the above"
+          }
+        },
+        "NP025": {
+          "label": "I declare that the information in this form is truthful and covers all background information for the identified activity."
+        },
+        "NP026": {
+          "label": "I declare that I know and adhere to the Singapore Statement on Research Integrity."
+        }
+      }
+    },
+    "validation": {
+      "title": "Project validation",
+      "sections": {
+        "A": "Principal investigator",
+        "B": "Project",
+        "C": "Committees to validate",
+        "D": "External approval",
+        "E": "Documentation"
+      },
+      "questions": {
+        "VAL001": {
+          "label": "First name of the Principal Investigator (PI)"
+        },
+        "VAL002": {
+          "label": "Last name of the Principal Investigator (PI)"
+        },
+        "VAL003": {
+          "label": "Email of the Principal Investigator (PI)"
+        },
+        "VAL004": {
+          "label": "Category",
+          "options": {
+            "Docente": "Faculty member",
+            "Docente_Investigador": "Faculty researcher",
+            "Investigador": "Researcher"
+          }
+        },
+        "VAL005": {
+          "label": "Faculty/Unit"
+        },
+        "VAL006": {
+          "label": "USS campus where the project will be carried out"
+        },
+        "VAL007": {
+          "label": "Project type or funding source"
+        },
+        "VAL008": {
+          "label": "Proposal title"
+        },
+        "VAL009": {
+          "label": "Code assigned by the funding source"
+        },
+        "VAL010": {
+          "label": "Which committee(s) must validate?",
+          "options": {
+            "CEC": "Scientific Ethics Committee",
+            "CECUA": "Institutional Animal Care and Use Ethics Committee",
+            "BIOSEGURIDAD": "Biosafety Committee"
+          }
+        },
+        "VAL011": {
+          "label": "Institution that issued the approval"
+        },
+        "VAL012": {
+          "label": "Is the title in the approval record identical to the one declared above?",
+          "options": {
+            "yes": "Yes",
+            "no": "No, it changed"
+          }
+        },
+        "VAL013": {
+          "label": "Does the executing team change?",
+          "options": {
+            "yes": "Yes",
+            "no": "No"
+          }
+        },
+        "VAL014": {
+          "label": "Does any procedure change with respect to the approved protocol?",
+          "options": {
+            "yes": "Yes",
+            "no": "No"
+          }
+        },
+        "VAL015": {
+          "label": "Will the project also continue at the originating institution?",
+          "options": {
+            "yes": "Yes",
+            "no": "No"
+          }
+        },
+        "VAL016": {
+          "label": "Estimated start date of activities at USS"
+        },
+        "VAL017": {
+          "label": "Validation request letter",
+          "help": "PDF only. Visual set limit: 100 MB."
+        },
+        "VAL018": {
+          "label": "Supporting documentation",
+          "options": {
+            "acta": "Approval minutes or certificate issued by the originating committee",
+            "protocolo": "Full protocol and/or approved documentation",
+            "adjudicacion": "Project award letter",
+            "seguimiento": "Follow-up report from the originating committee",
+            "enmiendas": "Approval of project amendments issued by the originating committee",
+            "otros": "Other"
+          }
+        },
+        "VAL019": {
+          "label": "Document upload",
+          "help": "Files are shown by name, type and size. The internal path is not exposed."
+        }
+      }
+    }
+  },
+  "classification": {
+    "automatic": "Automatic classification",
+    "automaticHint": "System suggestion based on study objects or subjects. DISEI may confirm or change it.",
+    "validated": "Classification validated by DISEI",
+    "justification": "Change justification",
+    "justificationPlaceholder": "Describe the reason for the change",
+    "justificationHint": "Indicate why the validated classification differs from the automatic suggestion.",
+    "confirmReferral": "Confirm referral",
+    "needJustification": "A justification is required.",
+    "selectOne": "Select a classification.",
+    "confirmTitle": "Confirm referral",
+    "confirmBody": "You are about to confirm the referral of this project.",
+    "inboxTitle": "Certification applications pending",
+    "emptyTitle": "Inbox is up to date",
+    "emptyMessage": "There are no applications waiting for DISEI validation.",
+    "code": "Code",
+    "project": "Project",
+    "researcher": "Researcher",
+    "type": "Type",
+    "date": "Date",
+    "automaticCol": "Automatic classification",
+    "review": "Review"
+  },
+  "reviews": {
+    "title": "Assigned reviews",
+    "session": "session {session}",
+    "sessionPending": "to be defined",
+    "openAssignment": "Open assignment",
+    "accept": "Accept",
+    "reject": "Decline",
+    "methodology": "Methodology",
+    "risks": "Risks and safeguards",
+    "notes": "Comments",
+    "saveDraft": "Save draft",
+    "submitReview": "Submit review",
+    "submittedReadonly": "Review submitted. It is now read-only.",
+    "rejectReason": "Reason for declining (required)",
+    "confirmReject": "Confirm decline",
+    "declare": "I declare regarding this project:",
+    "noConflict": "No conflict of interest",
+    "hasConflict": "There is a potential conflict",
+    "defaultTitle": "Review",
+    "criteria": {
+      "metodologia": "Methodology",
+      "riesgos": "Risks and safeguards",
+      "observaciones": "Comments",
+      "bienestar": "Welfare"
+    },
+    "responsibleInvestigator": "Responsible investigator",
+    "fundingSource": "Funding source",
+    "documents": "Project documents",
+    "formProvisional": "Provisional prototype form."
+  },
+  "sessions": {
+    "title": "Committee sessions",
+    "new": "New session",
+    "committee": "Committee",
+    "type": "Type",
+    "date": "Date",
+    "time": "Time",
+    "create": "Create session",
+    "projectsCount": "{count} projects",
+    "detailTitle": "Session {date} {time}"
+  },
+  "reviewers": {
+    "title": "Reviewers",
+    "name": "Name",
+    "specialty": "Specialty",
+    "committee": "Committee",
+    "load": "Workload",
+    "availability": "Availability"
+  },
+  "expirations": {
+    "title": "Expirations",
+    "issuedExpires": "Issued {issued} · Expires {expires}",
+    "days": "{semaphore} · {days} days",
+    "critical": "Critical alert. 15 days to regularize renewal (planned).",
+    "viewCase": "View case"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "SUBMISSION_RECEIVED": {
+      "title": "Application received",
+      "body": "{projectTitle}"
+    },
+    "SUBMISSION_SENT": {
+      "title": "Application submitted",
+      "body": "DISEI will validate the preliminary classification."
+    },
+    "CLASSIFICATION_DONE": {
+      "title": "Classification completed",
+      "body": "You can now upload supporting documents by committee."
+    },
+    "DOCUMENTS_SENT": {
+      "title": "Documents submitted",
+      "body": "Case {caseCode} was notified."
+    },
+    "REVIEW_ASSIGNED": {
+      "title": "Reviewer assignment",
+      "body": "You have been assigned to review {caseCode}."
+    },
+    "OBSERVATIONS_AVAILABLE": {
+      "title": "Comments available",
+      "body": "The committee requested changes."
+    },
+    "RESPONSE_RECEIVED": {
+      "title": "Response received",
+      "body": "The PI responded to {observationCode}."
+    },
+    "RESOLUTION_ISSUED": {
+      "title": "Resolution issued",
+      "body": "{correlative} is now available."
+    }
+  },
+  "audit": {
+    "title": "History and audit",
+    "reason": "Reason: {reason}",
+    "actions": {
+      "CREATE_SUBMISSION": "Created an application",
+      "SUBMIT_REQUEST": "Submitted an ethics application",
+      "VALIDATE_CLASSIFICATION": "Validated the classification",
+      "CLASSIFICATION_CHANGED": "Changed the classification",
+      "CLASSIFICATION_CONFIRMED": "Confirmed the classification",
+      "CREATE_CASE": "Created a committee case",
+      "NOTIFY_COMMITTEE": "Notified the committee",
+      "ADMISSIBILITY": "Resolved admissibility",
+      "ASSIGN_REVIEWERS": "Assigned reviewers",
+      "REVIEW_DECISION": "Decided an assignment",
+      "REVIEW_SUBMITTED": "Submitted the review",
+      "PUBLISH_OBSERVATIONS": "Published comments",
+      "ANSWER_OBSERVATIONS": "Answered comments",
+      "PREPARE_RESOLUTION": "Prepared a resolution",
+      "VALIDATE_RESOLUTION": "Validated a resolution",
+      "CREATE_SESSION": "Created a session",
+      "UPLOAD_DOCUMENT": "Uploaded a document",
+      "ADMIT_CASE": "Declared the file complete",
+      "RETURN_CASE": "Returned the file for correction",
+      "DECLARE_CONFLICT": "Declared a conflict of interest",
+      "ACCEPT_ASSIGNMENT": "Accepted the assignment",
+      "REJECT_ASSIGNMENT": "Declined the assignment",
+      "SUBMIT_RESPONSES": "Submitted responses",
+      "ISSUE_RESOLUTION": "Issued a resolution",
+      "DOCUMENT_UPLOADED": "Uploaded a document",
+      "COMMITTEE_NOTIFIED": "Notified the committee",
+      "COMMITTEE_CONTACT": "Contacted the committee",
+      "ADMISSIBILITY_ACCEPTED": "Accepted admissibility",
+      "OBSERVATIONS_CONSOLIDATED": "Consolidated observations",
+      "OBSERVATIONS_PUBLISHED": "Published observations",
+      "RESEARCHER_RESPONSE_SUBMITTED": "Submitted the response",
+      "RESOLUTION_PREPARED": "Prepared the resolution",
+      "RESOLUTION_RETURNED_TO_SECRETARY": "Returned the resolution",
+      "RESOLUTION_VALIDATED": "Validated the resolution",
+      "AMENDMENT_REQUESTED": "Requested an amendment",
+      "FOLLOW_UP_REQUESTED": "Requested a follow-up",
+      "COMMITTEE_NOTIFICATION": "Committee notification",
+      "OBSERVATION_NOTICE": "Observation notice"
+    }
+  },
+  "pdf": {
+    "prototypeDisclaimer": "Prototype preview. This is not the official committee format."
+  },
+  "shell": {
+    "activeCommittee": "Active committee"
+  },
+  "catalogs": {
+    "docs": {
+      "cecLetterPresident": "Letter to the President of the Scientific Ethics Committee requesting review",
+      "cecCommitment": "Investigator commitment letter",
+      "cecProtocol": "Full research project",
+      "cecSummary": "Research project summary",
+      "cecEthicsAnalysis": "Ethical analysis of the project",
+      "cecCv": "Curriculum vitae of all participating investigators",
+      "cecSupportLetter": "Support letter from the academic unit authority",
+      "cecConsent": "Informed consent form",
+      "cecAssent": "Informed assent form for participants under 18",
+      "cecBioConsent": "Informed consent form for future use of biological samples",
+      "cecInstruments": "Data collection instruments",
+      "cecRecruitment": "Recruitment or publicity instruments",
+      "cecOtherCec": "Resolution from another ethics committee",
+      "cecDirectorLetter": "Letter template for the institution director",
+      "cecScientificApproval": "Document certifying scientific evaluation or approval",
+      "cecuaProtocol": "Full research project",
+      "cecuaSummary": "Project summary in Spanish",
+      "cecuaAnimalProtocol": "Animal care and use protocol or SOP protocol",
+      "cecuaSupervision": "Supervision guideline",
+      "cecuaRecord": "Record sheet",
+      "cecuaScientific": "Document certifying scientific evaluation or approval",
+      "cecuaFeasibility": "Animal facility feasibility letter",
+      "bioProtocol": "Full research project",
+      "bioSummary": "Project summary in Spanish",
+      "bioBiosafety": "Biosafety protocol",
+      "bioScientific": "Document certifying scientific evaluation or approval"
+    },
+    "roles": {
+      "ADMINISTRATOR": "DISEI Administration",
+      "COMMITTEE_PRESIDENT": "Committee President",
+      "EXECUTIVE_SECRETARY": "Executive Secretary",
+      "COMMITTEE_MEMBER": "Committee Member",
+      "RESEARCHER": "Researcher"
+    },
+    "committees": {
+      "CEC": "Scientific Ethics Committee",
+      "CECUA": "Institutional Animal Care and Use Ethics Committee",
+      "BIOSEGURIDAD": "Biosafety Committee",
+      "NO_REQUIERE_COMITE": "No committee required"
+    },
+    "submissionTypes": {
+      "NEW_PROJECT": "New project",
+      "VALIDATION": "Project validation"
+    },
+    "statuses": {
+      "DRAFT": "Draft",
+      "PENDING_CLASSIFICATION": "Pending classification",
+      "IN_EVALUATION": "Under review",
+      "MIXED": "Mixed review",
+      "PENDING_DOCUMENTS": "Pending documents",
+      "NOTIFIED": "Notified to the committee",
+      "ADMISSIBILITY": "Admissibility",
+      "RETURNED": "Returned for correction",
+      "PENDING_ASSIGNMENT": "Pending assignment",
+      "PENDING_ACCEPTANCE": "Pending acceptance",
+      "IN_REVIEW": "Under review",
+      "WITH_OBSERVATIONS": "With comments",
+      "AWAITING_RESEARCHER": "Awaiting PI response",
+      "PENDING_SESSION": "Pending session",
+      "PENDING_RESOLUTION": "Pending resolution",
+      "PENDING_PRESIDENT_VALIDATION": "Pending chair validation",
+      "APPROVED": "Approved",
+      "REJECTED": "Rejected",
+      "WITHDRAWN": "Withdrawn",
+      "EXEMPT": "Exempt",
+      "TO_BE_DETERMINED": "To be determined",
+      "INVALID": "Invalid",
+      "PENDING": "Pending",
+      "CLASSIFIED": "Classified",
+      "SUBMITTED": "Submitted"
+    },
+    "assignmentStatus": {
+      "PENDING": "Pending",
+      "ACCEPTED": "Accepted",
+      "REJECTED": "Declined",
+      "CONFLICT": "Conflict",
+      "COMPLETED": "Completed"
+    },
+    "observationStatus": {
+      "DRAFT": "Draft",
+      "PUBLISHED": "Published",
+      "PENDING_RESPONSE": "Pending response",
+      "ANSWERED": "Answered"
+    },
+    "sessionTypes": {
+      "ORDINARY": "Ordinary",
+      "EXTRAORDINARY": "Extraordinary"
+    },
+    "sessionStatus": {
+      "SCHEDULED": "Scheduled",
+      "IN_PROGRESS": "In progress",
+      "CLOSED": "Closed"
+    },
+    "decisions": {
+      "RECEIVED": "Received",
+      "IN_REVIEW": "Under review",
+      "WITH_OBSERVATIONS": "With comments",
+      "AWAITING_IR": "Awaiting PI response",
+      "APPROVED": "Approved",
+      "REJECTED": "Rejected",
+      "WITHDRAWN": "Withdrawn",
+      "EXEMPT": "Exempt",
+      "TO_BE_DETERMINED": "To be determined",
+      "INVALID": "Invalid",
+      "PENDING": "Pending"
+    },
+    "resolutionKinds": {
+      "APPROVED": "Approved",
+      "REJECTED": "Rejected",
+      "EXEMPT": "Exempt",
+      "WITHDRAWN": "Withdrawn",
+      "TO_BE_DETERMINED": "To be determined"
+    },
+    "resolutionWorkflow": {
+      "DRAFT": "Draft",
+      "PENDING_PRESIDENT": "Pending chair",
+      "VALIDATED": "Validated",
+      "ISSUED": "Issued"
+    },
+    "semaphore": {
+      "VIGENTE": "Active",
+      "PROXIMO": "Expiring soon",
+      "VENCIDO": "Expired"
+    },
+    "availability": {
+      "ALTA": "High",
+      "MEDIA": "Medium",
+      "BAJA": "Low"
+    },
+    "requiredDocs": {
+      "protocolo": "Research protocol",
+      "consentimiento": "Informed consent",
+      "instrumentos": "Data collection instruments",
+      "carta-ir": "Principal investigator letter",
+      "autorizacion": "Institutional authorization",
+      "protocolo-animal": "Animal use protocol",
+      "justificacion": "Scientific justification",
+      "bienestar": "Animal welfare plan",
+      "capacitacion": "Team training certificate",
+      "instalaciones": "Facility description",
+      "protocolo-bio": "Biosafety protocol",
+      "fichas": "Reagent safety data sheets",
+      "residuos": "Waste management plan",
+      "lab": "Laboratory authorization"
+    }
+  },
+  "settings": {
+    "title": "Prototype settings",
+    "futureApi": "Future API: {api}",
+    "storage": "Data lives in the browser localStorage. Reset restores the demonstration seed.",
+    "reset": "Reset demo data"
+  },
+  "committees": {
+    "title": "Committees",
+    "independent": "Each committee keeps status, documents, reviewers, cycles, session and resolution independently."
+  },
+  "empty": {
+    "none": {
+      "title": "No items",
+      "message": "There is no information to show at this time."
+    }
+  },
+  "errors": {
+    "notFound": "Not found",
+    "generic": "An error occurred.",
+    "pdfOnly": "Only PDF files are accepted.",
+    "fileLimit": "The file set exceeds the visual 100 MB limit."
+  },
+  "privacy": {
+    "committeeOnly": "🔒 Committee only",
+    "researcherVisible": "👤 Visible to the researcher",
+    "publicable": "🌐 Public / publishable"
+  }
+}

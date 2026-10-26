@@ -1,0 +1,62 @@
+:host {
+  display: block;
+}
+
+:host ::ng-deep os-page-header .page-header {
+  margin-bottom: var(--os-space-md);
+}
+
+.tabs {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: var(--os-space-md);
+}
+
+.tabs button {
+  border: 0;
+  background: transparent;
+  padding: 0.35rem 0;
+  font-weight: 650;
+  color: var(--os-text-secondary);
+  cursor: pointer;
+}
+
+.tabs button.is-active {
+  color: var(--os-primary);
+  box-shadow: inset 0 -2px 0 var(--os-primary);
+}
+
+.organization-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(8.5rem, 1fr));
+  align-items: stretch;
+  gap: var(--os-space-sm);
+  margin-bottom: var(--os-space-md);
+}
+
+.organization-summary.is-updating {
+  opacity: 0.72;
+}
+
+.filtered-summary,
+.organization-filters {
+  margin-bottom: var(--os-space-md);
+}
+
+.filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.link-button {
+  border: 0;
+  background: transparent;
+  color: var(--os-primary);
+  cursor: pointer;
+  padding: 0;
+}
+
+.organization-table {
+  min-width: 72rem;
+}

@@ -1,0 +1,50 @@
+.readonly {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.lead,
+.block {
+  background: var(--eth-surface);
+  border: 1px solid var(--eth-border);
+  border-radius: var(--eth-radius);
+  box-shadow: var(--eth-shadow);
+  padding: 1.1rem 1.2rem;
+}
+
+.lead h1,
+.block h2 {
+  margin: 0;
+}
+
+.lead h1 {
+  font-size: 1.55rem;
+  line-height: 1.25;
+}
+
+.identity {
+  margin: 0.35rem 0 0.8rem;
+  color: var(--eth-muted);
+}
+
+.meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.75rem 1rem;
+  margin: 0;
+}
+
+.meta dt {
+  color: var(--eth-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.meta dd {
+  margin: 0.2rem 0 0;
+}
+
+.block h2 {
+  font-size: 1.05rem;
+  margin-bottom: 0.35rem;
+}

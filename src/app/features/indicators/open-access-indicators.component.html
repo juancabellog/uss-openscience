@@ -1,0 +1,64 @@
+@if (view(); as vm) {
+  @if (vm.status === 'loading') {
+    <os-loading-state />
+  } @else if (vm.status === 'error') {
+    <os-error-state />
+  } @else if (vm.data; as data) {
+  <p class="identity-card__base">{{ 'indicators.openAccess.disclaimer' | translate }}</p>
+  <section class="identity-group">
+    <div class="identity-cards">
+      <article class="identity-card">
+        <p class="identity-card__value">
+          {{ data.oa | localeNumber }}
+          ·
+          {{ percent(data.oa, data.evaluated) | localePercent }}
+        </p>
+        <h3>{{ 'indicators.openAccess.coverage.name' | translate }}</h3>
+        <p>{{ 'indicators.openAccess.coverage.description' | translate }}</p>
+        <p class="identity-card__base">
+          {{ 'indicators.openAccess.baseEvaluated' | translate: { count: formatCount(data.evaluated) } }}
+        </p>
+        <a routerLink="/integrations/unpaywall" [queryParams]="{ isOa: 'true' }" class="identity-card__action">
+          {{ 'indicators.openAccess.viewCases' | translate }}
+        </a>
+      </article>
+      <article class="identity-card">
+        <p class="identity-card__value">
+          {{ data.repositoryCopy | localeNumber }}
+          ·
+          {{ percent(data.repositoryCopy, data.evaluated) | localePercent }}
+        </p>
+        <h3>{{ 'indicators.openAccess.repository.name' | translate }}</h3>
+        <p>{{ 'indicators.openAccess.repository.description' | translate }}</p>
+        <p class="identity-card__base">
+          {{ 'indicators.openAccess.baseEvaluated' | translate: { count: formatCount(data.evaluated) } }}
+        </p>
+        <a routerLink="/integrations/unpaywall" [queryParams]="{ repositoryCopy: 'true' }" class="identity-card__action">
+          {{ 'indicators.openAccess.viewCases' | translate }}
+        </a>
+      </article>
+    </div>
+  </section>
+  @if (data.oaStatusDistribution.length) {
+    <section class="identity-group">
+      <h2>{{ 'indicators.openAccess.distribution' | translate }}</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>oa_status</th>
+            <th>{{ 'unpaywall.evaluated' | translate }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of data.oaStatusDistribution; track row.oaStatus) {
+            <tr>
+              <td>{{ row.oaStatus }}</td>
+              <td>{{ row.count | localeNumber }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </section>
+  }
+}
+}

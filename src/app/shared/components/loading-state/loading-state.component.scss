@@ -1,0 +1,29 @@
+:host {
+  display: block;
+}
+
+.state-box {
+  background: var(--os-surface);
+  border: 1px dashed var(--os-border-strong);
+  border-radius: var(--os-radius-md);
+  padding: var(--os-space-xl);
+  color: var(--os-text-secondary);
+}
+
+.spinner {
+  display: inline-block;
+  width: 1.1rem;
+  height: 1.1rem;
+  margin-right: 0.5rem;
+  border: 2px solid var(--os-border);
+  border-top-color: var(--os-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  vertical-align: middle;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

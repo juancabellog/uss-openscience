@@ -1,0 +1,105 @@
+:host {
+  display: flex;
+  height: 100%;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  width: var(--sidebar-width);
+  height: 100%;
+  min-height: 100%;
+  background: var(--uss-primary);
+  color: var(--os-text-inverse);
+  padding: var(--os-space-md) 0.75rem var(--os-space-sm);
+  transition: width 0.2s ease;
+  box-shadow: inset 0 2px 0 var(--uss-secondary);
+}
+
+.sidebar--collapsed {
+  width: var(--sidebar-collapsed-width);
+  padding-left: 0.55rem;
+  padding-right: 0.55rem;
+}
+
+.sidebar__nav {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+a {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: rgba(255, 255, 255, 0.82);
+  text-decoration: none;
+  border-radius: var(--os-radius-sm);
+  padding: var(--os-sidebar-link-y) var(--os-sidebar-link-x);
+  min-height: 2.35rem;
+}
+
+a os-icon {
+  flex: 0 0 var(--os-sidebar-icon);
+  width: var(--os-sidebar-icon);
+  height: var(--os-sidebar-icon);
+}
+
+a:hover {
+  background: var(--os-sidebar-hover);
+  color: #fff;
+}
+
+a.is-active {
+  background: var(--os-sidebar-active-bg);
+  color: var(--os-sidebar-active-text);
+  box-shadow: inset 3px 0 0 var(--os-sidebar-active-bar);
+  font-weight: 600;
+}
+
+.sidebar__footer {
+  margin-top: auto;
+  padding-top: var(--os-space-md);
+}
+
+.sidebar__meta {
+  margin: 0;
+  padding: 0 var(--os-sidebar-link-x);
+  color: rgba(255, 255, 255, 0.48);
+  font-size: var(--os-fs-xs);
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.sidebar--collapsed .sidebar__nav span {
+  display: none;
+}
+
+.sidebar--collapsed .sidebar__nav a {
+  justify-content: center;
+  padding-left: 0.45rem;
+  padding-right: 0.45rem;
+}
+
+.sidebar--collapsed .sidebar__meta {
+  padding: 0;
+  text-align: center;
+  font-size: 0.6875rem;
+}
+
+@media (max-width: 720px) {
+  .sidebar--collapsed {
+    width: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+}

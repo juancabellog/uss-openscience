@@ -1,0 +1,54 @@
+<p><a routerLink="/eventos">{{ 'detail.back' | translate }}</a></p>
+
+@if (view().kind === 'loading') {
+  <p>{{ 'detail.loading' | translate }}</p>
+} @else if (view().kind === 'missing') {
+  <section class="panel">
+    <h1>{{ 'detail.notFoundTitle' | translate }}</h1>
+    <p>{{ 'detail.notFoundBody' | translate }}</p>
+  </section>
+} @else if (view().kind === 'unpublished') {
+  <section class="panel">
+    <h1>{{ 'detail.unpublishedTitle' | translate }}</h1>
+    <p>{{ 'detail.unpublishedBody' | translate }}</p>
+  </section>
+} @else if (view().kind === 'offline') {
+  <p class="error">{{ 'detail.connectionError' | translate }}</p>
+} @else if (view().kind === 'error') {
+  <p class="error">{{ 'detail.unexpectedError' | translate }}</p>
+} @else {
+  @let event = view().event!;
+  <section class="panel">
+    <p class="muted">{{ event.eventType | catalog:'types' }} · {{ event.modality | catalog:'modalities' }}</p>
+    <h1>{{ titleOf(event) }}</h1>
+    @if (descriptionOf(event); as description) {
+      <p class="description">{{ description }}</p>
+    }
+    <dl>
+      @if (event.startsAt) {
+        <div><dt>{{ 'detail.start' | translate }}</dt><dd>{{ event.startsAt | localeDate: event.timezone }}</dd></div>
+      }
+      @if (event.endsAt) {
+        <div><dt>{{ 'detail.end' | translate }}</dt><dd>{{ event.endsAt | localeDate: event.timezone }}</dd></div>
+      }
+      @if (event.locationName) {
+        <div><dt>{{ 'detail.place' | translate }}</dt><dd>{{ event.locationName }}</dd></div>
+      }
+      @if (unitOf(event); as unit) {
+        <div><dt>{{ 'detail.organizer' | translate }}</dt><dd>{{ unit }}</dd></div>
+      }
+      <div>
+        <dt>{{ 'detail.registration' | translate }}</dt>
+        <dd>{{ statusKey(event) | translate }}</dd>
+      </div>
+      @if (event.capacity) {
+        <div><dt>{{ 'detail.remaining' | translate }}</dt><dd>{{ event.remainingCapacity }}</dd></div>
+      }
+    </dl>
+    @if (event.registrationOpen) {
+      <p>
+        <a class="button-link" [routerLink]="['/eventos', event.slug, 'inscripcion']">{{ 'detail.register' | translate }}</a>
+      </p>
+    }
+  </section>
+}

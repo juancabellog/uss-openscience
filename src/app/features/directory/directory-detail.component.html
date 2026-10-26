@@ -1,0 +1,94 @@
+@let state = vm();
+@if (state.status === 'loading') {
+  <os-loading-state />
+} @else if (state.status === 'error') {
+  <os-error-state
+    [title]="'directory.errorTitle' | translate"
+    [message]="'directory.errorMessage' | translate"
+  />
+} @else if (state.status === 'notfound') {
+  <os-error-state
+    [title]="'directory.notFoundTitle' | translate"
+    [message]="'directory.notFoundMessage' | translate"
+  />
+} @else {
+  <os-page-header
+    [title]="displayName() || ('common.dash' | translate)"
+    [subtitle]="'directory.detailSubtitle' | translate"
+  >
+    <a routerLink="/directory" class="back-link">{{ 'directory.backToList' | translate }}</a>
+    @if (state.person.activeInDirectory === false) {
+      <span class="inactive-badge">{{ 'directory.inactiveBadge' | translate }}</span>
+    }
+  </os-page-header>
+
+  <os-detail-section-nav
+    [items]="sectionNav"
+    [ariaLabel]="'directory.sections' | translate"
+  />
+
+  <section id="identidad" class="panel">
+    <h2>{{ 'directory.identity' | translate }}</h2>
+    <os-identifier-row
+      [label]="'directory.uuid' | translate"
+      [value]="state.person.uuid"
+      copyLabelKey="common.copyUuid"
+    />
+    <dl>
+      <div>
+        <dt>{{ 'directory.name' | translate }}</dt>
+        <dd>{{ displayName() || ('common.dash' | translate) }}</dd>
+      </div>
+      <div>
+        <dt>{{ 'directory.givenName' | translate }}</dt>
+        <dd>{{ state.person.givenName || ('common.dash' | translate) }}</dd>
+      </div>
+      <div>
+        <dt>{{ 'directory.familyName' | translate }}</dt>
+        <dd>{{ state.person.familyName || ('common.dash' | translate) }}</dd>
+      </div>
+      <div>
+        <dt>{{ 'directory.presence' | translate }}</dt>
+        <dd>{{ (state.person.activeInDirectory ? 'directory.activeBadge' : 'directory.inactiveBadge') | translate }}</dd>
+      </div>
+    </dl>
+  </section>
+
+  <section id="institucional" class="panel">
+    <h2>{{ 'directory.institutional' | translate }}</h2>
+    <dl>
+      <div>
+        <dt>{{ 'directory.campus' | translate }}</dt>
+        <dd>{{ state.person.campusName || ('common.dash' | translate) }}</dd>
+      </div>
+      <div>
+        <dt>{{ 'directory.faculty' | translate }}</dt>
+        <dd>{{ state.person.faculty || ('common.dash' | translate) }}</dd>
+      </div>
+      <div>
+        <dt>{{ 'directory.position' | translate }}</dt>
+        <dd>{{ state.person.positionTitle || ('common.dash' | translate) }}</dd>
+      </div>
+      <div>
+        <dt>{{ 'directory.lastSeen' | translate }}</dt>
+        <dd>{{ state.person.lastSeenAt ? (state.person.lastSeenAt | localeDate) : ('common.dash' | translate) }}</dd>
+      </div>
+    </dl>
+  </section>
+
+  <section id="correos" class="panel">
+    <h2>{{ 'directory.emails' | translate }}</h2>
+    @if (state.person.emails.length === 0) {
+      <p>{{ 'directory.noEmails' | translate }}</p>
+    } @else {
+      <ul class="record-list">
+        @for (email of state.person.emails; track email.email) {
+          <li>
+            <strong>{{ email.email || ('common.dash' | translate) }}</strong>
+            <p>{{ email.kind }} · {{ email.source }}</p>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+}

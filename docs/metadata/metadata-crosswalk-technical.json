@@ -1,0 +1,146 @@
+{
+  "document": "OPENSCIENCE-USS metadata crosswalk — technical extraction",
+  "canonical_uss_model": false,
+  "method": "Static inspection of code, proposed SQL, DTOs, mappers, clients, and tests. No commands, SQL, builds, syncs, or external API calls were executed.",
+  "source_of_rows": "docs/metadata/metadata-crosswalk-technical.csv",
+  "systems_implemented": ["PURE", "OPENSCIENCE_USS", "ORCID", "UNPAYWALL", "OPENALEX", "CROSSREF", "DSPACE", "SCOPUS"],
+  "systems_not_implemented": ["SCIVAL"],
+  "standards_not_platforms": ["Dublin Core (DSpace keys)", "DataCite (Crossref agency id)", "ROR (field)", "COAR (absent)", "OpenAIRE (absent)", "CERIF (absent)"],
+  "coverage": {
+    "representation_rows_in_csv": 212,
+    "canonical_concept_candidates_approx": 85,
+    "equivalence_type_counts_from_csv_last_columns": {
+      "DIRECT": 139,
+      "NORMALIZED": 19,
+      "DERIVED": 6,
+      "EVIDENCE_ONLY": 11,
+      "IDENTITY_LINK": 18,
+      "NO_EQUIVALENT": 9,
+      "UNKNOWN": 10,
+      "MAPPED_VOCABULARY": 0
+    },
+    "note": "Counts are from CSV column equivalence_type (end-anchored). MAPPED_VOCABULARY is 0 because no COAR/OpenAIRE/type crosswalk class exists."
+  },
+  "layer_model": {
+    "PURE_REMOTE": "HttpPureClient GET /persons /research-outputs /journals",
+    "PURE_LOCAL_MIRROR": "pure_* tables; this is the institutional bibliographic store in the app",
+    "ENRICHMENT_EVIDENCE": "openalex_* crossref_* unpaywall_* dspace_* orcid_* scopus_*",
+    "no_separate_canonical_table": true
+  },
+  "concepts": [
+    {
+      "concept": "DOI",
+      "entity": "RESEARCH_OUTPUT",
+      "notes": "Not a column of pure_research_output. 0..N electronic versions. Normalized form strips https://doi.org/ via DoiNormalizer.",
+      "representations": [
+        {"system": "PURE", "layer": "REMOTE_JSON", "field": "electronicVersions[].doi", "evidence": "ResearchOutputMapper", "confidence": "EXACT", "equivalence_type": "DIRECT", "role": "SOURCE"},
+        {"system": "OPENSCIENCE_USS", "layer": "LOCAL_MIRROR", "table": "pure_research_output_electronic_version", "column": "doi", "cardinality": "0..N", "evidence": "ResearchOutputSyncRepository INSERT_EVERSION_SQL", "confidence": "EXACT", "equivalence_type": "DIRECT", "role": "SOURCE"},
+        {"system": "OPENSCIENCE_USS", "layer": "DERIVED", "field": "normalized_doi", "normalization": "DoiNormalizer.normalize", "validator": "DataQualityIdentifiers.isValidDoi", "confidence": "TRANSFORMED", "equivalence_type": "NORMALIZED", "role": "ENRICHMENT"},
+        {"system": "OPENALEX", "json_path": "doi", "table": "openalex_work", "column": "normalized_doi", "endpoint": "GET /works/doi:{doi}?select=WORK_SELECT", "confidence": "TRANSFORMED", "equivalence_type": "NORMALIZED", "role": "ENRICHMENT"},
+        {"system": "CROSSREF", "json_path": "message.DOI", "table": "crossref_work", "columns": ["original_doi", "normalized_doi", "canonical_doi"], "endpoint": "GET /works/{doi}", "confidence": "TRANSFORMED", "equivalence_type": "NORMALIZED", "role": "EVIDENCE"},
+        {"system": "UNPAYWALL", "json_path": "doi", "also": "doi_url", "table": "unpaywall_work", "column": "normalized_doi", "endpoint": "GET /{doi}?email=", "role": "EVIDENCE"},
+        {"system": "DSPACE", "json_path": "metadata['dc.identifier.doi'][].value", "table": "dspace_item", "columns": ["doi_raw", "normalized_doi"], "match_method": "DOI CONFIRMED/SECONDARY", "role": "EVIDENCE"},
+        {"system": "ORCID", "json_path": "external-ids.external-id[type=doi]", "table": "orcid_work_external_id", "column": "normalized_value", "normalization": "OrcidExternalIdNormalizer", "role": "EVIDENCE"},
+        {"system": "SCOPUS", "table": "scopus_publication", "columns": ["doi", "doi_normalized"], "source": "CSV tools not ScopusClient", "role": "EVIDENCE"},
+        {"system": "SCIVAL", "status": "NOT_IMPLEMENTED"}
+      ]
+    },
+    {
+      "concept": "TITLE",
+      "entity": "RESEARCH_OUTPUT",
+      "notes": "PURE tituloDe collapses locales to one string. Crossref keeps title[0] only. DSpace matching uses HAL name; evidence also reads dc.title.",
+      "representations": [
+        {"system": "PURE", "json_path": "title.value|es_CL|en_US|textual", "mapping": "ResearchOutputMapper.tituloDe", "confidence": "TRANSFORMED", "equivalence_type": "NORMALIZED", "role": "SOURCE"},
+        {"system": "OPENSCIENCE_USS", "table": "pure_research_output", "column": "title", "role": "SOURCE"},
+        {"system": "OPENALEX", "json_path": "display_name", "table": "openalex_work", "column": "display_name", "role": "ENRICHMENT"},
+        {"system": "CROSSREF", "json_path": "message.title[0]", "table": "crossref_work", "column": "title", "comparison": "CrossrefComparison.titlesDiffer Jaccard 0.55", "role": "EVIDENCE"},
+        {"system": "DSPACE", "fields": ["name", "dc.title"], "ambiguous": "matcher uses name not dc.title", "role": "EVIDENCE"},
+        {"system": "ORCID", "json_path": "title.title.value", "table": "orcid_work_group", "column": "title", "role": "EVIDENCE"},
+        {"system": "UNPAYWALL", "json_path": "title", "table": "unpaywall_work", "column": "title", "role": "EVIDENCE"},
+        {"system": "SCOPUS", "table": "scopus_publication", "column": "title", "role": "EVIDENCE"}
+      ]
+    },
+    {
+      "concept": "PUBLICATION_YEAR",
+      "entity": "RESEARCH_OUTPUT",
+      "notes": "pure_research_output has NO publication_year. Year lives on pure_research_output_status and is DERIVED for DSpace matching via PublishedYearExtractor.",
+      "representations": [
+        {"system": "OPENSCIENCE_USS", "table": "pure_research_output_status", "column": "publication_year", "cardinality": "0..N", "also": ["publication_month", "publication_day"], "confidence": "EXACT", "equivalence_type": "DIRECT", "role": "SOURCE"},
+        {"system": "OPENSCIENCE_USS", "layer": "DERIVED", "used_by": "DspaceMatcher", "normalization": "PublishedYearExtractor", "confidence": "DERIVED", "equivalence_type": "DERIVED", "role": "USED_FOR_MATCHING"},
+        {"system": "OPENALEX", "json_path": "publication_year", "table": "openalex_work", "column": "publication_year", "role": "ENRICHMENT"},
+        {"system": "CROSSREF", "json_path": "published|published-print|published-online|issued date-parts", "derivation": "PublishedYearExtractor in CrossrefEvidenceProvider", "role": "EVIDENCE"},
+        {"system": "UNPAYWALL", "json_path": "year", "table": "unpaywall_work", "column": "year", "role": "EVIDENCE"},
+        {"system": "DSPACE", "json_path": "dc.date.issued | dc.date", "role": "EVIDENCE"},
+        {"system": "ORCID", "table": "orcid_work_group", "column": "publication_year", "role": "EVIDENCE"},
+        {"system": "SCOPUS", "table": "scopus_publication", "column": "publication_year", "role": "EVIDENCE"}
+      ]
+    },
+    {
+      "concept": "CONTRIBUTOR_AUTHORSHIP",
+      "entity": "AUTHORSHIP",
+      "notes": "Person, Contributor, Authorship, and Author are distinct. Do not equate PURE person with OpenAlex author without identity evidence.",
+      "representations": [
+        {"system": "PURE", "entity": "contributor", "table": "pure_research_output_contributor", "fields": ["first_name", "last_name", "role_*", "person_uuid", "external_person_uuid", "corresponding_author"], "role": "SOURCE"},
+        {"system": "OPENALEX", "entity": "authorship", "table": "openalex_authorship", "distinct_name_fields": ["raw_author_name", "author_display_name"], "also": ["source_order", "author_position", "is_corresponding", "author_orcid", "observed_orcid", "raw_affiliation_string"], "role": "ENRICHMENT"},
+        {"system": "OPENALEX", "entity": "author", "table": "openalex_author", "fields": ["openalex_author_id", "display_name", "orcid"], "role": "ENRICHMENT"},
+        {"system": "CROSSREF", "entity": "author", "table": "crossref_author", "fields": ["given_name", "family_name", "full_name", "orcid", "sequence_no"], "role": "EVIDENCE"},
+        {"system": "DSPACE", "entity": "metadata", "field": "dc.contributor.author", "role": "EVIDENCE"},
+        {"system": "SCOPUS", "tables": ["scopus_publication_author", "scopus_publication.authors_raw"], "role": "EVIDENCE"}
+      ]
+    },
+    {
+      "concept": "AUTHOR_ORCID",
+      "entity": "PERSON",
+      "notes": "Separate: PURE person ORCID column, PURE identifiers, ORCID API works/employments, OpenAlex author ORCID, Crossref author ORCID, Scopus author orcid.",
+      "representations": [
+        {"system": "OPENSCIENCE_USS", "table": "pure_person", "column": "orcid", "also": "orcid_authenticated", "role": "SOURCE"},
+        {"system": "ORCID", "endpoint": "GET {orcid}/works and /employments", "role": "EVIDENCE"},
+        {"system": "OPENALEX", "paths": ["orcid on author", "authorships[].author.orcid", "authorships[].raw_orcid"], "role": "EVIDENCE"},
+        {"system": "CROSSREF", "json_path": "message.author[].ORCID", "normalization": "DataQualityIdentifiers.normalizeOrcid", "role": "EVIDENCE"}
+      ]
+    },
+    {
+      "concept": "ISSN",
+      "entity": "JOURNAL",
+      "notes": "PURE does not persist issn_type. ISSN-L exists in OpenAlex source and Unpaywall, not on pure_journal.",
+      "representations": [
+        {"system": "OPENSCIENCE_USS", "tables": ["pure_journal.issn", "pure_journal_issn.issn"], "role": "SOURCE"},
+        {"system": "CROSSREF", "table": "crossref_issn", "fields": ["issn", "issn_type"], "role": "EVIDENCE"},
+        {"system": "OPENALEX", "json_path": "primary_location.source.issn_l", "column": "primary_source_issn_l", "scheme": "ISSN-L", "role": "ENRICHMENT"},
+        {"system": "UNPAYWALL", "fields": ["journal_issns", "journal_issn_l"], "role": "EVIDENCE"},
+        {"system": "DSPACE", "field": "dc.identifier.issn", "role": "EVIDENCE"}
+      ]
+    },
+    {
+      "concept": "OPEN_ACCESS",
+      "entity": "ACCESS",
+      "notes": "No single institutional OA field. Unpaywall is documented as OA source; OpenAlex OA is secondary; PURE has EV access_type; DSpace has access_status.",
+      "representations": [
+        {"system": "UNPAYWALL", "fields": ["is_oa", "oa_status", "oa_locations", "best_oa_*"], "role": "EVIDENCE", "comment": "authoritative OA evidence in this codebase comments"},
+        {"system": "OPENALEX", "json_path": "open_access.is_oa / oa_status", "role": "EVIDENCE", "comment": "secondary"},
+        {"system": "PURE", "table": "pure_research_output_electronic_version", "fields": ["access_type_uri", "access_type_es", "access_type_en"], "role": "SOURCE"},
+        {"system": "DSPACE", "fields": ["access_status", "embargo_date", "fulltext_availability"], "role": "EVIDENCE"}
+      ]
+    },
+    {
+      "concept": "ORGANIZATION",
+      "entity": "ORGANIZATION",
+      "notes": "No pure_organization table and no GET /organizations. UUID references only.",
+      "representations": [
+        {"system": "OPENSCIENCE_USS", "tables": ["pure_person_organization.organization_uuid", "pure_research_output.managing_organization_uuid", "pure_research_output_contributor_organization.organization_uuid", "pure_research_output_external_organization.organization_uuid"], "role": "SOURCE"},
+        {"system": "OPENALEX", "table": "openalex_authorship_institution", "fields": ["display_name", "ror", "country_code", "openalex_institution_id"], "role": "ENRICHMENT"},
+        {"system": "CROSSREF", "table": "crossref_author_affiliation", "fields": ["name", "ror"], "ror_detection": "id contains ror.org", "role": "EVIDENCE"}
+      ]
+    },
+    {
+      "concept": "PROJECT",
+      "entity": "PROJECT",
+      "status": "NOT_IMPLEMENTED",
+      "nearby": [
+        {"system": "CROSSREF", "table": "crossref_funder", "role": "EVIDENCE"},
+        {"system": "SCOPUS", "columns": ["funding_details", "funding_texts"], "role": "EVIDENCE"},
+        {"system": "OPENSCIENCE_USS", "column": "pure_research_output.funding_org_uuid", "status": "LEGACY/conditional not in UPSERT"}
+      ]
+    }
+  ]
+}

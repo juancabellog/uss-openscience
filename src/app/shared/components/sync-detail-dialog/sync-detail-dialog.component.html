@@ -1,0 +1,494 @@
+@if (open()) {
+  <div class="sync-detail" role="dialog" aria-modal="true" [attr.aria-labelledby]="'sync-detail-title'">
+    <button type="button" class="sync-detail__backdrop" (click)="detail.close()" tabindex="-1" aria-hidden="true"></button>
+    <section class="sync-detail__panel">
+      <header class="sync-detail__header">
+        <div>
+          <h2 id="sync-detail-title">{{ 'sync.detail.title' | translate }}</h2>
+          <p class="sync-detail__entity">{{ entityLabel() }}</p>
+        </div>
+        <div class="sync-detail__header-actions">
+          @if (auth.canConsult('AUDIT') && detail.currentSyncId(); as auditSyncId) {
+            <a
+              class="sync-detail__audit-link"
+              routerLink="/audit"
+              [queryParams]="{ executionId: auditSyncId }"
+              (click)="detail.close()"
+            >
+              {{ 'audit.openInAudit' | translate }}
+            </a>
+          }
+          <button type="button" class="sync-detail__close" (click)="detail.close()">
+            {{ 'common.close' | translate }}
+          </button>
+        </div>
+      </header>
+
+      @if (loading() && !run()) {
+        <p>{{ 'common.loading' | translate }}</p>
+      } @else if (error()) {
+        <p class="sync-detail__error">{{ 'sync.detail.loadError' | translate }}</p>
+      } @else if (run(); as current) {
+        @if (failed() && !orcid() && !openalex() && !metrics()) {
+          <p class="sync-detail__failed" role="alert">{{ 'sync.toast.failedBody' | translate }}</p>
+          <dl class="sync-detail__outcome">
+            <div>
+              <dt>{{ 'sync.detail.pureReported' | translate }}</dt>
+              <dd>{{ formatCount(current.totalExpected) }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'sync.detail.fetched' | translate }}</dt>
+              <dd>{{ formatCount(fetchedCount(current)) }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'sync.detail.succeeded' | translate }}</dt>
+              <dd>{{ formatCount(current.processed) }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'sync.detail.failedCount' | translate }}</dt>
+              <dd>{{ formatCount(current.errors) }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'sync.detail.inactiveKept' | translate }}</dt>
+              <dd>{{ formatCount(current.markedInactive) }}</dd>
+            </div>
+          </dl>
+          <p class="sync-detail__unchanged">{{ 'sync.detail.noInactive' | translate }}</p>
+          @if (current.errors > 0) {
+            <button type="button" class="sync-detail__errors-toggle" (click)="toggleErrors()">
+              {{ (showErrors() ? 'sync.detail.hideErrors' : 'sync.detail.viewErrors') | translate }}
+            </button>
+          }
+        } @else if (failed() && orcid()) {
+          <p class="sync-detail__failed" role="alert">{{ 'sync.toast.failedBody' | translate }}</p>
+        }
+
+        <dl class="sync-detail__meta">
+          @if (metrics()) {
+            <div>
+              <dt>{{ 'sync.detail.executionId' | translate }}</dt>
+              <dd>{{ current.syncId }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'sync.detail.operation' | translate }}</dt>
+              <dd>{{ 'sync.detail.operationMetrics' | translate }}</dd>
+            </div>
+          }
+          <div>
+            <dt>{{ 'sync.detail.startedAt' | translate }}</dt>
+            <dd>{{ current.startedAt | localeDate }}</dd>
+          </div>
+          <div>
+            <dt>{{ 'sync.detail.finishedAt' | translate }}</dt>
+            <dd>{{ current.finishedAt | localeDate }}</dd>
+          </div>
+          <div>
+            <dt>{{ 'sync.detail.status' | translate }}</dt>
+            <dd>{{ ('sync.status.' + current.status) | translate }}</dd>
+          </div>
+          @if (modeLabel(current); as mode) {
+            <div>
+              <dt>{{ 'sync.detail.mode' | translate }}</dt>
+              <dd>{{ mode }}</dd>
+            </div>
+          }
+          @if (openalex() && phaseLabel(current); as phase) {
+            <div>
+              <dt>{{ 'sync.detail.openalexPhase' | translate }}</dt>
+              <dd>{{ phase }}</dd>
+            </div>
+          }
+          @if (openalex() && current.sourceSyncExecutionId) {
+            <div>
+              <dt>{{ 'sync.detail.openalexRecoveredFrom' | translate: { id: current.sourceSyncExecutionId } }}</dt>
+              <dd>{{ current.sourceSyncExecutionId }}</dd>
+            </div>
+          }
+          @if (lastValidFullAt(); as baselineAt) {
+            <div>
+              <dt>{{ 'sync.detail.lastValidFull' | translate }}</dt>
+              <dd>{{ baselineAt | localeDate }}</dd>
+            </div>
+          }
+          <div>
+            <dt>{{ 'sync.detail.startedBy' | translate }}</dt>
+            <dd>{{ current.startedBy || ('common.dash' | translate) }}</dd>
+          </div>
+          @if (durationLabel(current); as duration) {
+            <div>
+              <dt>{{ 'sync.detail.duration' | translate }}</dt>
+              <dd>{{ duration }}</dd>
+            </div>
+          }
+          @if (current.errorCode) {
+            <div>
+              <dt>{{ 'sync.detail.errorCode' | translate }}</dt>
+              <dd>{{ current.errorCode }}</dd>
+            </div>
+          }
+          @if (current.errorCode === 'USER_CANCELLED') {
+            <div>
+              <dt>{{ 'openalex.statusUserCancelled' | translate }}</dt>
+              <dd>{{ current.status }} · {{ current.errorCode }}</dd>
+            </div>
+          }
+          @if (displayMessage(current); as message) {
+            <div class="sync-detail__global-message">
+              <dt>{{ 'sync.detail.errorMessage' | translate }}</dt>
+              <dd>{{ message }}</dd>
+            </div>
+          }
+          @if (openalex() && current.pendingAuthors != null) {
+            <div>
+              <dt>{{ 'sync.detail.openalexPendingAuthorsLabel' | translate }}</dt>
+              <dd>{{ formatCount(current.pendingAuthors) }}</dd>
+            </div>
+          }
+          @if (canViewAuthorRecovery()) {
+            <div>
+              <dt>{{ 'sync.detail.openalexRecovery' | translate }}</dt>
+              <dd>{{ (canRecoverAuthors() ? 'sync.detail.openalexRecoveryAvailable' : 'sync.detail.openalexRecoverBlocked') | translate }}</dd>
+            </div>
+          }
+        </dl>
+
+        @if (metrics()) {
+          <dl class="sync-detail__outcome">
+            <div>
+              <dt>{{ 'sync.detail.total' | translate }}</dt>
+              <dd>{{ formatCount(current.totalExpected) }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'sync.detail.processed' | translate }}</dt>
+              <dd>{{ formatCount(current.processed) }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'sync.detail.found' | translate }}</dt>
+              <dd>{{ formatCount(current.created) }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'sync.detail.empty' | translate }}</dt>
+              <dd>{{ formatCount(current.unchanged) }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'sync.detail.failed' | translate }}</dt>
+              <dd>{{ formatCount(current.errors) }}</dd>
+            </div>
+          </dl>
+          @if (current.errors > 0) {
+            <button type="button" class="sync-detail__errors-toggle" (click)="toggleErrors()">
+              {{ (showErrors() ? 'sync.detail.hideErrors' : 'sync.detail.viewErrors') | translate }}
+            </button>
+          }
+        }
+
+        @if (unpaywall()) {
+          <dl class="sync-detail__outcome">
+            <div>
+              <dt>{{ 'sync.detail.doisProcessed' | translate }}</dt>
+              <dd>{{ formatCount(current.processed) }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'sync.detail.doisCreated' | translate }}</dt>
+              <dd>{{ formatCount(current.created) }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'sync.detail.doisUpdated' | translate }}</dt>
+              <dd>{{ formatCount(current.updated) }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'sync.detail.doisUnchanged' | translate }}</dt>
+              <dd>{{ formatCount(current.unchanged) }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'sync.detail.doisNotFound' | translate }}</dt>
+              <dd>{{ formatCount(current.notFound ?? 0) }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'sync.detail.doisOa' | translate }}</dt>
+              <dd>{{ formatCount(current.oa ?? 0) }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'sync.detail.doisNonOa' | translate }}</dt>
+              <dd>{{ formatCount(current.nonOa ?? 0) }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'sync.detail.recordErrors' | translate }}</dt>
+              <dd>{{ formatCount(current.errors) }}</dd>
+            </div>
+          </dl>
+          @if (current.errors > 0) {
+            <button type="button" class="sync-detail__errors-toggle" (click)="toggleErrors()">
+              {{ (showErrors() ? 'sync.detail.hideErrors' : 'sync.detail.viewErrors') | translate }}
+            </button>
+          }
+        }
+
+        @if (openalex()) {
+          <dl class="sync-detail__outcome">
+            <div>
+              <dt>{{ 'sync.detail.doisProcessed' | translate }}</dt>
+              <dd>{{ formatCount(current.syncMode === 'RECOVERY' ? (current.authorsProcessed ?? current.processed) : current.processed) }}</dd>
+            </div>
+            @if (current.authorsTotal != null) {
+              <div>
+                <dt>{{ 'sync.detail.openalexAuthorsOf' | translate: { processed: formatCount(current.authorsProcessed ?? 0), total: formatCount(current.authorsTotal) } }}</dt>
+                <dd>{{ formatCount(current.authorsProcessed ?? 0) }} / {{ formatCount(current.authorsTotal) }}</dd>
+              </div>
+            }
+            <div>
+              <dt>{{ 'sync.detail.openalexAuthorsCreated' | translate }}</dt>
+              <dd>{{ formatCount(current.authorsCreated ?? 0) }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'sync.detail.openalexAuthorsUpdated' | translate }}</dt>
+              <dd>{{ formatCount(current.authorsUpdated ?? 0) }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'sync.detail.doisNotFound' | translate }}</dt>
+              <dd>{{ formatCount(current.notFound ?? 0) }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'sync.detail.openalexInvalidDois' | translate }}</dt>
+              <dd>{{ formatCount(invalidCount(current)) }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'sync.detail.recordErrors' | translate }}</dt>
+              <dd>{{ formatCount(current.errors) }}</dd>
+            </div>
+          </dl>
+          @if (current.errors > 0) {
+            <button type="button" class="sync-detail__errors-toggle" (click)="toggleErrors()">
+              {{ (showErrors() ? 'sync.detail.hideErrors' : 'sync.detail.viewErrors') | translate }}
+            </button>
+          }
+          @if (canViewAuthorRecovery()) {
+            <button
+              type="button"
+              class="sync-detail__errors-toggle"
+              [disabled]="!canRecoverAuthors()"
+              (click)="openRecoverConfirm()"
+            >
+              {{ 'sync.detail.openalexRecoverAuthors' | translate }}
+            </button>
+            @if (!canRecoverAuthors() && recoveryBlockedReason() === 'SYNC_ALREADY_RUNNING') {
+              <p class="sync-detail__unchanged">{{ 'sync.detail.openalexRecoverBlocked' | translate }}</p>
+            }
+          }
+        }
+
+        @if (orcid()) {
+          <dl class="sync-detail__outcome">
+            <div>
+              <dt>{{ 'sync.detail.peopleProcessed' | translate }}</dt>
+              <dd>{{ formatCount(current.processed) }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'sync.detail.orcidWorksCount' | translate }}</dt>
+              <dd>{{ formatCount(workCount(current)) }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'sync.detail.recordErrors' | translate }}</dt>
+              <dd>{{ formatCount(current.errors) }}</dd>
+            </div>
+          </dl>
+          @if (current.errors > 0) {
+            <button type="button" class="sync-detail__errors-toggle" (click)="toggleErrors()">
+              {{ (showErrors() ? 'sync.detail.hideErrors' : 'sync.detail.viewErrors') | translate }}
+            </button>
+          }
+        }
+
+        @if (showErrors()) {
+          <section class="sync-detail__errors" [attr.aria-label]="'sync.detail.viewErrors' | translate">
+            @if (errorsLoading()) {
+              <p>{{ 'common.loading' | translate }}</p>
+            } @else if (errorPage(); as errors) {
+              <p class="sync-detail__processed">
+                {{ 'sync.detail.errorTotal' | translate: { count: formatCount(errors.totalElements || current.errors) } }}
+              </p>
+              @if (errors.groups?.length) {
+                <ul class="sync-detail__error-groups">
+                  @for (group of errors.groups; track (group.errorMessage ?? '') + (group.stage ?? '') + $index) {
+                    <li>
+                      <span>{{ group.errorMessage || group.errorCode || ('common.dash' | translate) }}</span>
+                      <strong>{{ group.count | localeNumber }}</strong>
+                    </li>
+                  }
+                </ul>
+              } @else {
+                <p class="sync-detail__unchanged">{{ 'sync.detail.errorEmpty' | translate }}</p>
+              }
+              @if (errors.items?.length) {
+                <p class="sync-detail__unchanged">{{ 'sync.detail.errorRecords' | translate }}</p>
+                <ul class="sync-detail__list">
+                  @for (item of errors.items; track item.id || item.uuid || $index) {
+                    <li class="sync-detail__item">
+                      <p class="sync-detail__name">{{ item.uuid || ('common.dash' | translate) }}</p>
+                      <p class="sync-detail__pure">
+                        {{ 'common.pureId' | translate }}
+                        {{ item.pureId == null ? ('common.dash' | translate) : item.pureId }}
+                        · {{ 'sync.detail.errorStage' | translate }}
+                        {{ stageLabel(item.stage) }}
+                      </p>
+                      <p class="sync-detail__intro">{{ item.errorMessage || item.errorCode }}</p>
+                    </li>
+                  }
+                </ul>
+                @if (errors.totalElements > errors.size) {
+                  <os-pagination
+                    [page]="errorListPage() + 1"
+                    [pageSize]="errors.size"
+                    [total]="errors.totalElements"
+                    (pageChange)="goToErrorPage($event)"
+                  />
+                }
+              }
+            }
+          </section>
+        }
+
+        @if (!failed() && !orcid() && !openalex() && !metrics()) {
+          <p class="sync-detail__processed">
+            {{ 'sync.summary.processed' | translate: { count: formatCount(current.processed) } }}
+          </p>
+          @if (current.unchanged > 0) {
+            <p class="sync-detail__unchanged">
+              {{ 'sync.detail.unchanged' | translate: { count: formatCount(current.unchanged) } }}
+            </p>
+          }
+        } @else if (hasChanges()) {
+          <p class="sync-detail__unchanged">{{ 'sync.detail.partialChanges' | translate }}</p>
+        }
+
+        @if (hasChanges() && !failed()) {
+          <div class="sync-detail__stats">
+            <div>
+              <strong>{{ current.created | localeNumber }}</strong>
+              <span>{{ 'sync.created' | translate }}</span>
+            </div>
+            <div>
+              <strong>{{ current.updated | localeNumber }}</strong>
+              <span>{{ 'sync.updated' | translate }}</span>
+            </div>
+            <div>
+              <strong>{{ current.reactivated | localeNumber }}</strong>
+              <span>{{ 'sync.reactivated' | translate }}</span>
+            </div>
+            <div>
+              <strong>{{ current.markedInactive | localeNumber }}</strong>
+              <span>{{ 'sync.detail.inactive' | translate }}</span>
+            </div>
+          </div>
+
+          <div class="sync-detail__tabs" role="tablist">
+            @for (tab of tabs(); track tab.id) {
+              <button
+                type="button"
+                role="tab"
+                [attr.aria-selected]="filter() === tab.id"
+                [class.is-active]="filter() === tab.id"
+                (click)="selectFilter(tab.id)"
+              >
+                {{ tab.labelKey | translate }}
+                {{ tab.count | localeNumber }}
+              </button>
+            }
+          </div>
+        }
+
+        @if (hasChanges()) {
+          @if (loading()) {
+            <p>{{ 'common.loading' | translate }}</p>
+          } @else if (page()?.items?.length) {
+            <ul class="sync-detail__list">
+              @for (group of page()!.items; track group.localRecordId || group.uuid || $index) {
+                <li class="sync-detail__item">
+                  <div class="sync-detail__item-head">
+                    <div>
+                      <p class="sync-detail__name">{{ group.displayName || ('common.dash' | translate) }}</p>
+                      <p class="sync-detail__pure">
+                        {{ 'common.pureId' | translate }}
+                        {{ group.pureId == null ? ('common.dash' | translate) : group.pureId }}
+                      </p>
+                    </div>
+                    <os-status-badge [label]="badgeKey(group.changeType) | translate" [tone]="badgeTone(group.changeType)" />
+                  </div>
+                  @if (introKey(group.changeType); as intro) {
+                    <p class="sync-detail__intro">{{ intro | translate }}</p>
+                  }
+                  @if (lines(group).length > 0) {
+                    <ul class="sync-detail__changes">
+                      @for (line of lines(group); track $index) {
+                        <li>
+                          @if (line.kind === 'organization-context') {
+                            <p class="sync-detail__org">{{ line.title }}</p>
+                            @if (line.subtitle) {
+                              <p class="sync-detail__org-uuid">{{ line.subtitle }}</p>
+                            }
+                          } @else {
+                            <span>{{ line.title }}</span>
+                          }
+                          @if (line.kind === 'field') {
+                            <p class="sync-detail__diff">
+                              <span>{{ line.oldValue }}</span>
+                              <span aria-hidden="true">→</span>
+                              <span>{{ line.newValue }}</span>
+                            </p>
+                          }
+                        </li>
+                      }
+                    </ul>
+                  }
+                </li>
+              }
+            </ul>
+            @if ((page()?.totalElements ?? 0) > (page()?.size ?? 25)) {
+              <os-pagination
+                [page]="currentPage() + 1"
+                [pageSize]="page()!.size"
+                [total]="page()!.totalElements"
+                (pageChange)="goToPage($event)"
+              />
+            }
+          } @else if (!failed()) {
+            <p>{{ 'sync.detail.emptyFilter' | translate }}</p>
+          }
+        } @else if (!failed() && !orcid() && !openalex() && !metrics()) {
+          <p>{{ 'sync.detail.noChanges' | translate }}</p>
+        }
+      }
+    </section>
+  </div>
+}
+
+@if (recoverConfirmOpen() && run(); as current) {
+  <div class="sync-detail" role="dialog" aria-modal="true" [attr.aria-labelledby]="'openalex-recover-title'">
+    <button type="button" class="sync-detail__backdrop" (click)="cancelRecover()" tabindex="-1" aria-hidden="true"></button>
+    <section class="sync-detail__panel">
+      <header class="sync-detail__header">
+        <div>
+          <h2 id="openalex-recover-title">{{ 'sync.detail.openalexRecoverConfirmTitle' | translate }}</h2>
+        </div>
+        <button type="button" class="sync-detail__close" (click)="cancelRecover()">
+          {{ 'common.close' | translate }}
+        </button>
+      </header>
+      <p>{{ 'sync.detail.openalexRecoverConfirmBody' | translate }}</p>
+      @if (current.pendingAuthors != null) {
+        <p>{{ 'sync.detail.openalexPendingAuthorsLabel' | translate }}: {{ formatCount(current.pendingAuthors) }}</p>
+      }
+      @if (recoverError(); as recoverMessage) {
+        <p class="sync-detail__error">{{ recoverMessage | translate }}</p>
+      }
+      <div class="sync-detail__header-actions">
+        <button type="button" class="sync-detail__close" (click)="cancelRecover()" [disabled]="recoverBusy()">
+          {{ 'sync.cancel' | translate }}
+        </button>
+        <button type="button" class="sync-detail__errors-toggle" (click)="confirmRecover()" [disabled]="recoverBusy()">
+          {{ 'sync.detail.openalexRecoverConfirmAction' | translate }}
+        </button>
+      </div>
+    </section>
+  </div>
+}

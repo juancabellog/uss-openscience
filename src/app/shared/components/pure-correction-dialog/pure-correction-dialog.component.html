@@ -1,0 +1,72 @@
+@if (open()) {
+  <div
+    class="correction-dialog"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-labelledby]="'pure-correction-title'"
+    [attr.aria-describedby]="'pure-correction-body'"
+  >
+    <button
+      type="button"
+      class="correction-dialog__backdrop"
+      (click)="cancel()"
+      tabindex="-1"
+      aria-hidden="true"
+    ></button>
+    <section #panel class="correction-dialog__panel" tabindex="-1">
+      <header>
+        <h2 id="pure-correction-title">{{ titleKey() | translate }}</h2>
+      </header>
+
+      <div id="pure-correction-body" class="correction-dialog__body">
+        @if (kind() === 'scopus') {
+          <p>{{ 'pureCorrection.scopusLead' | translate }}</p>
+          <p class="correction-dialog__value">{{ value() || ('common.dash' | translate) }}</p>
+          <p>{{ 'pureCorrection.scopusOf' | translate }}</p>
+          <p class="correction-dialog__name">{{ parentName() || ('common.dash' | translate) }}</p>
+          <p>{{ 'pureCorrection.scopusDirect' | translate }}</p>
+        } @else {
+          <p>{{ 'pureCorrection.doiLead' | translate }}</p>
+          <p class="correction-dialog__name">{{ parentName() || ('common.dash' | translate) }}</p>
+          <p>
+            {{ 'outputs.doi' | translate }}
+            {{ value() || ('common.dash' | translate) }}
+          </p>
+          <p>
+            {{ 'pureCorrection.accessType' | translate }}
+            {{ accessLabel() || ('common.dash' | translate) }}
+          </p>
+          <p>
+            {{ 'pureCorrection.versionType' | translate }}
+            {{ versionLabel() || ('common.dash' | translate) }}
+          </p>
+        }
+        <p class="correction-dialog__secondary">
+          {{ (kind() === 'scopus' ? 'pureCorrection.scopusChildPureId' : 'pureCorrection.doiChildPureId') | translate }}
+          {{ childPureId() == null ? ('common.dash' | translate) : childPureId() }}
+        </p>
+        <p>{{ 'pureCorrection.afterConfirm' | translate }}</p>
+        <p>{{ 'pureCorrection.institutional' | translate }}</p>
+      </div>
+
+      <footer class="correction-dialog__actions">
+        <button type="button" class="correction-dialog__cancel" (click)="cancel()" [disabled]="busy()">
+          {{ 'pureCorrection.cancel' | translate }}
+        </button>
+        <button
+          type="button"
+          class="correction-dialog__confirm"
+          (click)="confirm()"
+          [disabled]="busy()"
+        >
+          @if (busy()) {
+            <os-icon name="sync" />
+            <span>{{ 'pureCorrection.removing' | translate }}</span>
+          } @else {
+            {{ 'pureCorrection.confirm' | translate }}
+          }
+        </button>
+      </footer>
+    </section>
+  </div>
+}

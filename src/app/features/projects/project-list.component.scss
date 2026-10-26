@@ -1,0 +1,163 @@
+:host {
+  display: block;
+}
+
+:host ::ng-deep os-page-header .page-header {
+  margin-bottom: var(--os-space-md);
+}
+
+.tabs {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: var(--os-space-md);
+}
+
+.tabs button {
+  border: 0;
+  background: transparent;
+  padding: 0.35rem 0;
+  font-weight: 650;
+  color: var(--os-text-secondary);
+  cursor: pointer;
+}
+
+.tabs button.is-active {
+  color: var(--os-primary);
+  box-shadow: inset 0 -2px 0 var(--os-primary);
+}
+
+.project-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(8.5rem, 1fr));
+  align-items: stretch;
+  gap: var(--os-space-sm);
+  margin-bottom: var(--os-space-md);
+}
+
+.project-summary.is-updating {
+  opacity: 0.72;
+}
+
+.filtered-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--os-space-sm);
+  margin: 0 0 var(--os-space-md);
+  color: var(--os-text-secondary);
+  font-size: var(--os-fs-sm);
+}
+
+.link-button {
+  border: 0;
+  background: transparent;
+  color: var(--os-info, #2563eb);
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 0.16em;
+}
+
+@media (max-width: 72rem) {
+  .project-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.project-filters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--os-space-xs);
+  margin-bottom: var(--os-space-md);
+}
+
+.project-filters os-filter-bar {
+  display: block;
+  width: 100%;
+  margin-bottom: 0;
+}
+
+.project-filters os-search-box {
+  flex: 1 1 22rem;
+  min-width: min(100%, 18rem);
+}
+
+.project-filters .filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 0 1 12.5rem;
+  width: 12.5rem;
+  min-width: 11.5rem;
+  font-size: var(--os-fs-sm);
+  color: var(--os-text-secondary);
+}
+
+:host ::ng-deep .project-table {
+  table-layout: auto;
+  width: max-content;
+  min-width: 92rem;
+}
+
+:host ::ng-deep .project-table col.col-title,
+:host ::ng-deep .project-table .col-title {
+  width: auto;
+  min-width: 18rem;
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+
+:host ::ng-deep .project-table col.col-acronym,
+:host ::ng-deep .project-table .col-acronym {
+  width: 11rem;
+}
+
+:host ::ng-deep .project-table col.col-project-id,
+:host ::ng-deep .project-table .col-project-id {
+  width: 9rem;
+}
+
+:host ::ng-deep .project-table col.col-type,
+:host ::ng-deep .project-table .col-type,
+:host ::ng-deep .project-table col.col-workflow,
+:host ::ng-deep .project-table .col-workflow {
+  width: 10rem;
+}
+
+:host ::ng-deep .project-table col.col-date,
+:host ::ng-deep .project-table .col-date {
+  width: 8.5rem;
+  white-space: nowrap;
+}
+
+:host ::ng-deep .project-table col.col-pi,
+:host ::ng-deep .project-table .col-pi {
+  min-width: 14rem;
+}
+
+:host ::ng-deep .project-table col.col-org,
+:host ::ng-deep .project-table .col-org {
+  width: 12rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: var(--os-fs-sm);
+}
+
+:host ::ng-deep .project-table col.col-status,
+:host ::ng-deep .project-table .col-status,
+:host ::ng-deep .project-table col.col-actions,
+:host ::ng-deep .project-table .col-actions {
+  width: 9.5rem;
+  white-space: nowrap;
+}
+
+.project-link {
+  color: inherit;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.project-link:hover,
+.project-link:focus-visible {
+  color: var(--os-primary);
+  text-decoration: underline;
+}

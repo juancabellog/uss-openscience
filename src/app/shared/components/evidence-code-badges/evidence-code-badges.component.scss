@@ -1,0 +1,30 @@
+:host {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.evidence-codes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.evidence-codes li {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.evidence-codes os-status-badge {
+  max-width: 100%;
+}
+
+:host ::ng-deep .badge,
+:host ::ng-deep .badge__label {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}

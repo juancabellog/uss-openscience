@@ -1,0 +1,376 @@
+<os-page-header
+  [title]="'audit.title' | translate"
+  [subtitle]="'audit.subtitle' | translate"
+/>
+
+<os-filter-bar>
+  <os-search-box
+    [control]="search"
+    [placeholder]="'audit.searchPlaceholder' | translate"
+    [label]="'audit.search' | translate"
+  />
+  <label class="filter-field">
+    <span>{{ 'audit.from' | translate }}</span>
+    <input class="os-control" type="date" [formControl]="from" />
+  </label>
+  <label class="filter-field">
+    <span>{{ 'audit.to' | translate }}</span>
+    <input class="os-control" type="date" [formControl]="to" />
+  </label>
+  <label class="filter-field">
+    <span>{{ 'audit.typeLabel' | translate }}</span>
+    <select class="os-control" [formControl]="eventType">
+      <option value="SYNC">{{ 'audit.type.SYNC' | translate }}</option>
+    </select>
+  </label>
+  <label class="filter-field">
+    <span>{{ 'audit.source' | translate }}</span>
+    <select class="os-control" [formControl]="source">
+      <option value="">{{ 'common.all' | translate }}</option>
+      @for (item of sources; track item) {
+        <option [value]="item">{{ sourceKey(item) | translate }}</option>
+      }
+    </select>
+  </label>
+  <label class="filter-field">
+    <span>{{ 'audit.entity' | translate }}</span>
+    <select class="os-control" [formControl]="entity">
+      <option value="">{{ 'common.all' | translate }}</option>
+      @for (item of entities; track item) {
+        <option [value]="item">{{ entityKey(item) | translate }}</option>
+      }
+    </select>
+  </label>
+  <label class="filter-field">
+    <span>{{ 'audit.result' | translate }}</span>
+    <select class="os-control" [formControl]="status">
+      <option value="">{{ 'status.allResults' | translate }}</option>
+      @for (item of statuses; track item) {
+        <option [value]="item">{{ outcomeKey(item) | translate }}</option>
+      }
+    </select>
+  </label>
+  <label class="filter-field">
+    <span>{{ 'audit.mode' | translate }}</span>
+    <select class="os-control" [formControl]="syncMode">
+      <option value="">{{ 'common.all' | translate }}</option>
+      <option value="FULL">{{ 'sync.mode.full' | translate }}</option>
+      <option value="INCREMENTAL">{{ 'sync.mode.incremental' | translate }}</option>
+      <option value="RECOVERY">{{ 'sync.mode.recovery' | translate }}</option>
+    </select>
+  </label>
+  <label class="filter-field">
+    <span>{{ 'audit.user' | translate }}</span>
+    <input class="os-control" type="text" [formControl]="actor" [attr.placeholder]="'audit.actorPlaceholder' | translate" />
+  </label>
+  <button type="button" class="os-control audit-reset" (click)="resetFilters()">
+    {{ 'audit.resetFilters' | translate }}
+  </button>
+</os-filter-bar>
+
+@let vm = result();
+@if (emptyKind() === 'loading') {
+  <os-loading-state />
+} @else if (emptyKind() === 'error') {
+  <os-error-state
+    [title]="'audit.errorTitle' | translate"
+    [message]="'audit.errorMessage' | translate"
+    [actionLabel]="'common.retry' | translate"
+    (action)="retry()"
+  />
+} @else if (emptyKind() === 'filtered') {
+  <os-empty-state
+    [title]="'audit.emptyFilteredTitle' | translate"
+    [message]="'audit.emptyFiltered' | translate"
+  />
+} @else if (emptyKind() === 'empty') {
+  <os-empty-state
+    [title]="'audit.emptyTitle' | translate"
+    [message]="'audit.empty' | translate"
+  />
+} @else {
+  <os-data-table-shell [caption]="'audit.caption' | translate" [fluid]="true">
+    <table>
+      <thead>
+        <tr>
+          <th class="col-date">{{ 'audit.timestamp' | translate }}</th>
+          <th class="col-audit">{{ 'audit.user' | translate }}</th>
+          <th class="col-type">{{ 'audit.typeLabel' | translate }}</th>
+          <th class="col-name">{{ 'audit.entity' | translate }}</th>
+          <th class="col-name">{{ 'audit.operationLabel' | translate }}</th>
+          <th class="col-type">{{ 'audit.source' | translate }}</th>
+          <th class="col-type">{{ 'audit.mode' | translate }}</th>
+          <th class="col-status">{{ 'audit.result' | translate }}</th>
+          <th class="col-count">{{ 'audit.records' | translate }}</th>
+          <th class="col-actions">{{ 'audit.action' | translate }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (entry of vm.data.items; track entry.eventId) {
+          <tr [class.is-selected]="selectedId() === entry.eventId">
+            <td class="col-date nowrap">
+              <button type="button" class="linkish" (click)="select(entry)">
+                {{ entry.startedAt | localeDate }}
+              </button>
+            </td>
+            <td class="col-audit nowrap">{{ actorLabel(entry) || ('audit.system' | translate) }}</td>
+            <td class="nowrap">{{ typeKey(entry.eventType) | translate }}</td>
+            <td>{{ entityKey(entry.entity) | translate }}</td>
+            <td>{{ operationKey(entry.operation) | translate }}</td>
+            <td class="nowrap">{{ sourceKey(entry.source) | translate }}</td>
+            <td class="nowrap">
+              @if (modeKey(entry.syncMode); as mode) {
+                {{ mode | translate }}
+              } @else {
+                {{ 'common.dash' | translate }}
+              }
+            </td>
+            <td class="col-status nowrap">
+              <os-status-badge [label]="outcomeKey(entry.status) | translate" [tone]="statusTone(entry.status)" />
+            </td>
+            <td class="col-count nowrap">{{ entry.processed | localeNumber }}</td>
+            <td class="col-actions nowrap">
+              <button type="button" (click)="select(entry)">{{ 'audit.viewDetail' | translate }}</button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </os-data-table-shell>
+  <os-pagination
+    [page]="vm.data.page"
+    [pageSize]="vm.data.pageSize"
+    [total]="vm.data.total"
+    (pageChange)="onPageChange($event)"
+  />
+}
+
+@if (selected(); as event) {
+  <div class="upw-drawer" role="dialog" aria-modal="true">
+    <button type="button" class="upw-drawer__backdrop" (click)="closeDetail()" tabindex="-1" aria-hidden="true"></button>
+    <aside class="upw-drawer__panel">
+      <header class="upw-drawer__header">
+        <div>
+          <h2>{{ 'audit.detail' | translate }}</h2>
+          <p>{{ operationKey(event.operation) | translate }}</p>
+        </div>
+        <button type="button" class="page-action page-action--secondary upw-drawer__close-action" (click)="closeDetail()" [attr.aria-label]="'common.close' | translate">{{ 'common.close' | translate }}</button>
+      </header>
+
+      <dl class="detail">
+        <div><dt>{{ 'audit.typeLabel' | translate }}</dt><dd>{{ typeKey(event.eventType) | translate }}</dd></div>
+        <div><dt>{{ 'audit.source' | translate }}</dt><dd>{{ sourceKey(event.source) | translate }}</dd></div>
+        <div><dt>{{ 'audit.entity' | translate }}</dt><dd>{{ entityKey(event.entity) | translate }}</dd></div>
+        <div>
+          <dt>{{ 'audit.operationLabel' | translate }}</dt>
+          <dd>{{ operationKey(event.operation) | translate }} <span class="code">{{ event.operation }}</span></dd>
+        </div>
+        <div>
+          <dt>{{ 'audit.result' | translate }}</dt>
+          <dd><os-status-badge [label]="outcomeKey(event.status) | translate" [tone]="statusTone(event.status)" /></dd>
+        </div>
+        <div>
+          <dt>{{ 'audit.mode' | translate }}</dt>
+          <dd>
+            @if (modeKey(event.syncMode); as mode) {
+              {{ mode | translate }}
+            } @else {
+              {{ 'common.dash' | translate }}
+            }
+          </dd>
+        </div>
+        <div><dt>{{ 'audit.user' | translate }}</dt><dd>{{ actorLabel(event) || ('audit.system' | translate) }}</dd></div>
+        <div><dt>{{ 'audit.startedAt' | translate }}</dt><dd>{{ event.startedAt | localeDate }}</dd></div>
+        <div>
+          <dt>{{ 'audit.finishedAt' | translate }}</dt>
+          <dd>
+            @if (event.finishedAt) {
+              {{ event.finishedAt | localeDate }}
+            } @else {
+              {{ 'common.dash' | translate }}
+            }
+          </dd>
+        </div>
+        <div>
+          <dt>{{ 'audit.duration' | translate }}</dt>
+          <dd>
+            @if (durationLabel(event.durationMs); as duration) {
+              @if (duration.minutes > 0) {
+                {{ 'sync.detail.durationMinutes' | translate: duration }}
+              } @else {
+                {{ 'sync.detail.durationSeconds' | translate: duration }}
+              }
+            } @else {
+              {{ 'common.dash' | translate }}
+            }
+          </dd>
+        </div>
+        <div><dt>{{ 'audit.executionId' | translate }}</dt><dd class="code">{{ event.executionId }}</dd></div>
+        @if (event.sourceSyncExecutionId) {
+          <div>
+            <dt>{{ 'sync.detail.openalexRecoveredFrom' | translate: { id: event.sourceSyncExecutionId } }}</dt>
+            <dd class="code">{{ event.sourceSyncExecutionId }}</dd>
+          </div>
+        }
+      </dl>
+
+      <section class="metrics" [attr.aria-label]="'audit.metrics' | translate">
+        @if (event.totalExpected != null) {
+          <div><span>{{ 'audit.metric.expected' | translate }}</span><strong>{{ event.totalExpected | localeNumber }}</strong></div>
+        }
+        <div><span>{{ 'audit.metric.processed' | translate }}</span><strong>{{ event.processed | localeNumber }}</strong></div>
+        <div><span>{{ 'audit.metric.created' | translate }}</span><strong>{{ event.created | localeNumber }}</strong></div>
+        <div><span>{{ 'audit.metric.updated' | translate }}</span><strong>{{ event.updated | localeNumber }}</strong></div>
+        <div><span>{{ 'audit.metric.unchanged' | translate }}</span><strong>{{ event.unchanged | localeNumber }}</strong></div>
+        <div><span>{{ 'audit.metric.reactivated' | translate }}</span><strong>{{ event.reactivated | localeNumber }}</strong></div>
+        <div><span>{{ 'audit.metric.inactive' | translate }}</span><strong>{{ event.markedInactive | localeNumber }}</strong></div>
+        <div><span>{{ 'audit.metric.errors' | translate }}</span><strong>{{ event.errorCount | localeNumber }}</strong></div>
+      </section>
+
+      @if (event.errorCode === 'USER_CANCELLED') {
+        <p>{{ 'openalex.statusUserCancelled' | translate }}</p>
+        <p class="oa-muted">{{ event.status }} · {{ event.errorCode }}</p>
+      }
+      @if (staleMessageKey(event.entity, event.errorCode); as staleKey) {
+        <p class="error-message">{{ staleKey | translate }}</p>
+      } @else if (event.errorMessage && event.errorCode !== 'USER_CANCELLED') {
+        <p class="error-message">{{ event.errorMessage }}</p>
+      }
+      @if (showsOpenAlexRecovery(event)) {
+        <p>{{ 'audit.openalexRecoveryAvailable' | translate }}</p>
+        <a
+          class="linkish"
+          routerLink="/integrations/openalex"
+          [queryParams]="{ tab: 'history', syncId: event.executionId }"
+        >
+          {{ 'audit.openInOpenAlex' | translate }}
+        </a>
+      }
+
+      <nav class="oa-tabs" [attr.aria-label]="'audit.detailTabs' | translate">
+        <button type="button" [class.active]="detailTab() === 'changes'" (click)="setTab('changes')">
+          {{ 'audit.tab.changes' | translate }}
+        </button>
+        <button type="button" [class.active]="detailTab() === 'errors'" (click)="setTab('errors')">
+          {{ 'audit.tab.errors' | translate }}
+        </button>
+      </nav>
+
+      @if (detailTab() === 'changes') {
+        @let changeVm = changes();
+        @if (changeVm.status === 'loading' && changeVm.data.items.length === 0) {
+          <os-loading-state />
+        } @else if (changeVm.status === 'error') {
+          <os-error-state [actionLabel]="'common.retry' | translate" (action)="retry()" />
+        } @else if (changeVm.data.items.length === 0) {
+          <os-empty-state [message]="'audit.emptyChanges' | translate" />
+        } @else {
+          <os-data-table-shell [fluid]="true" maxHeight="min(40vh, 24rem)">
+            <table>
+              <thead>
+                <tr>
+                  <th>{{ 'audit.timestamp' | translate }}</th>
+                  <th>{{ 'audit.changeType' | translate }}</th>
+                  <th>{{ 'audit.changeScope' | translate }}</th>
+                  <th>{{ 'audit.entity' | translate }}</th>
+                  <th>{{ 'audit.localId' | translate }}</th>
+                  <th>{{ 'audit.pureId' | translate }}</th>
+                  <th>{{ 'audit.recordUuid' | translate }}</th>
+                  <th>{{ 'audit.recordKey' | translate }}</th>
+                  <th>{{ 'audit.description' | translate }}</th>
+                  <th>{{ 'audit.values' | translate }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (change of changeVm.data.items; track change.id) {
+                  <tr>
+                    <td class="nowrap">{{ change.createdAt | localeDate }}</td>
+                    <td class="nowrap">{{ change.changeType || ('common.dash' | translate) }}</td>
+                    <td class="nowrap">{{ change.changeScope || ('common.dash' | translate) }}</td>
+                    <td>{{ entityKey(change.entity) | translate }}</td>
+                    <td class="nowrap">{{ change.localRecordId ?? ('common.dash' | translate) }}</td>
+                    <td class="nowrap">{{ change.pureId ?? ('common.dash' | translate) }}</td>
+                    <td class="code">{{ change.recordUuid || ('common.dash' | translate) }}</td>
+                    <td class="code">{{ change.recordKey || ('common.dash' | translate) }}</td>
+                    <td>{{ change.description || ('common.dash' | translate) }}</td>
+                    <td class="nowrap">
+                      <button type="button" (click)="toggleChange(change.id)">
+                        {{ (expandedChangeId() === change.id ? 'audit.hideValues' : 'audit.showValues') | translate }}
+                      </button>
+                    </td>
+                  </tr>
+                  @if (expandedChangeId() === change.id) {
+                    <tr class="value-row">
+                      <td colspan="10">
+                        <div class="value-grid">
+                          <section>
+                            <h3>{{ 'audit.before' | translate }}</h3>
+                            <pre>{{ formatValue(change.oldValue).text || ('common.dash' | translate) }}</pre>
+                          </section>
+                          <section>
+                            <h3>{{ 'audit.after' | translate }}</h3>
+                            <pre>{{ formatValue(change.newValue).text || ('common.dash' | translate) }}</pre>
+                          </section>
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                }
+              </tbody>
+            </table>
+          </os-data-table-shell>
+          <os-pagination
+            [page]="changeVm.data.page"
+            [pageSize]="changeVm.data.pageSize"
+            [total]="changeVm.data.total"
+            (pageChange)="onChangePage($event)"
+          />
+        }
+      } @else {
+        @let errorVm = errors();
+        @if (errorVm.status === 'loading' && errorVm.data.items.length === 0) {
+          <os-loading-state />
+        } @else if (errorVm.status === 'error') {
+          <os-error-state [actionLabel]="'common.retry' | translate" (action)="retry()" />
+        } @else if (errorVm.data.items.length === 0) {
+          <os-empty-state [message]="'audit.emptyErrors' | translate" />
+        } @else {
+          <os-data-table-shell [fluid]="true" maxHeight="min(40vh, 24rem)">
+            <table>
+              <thead>
+                <tr>
+                  <th>{{ 'audit.timestamp' | translate }}</th>
+                  <th>{{ 'audit.stage' | translate }}</th>
+                  <th>{{ 'audit.errorCode' | translate }}</th>
+                  <th>{{ 'audit.localId' | translate }}</th>
+                  <th>{{ 'audit.recordUuid' | translate }}</th>
+                  <th>{{ 'audit.recordKey' | translate }}</th>
+                  <th>{{ 'audit.message' | translate }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (item of errorVm.data.items; track item.id) {
+                  <tr>
+                    <td class="nowrap">{{ item.createdAt | localeDate }}</td>
+                    <td class="nowrap">{{ item.stage || ('common.dash' | translate) }}</td>
+                    <td class="nowrap">{{ item.errorCode || ('common.dash' | translate) }}</td>
+                    <td class="nowrap">{{ item.localRecordId ?? ('common.dash' | translate) }}</td>
+                    <td class="code">{{ item.uuid || ('common.dash' | translate) }}</td>
+                    <td class="code">{{ item.recordKey || ('common.dash' | translate) }}</td>
+                    <td>{{ item.errorMessage || ('common.dash' | translate) }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </os-data-table-shell>
+          <os-pagination
+            [page]="errorVm.data.page"
+            [pageSize]="errorVm.data.pageSize"
+            [total]="errorVm.data.total"
+            (pageChange)="onErrorPage($event)"
+          />
+        }
+      }
+    </aside>
+  </div>
+}

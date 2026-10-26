@@ -1,0 +1,19 @@
+<os-page-header
+  [title]="'admin.title' | translate"
+  [subtitle]="'admin.subtitle' | translate"
+/>
+
+<div class="grid">
+  @for (section of ready; track section.id) {
+    <os-section-card [title]="section.titleKey | translate" [description]="section.descriptionKey | translate">
+      @if (auth.canAdminister('ADMINISTRATION') || section.id === 'users' || section.id === 'roles') {
+        <a [routerLink]="section.link" class="page-action page-action--secondary">{{ section.actionKey | translate }}</a>
+      }
+    </os-section-card>
+  }
+  @for (section of placeholders; track section.id) {
+    <os-section-card [title]="section.titleKey | translate" [description]="section.descriptionKey | translate">
+      <os-status-badge [label]="'common.placeholder' | translate" tone="pending" />
+    </os-section-card>
+  }
+</div>

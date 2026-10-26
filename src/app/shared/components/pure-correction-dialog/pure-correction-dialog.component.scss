@@ -1,0 +1,125 @@
+.correction-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+}
+
+.correction-dialog__backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(16, 43, 66, 0.32);
+}
+
+.correction-dialog__panel {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 0.9rem;
+  width: min(32rem, calc(100vw - 1.5rem));
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
+  padding: 1.2rem 1.25rem 1.05rem;
+  border-radius: var(--os-radius-md);
+  background: var(--os-surface);
+  box-shadow: var(--os-shadow-md);
+}
+
+.correction-dialog__panel:focus {
+  outline: none;
+}
+
+.correction-dialog__panel h2,
+.correction-dialog__body p {
+  margin: 0;
+}
+
+.correction-dialog__panel h2 {
+  font-size: var(--os-fs-md);
+}
+
+.correction-dialog__body {
+  display: grid;
+  gap: 0.55rem;
+  color: var(--os-text-primary);
+  font-size: var(--os-fs-sm);
+}
+
+.correction-dialog__value,
+.correction-dialog__name {
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.correction-dialog__secondary {
+  color: var(--os-text-secondary);
+}
+
+.correction-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.correction-dialog__cancel,
+.correction-dialog__confirm {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 2.3rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: var(--os-radius-sm);
+  font: inherit;
+  font-size: var(--os-fs-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.correction-dialog__cancel {
+  border: 1px solid var(--os-border-strong);
+  background: var(--os-surface);
+  color: var(--os-text-primary);
+}
+
+.correction-dialog__confirm {
+  border: 1px solid var(--os-danger);
+  background: var(--os-surface);
+  color: var(--os-danger);
+}
+
+.correction-dialog__confirm:hover,
+.correction-dialog__confirm:focus-visible {
+  background: #fbf6f5;
+}
+
+.correction-dialog__cancel:focus-visible,
+.correction-dialog__confirm:focus-visible {
+  outline: none;
+  box-shadow: var(--os-focus);
+}
+
+.correction-dialog__cancel:disabled,
+.correction-dialog__confirm:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.correction-dialog__confirm os-icon {
+  animation: correction-spin 1s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .correction-dialog__confirm os-icon {
+    animation: none;
+  }
+}
+
+@keyframes correction-spin {
+  to {
+    transform: rotate(-360deg);
+  }
+}

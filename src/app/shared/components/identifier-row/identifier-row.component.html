@@ -1,0 +1,25 @@
+<div class="identifier-row">
+  <span class="identifier-row__label">{{ label() }}</span>
+  <div class="identifier-row__value">
+    @if (displayValue()) {
+      @if (href()) {
+        <a
+          [href]="href()!"
+          [attr.title]="tooltip() || null"
+          [attr.target]="external() ? '_blank' : null"
+          [attr.rel]="external() ? 'noopener noreferrer' : null"
+        >
+          {{ displayValue() }}
+          @if (external()) {
+            <os-icon name="external" />
+          }
+        </a>
+      } @else {
+        <span [attr.title]="tooltip() || null">{{ displayValue() }}</span>
+      }
+      <os-copy-button [value]="displayValue()" [labelKey]="copyLabelKey()" />
+    } @else {
+      {{ 'common.dash' | translate }}
+    }
+  </div>
+</div>

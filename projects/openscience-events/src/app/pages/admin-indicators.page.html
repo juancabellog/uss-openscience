@@ -1,0 +1,55 @@
+<section class="panel">
+  <h1>{{ 'indicators.title' | translate }}</h1>
+  <p>{{ 'indicators.intro' | translate }}</p>
+  <form class="filters" [formGroup]="filters" (ngSubmit)="reload()">
+    <label>{{ 'indicators.from' | translate }} <input type="datetime-local" formControlName="from" /></label>
+    <label>{{ 'indicators.to' | translate }} <input type="datetime-local" formControlName="to" /></label>
+    <button type="submit">{{ 'indicators.apply' | translate }}</button>
+  </form>
+</section>
+@if (errorKey(); as key) {
+  <p class="error">{{ key | translate }}</p>
+}
+@if (data(); as indicators) {
+  <section class="panel">
+    <dl>
+      <div><dt>{{ 'indicators.events' | translate }}</dt><dd>{{ formatNumber(indicators.totalEvents) }}</dd></div>
+      <div><dt>{{ 'indicators.published' | translate }}</dt><dd>{{ formatNumber(indicators.publishedEvents) }}</dd></div>
+      <div><dt>{{ 'indicators.advance' | translate }}</dt><dd>{{ formatNumber(indicators.advanceRegistrations) }}</dd></div>
+      <div><dt>{{ 'indicators.effective' | translate }}</dt><dd>{{ formatNumber(indicators.effectiveAttendees) }}</dd></div>
+      <div><dt>{{ 'indicators.walkIns' | translate }}</dt><dd>{{ formatNumber(indicators.walkIns) }}</dd></div>
+      <div><dt>{{ 'indicators.absences' | translate }}</dt><dd>{{ formatNumber(indicators.confirmedAbsences) }}</dd></div>
+      <div><dt>{{ 'indicators.rate' | translate }}</dt><dd>{{ formatPercent(indicators.registeredAttendanceRate) }}</dd></div>
+      <div><dt>{{ 'indicators.unique' | translate }}</dt><dd>{{ formatNumber(indicators.uniquePeople) }}</dd></div>
+      <div><dt>{{ 'indicators.recurring' | translate }}</dt><dd>{{ formatNumber(indicators.recurringPeople) }}</dd></div>
+      <div><dt>{{ 'indicators.pure' | translate }}</dt><dd>{{ formatNumber(indicators.pureLinked) }}</dd></div>
+    </dl>
+    @if (!indicators.attendanceTablesAvailable) {
+      <p class="muted">{{ 'indicators.tablesMissing' | translate }}</p>
+    }
+  </section>
+  <section class="panel">
+    <h2>{{ 'indicators.byFaculty' | translate }}</h2>
+    @if (indicators.byFaculty.length === 0) {
+      <p>{{ 'indicators.empty' | translate }}</p>
+    } @else {
+      <ul>
+        @for (row of indicators.byFaculty; track row.label) {
+          <li>{{ row.label }} · {{ formatNumber(row.total) }}</li>
+        }
+      </ul>
+    }
+  </section>
+  <section class="panel">
+    <h2>{{ 'indicators.byPosition' | translate }}</h2>
+    @if (indicators.byPosition.length === 0) {
+      <p>{{ 'indicators.empty' | translate }}</p>
+    } @else {
+      <ul>
+        @for (row of indicators.byPosition; track row.label) {
+          <li>{{ row.label }} · {{ formatNumber(row.total) }}</li>
+        }
+      </ul>
+    }
+  </section>
+}

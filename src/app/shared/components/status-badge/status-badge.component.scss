@@ -1,0 +1,77 @@
+:host {
+  display: inline-flex;
+  max-width: 100%;
+  vertical-align: middle;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  box-sizing: border-box;
+  min-height: 1.5rem;
+  max-width: 100%;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid var(--os-border);
+  background: var(--os-surface-muted);
+  color: var(--os-text-primary);
+  font-size: var(--os-fs-xs);
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.badge__label {
+  min-width: 0;
+}
+
+.badge os-icon,
+:host ::ng-deep .badge .os-icon {
+  flex: 0 0 auto;
+  width: 0.85rem;
+  height: 0.85rem;
+}
+
+.badge--interactive {
+  cursor: pointer;
+}
+
+.badge--interactive:hover {
+  filter: brightness(0.97);
+}
+
+.badge[data-tone='ok'],
+.badge[data-tone='success'] {
+  background: #e8f5ee;
+  border-color: #b7dcc8;
+  color: var(--os-success);
+}
+
+.badge[data-tone='review'],
+.badge[data-tone='warning'] {
+  background: #fbf4e2;
+  border-color: #ead7a0;
+  color: var(--os-warning);
+}
+
+.badge[data-tone='pending'],
+.badge[data-tone='open'],
+.badge[data-tone='info'] {
+  background: #e7f2f8;
+  border-color: #b9d4e6;
+  color: var(--os-info);
+}
+
+.badge[data-tone='danger'] {
+  background: #fdecec;
+  border-color: #f0c4c4;
+  color: var(--os-danger);
+}
+
+.badge[data-tone='muted'] {
+  background: color-mix(in srgb, var(--os-surface-muted) 82%, var(--os-border));
+  border-color: var(--os-border);
+  color: var(--os-text-secondary);
+}

@@ -1,0 +1,13 @@
+@if (items().length > 0) {
+  <ul class="evidence-codes">
+    @for (item of items(); track item.code) {
+      <li [attr.title]="item.code">
+        <os-status-badge
+          [label]="item.labelKey | translate"
+          [tone]="item.tone || 'muted'"
+          [icon]="item.icon ?? null"
+        />
+      </li>
+    }
+  </ul>
+}

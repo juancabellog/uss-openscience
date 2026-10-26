@@ -1,0 +1,180 @@
+@if (view(); as vm) {
+  @if (vm.status === 'loading') {
+    <os-loading-state />
+  } @else if (vm.status === 'error') {
+    <os-error-state />
+  } @else {
+    <section class="identity-group" [attr.aria-labelledby]="'identity-scopus-title'">
+      <h2 id="identity-scopus-title">{{ 'indicators.identity.groupScopus' | translate }}</h2>
+      <div class="identity-cards">
+        <article class="identity-card">
+          <p class="identity-card__value">
+            {{ vm.data.scopusCoverage.numerator | localeNumber }}
+            ·
+            {{ vm.data.scopusCoverage.percentage | localePercent }}
+          </p>
+          <h3>{{ 'indicators.identity.scopusCoverage.name' | translate }}</h3>
+          <p>{{ 'indicators.identity.scopusCoverage.description' | translate }}</p>
+          <p class="identity-card__base">
+            {{ 'indicators.identity.baseActive' | translate: { count: formatCount(vm.data.scopusCoverage.denominator) } }}
+          </p>
+          <div class="identity-card__actions">
+            <a routerLink="/people" [queryParams]="{ scopusStatus: 'WITH_SCOPUS' }" class="identity-card__action">
+              {{ 'indicators.identity.viewWithScopus' | translate }}
+            </a>
+            <a routerLink="/people" [queryParams]="{ scopusStatus: 'WITHOUT_SCOPUS' }" class="identity-card__secondary">
+              {{ 'indicators.identity.viewWithoutScopus' | translate }}
+            </a>
+          </div>
+        </article>
+        <article class="identity-card">
+          <p class="identity-card__value">
+            {{ vm.data.multipleScopusProfiles.numerator | localeNumber }}
+            ·
+            {{ vm.data.multipleScopusProfiles.percentage | localePercent }}
+          </p>
+          <h3>{{ 'indicators.identity.multipleScopus.name' | translate }}</h3>
+          <p>{{ 'indicators.identity.multipleScopus.description' | translate }}</p>
+          <p class="identity-card__base">
+            {{ 'indicators.identity.baseWithScopus' | translate: { count: formatCount(vm.data.multipleScopusProfiles.denominator) } }}
+          </p>
+          <div class="identity-card__actions">
+            <a routerLink="/people" [queryParams]="{ minDistinctScopusCount: 2 }" class="identity-card__action">
+              {{ 'indicators.identity.viewCases' | translate }}
+            </a>
+            <a routerLink="/data-quality" [queryParams]="{ rule: 'PURE-014' }" class="identity-card__secondary">
+              {{ 'indicators.identity.openPure014' | translate }}
+            </a>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="identity-group" [attr.aria-labelledby]="'identity-signature-title'">
+      <h2 id="identity-signature-title">{{ 'indicators.identity.groupSignature' | translate }}</h2>
+      <div class="identity-cards">
+        <article class="identity-card">
+          <p class="identity-card__value">
+            {{ vm.data.controlledSignature.numerator | localeNumber }}
+            ·
+            {{ vm.data.controlledSignature.percentage | localePercent }}
+          </p>
+          <h3>{{ 'indicators.identity.controlledSignature.name' | translate }}</h3>
+          <p>{{ 'indicators.identity.controlledSignature.description' | translate }}</p>
+          <p class="identity-card__base">
+            {{ 'indicators.identity.baseSignature' | translate: { count: formatCount(vm.data.controlledSignature.denominator) } }}
+          </p>
+          <a routerLink="/indicators/identity/cases/controlledSignature" class="identity-card__action">
+            {{ 'indicators.identity.viewCases' | translate }}
+          </a>
+        </article>
+        <article class="identity-card">
+          <p class="identity-card__value">
+            {{ vm.data.highSignatureFragmentation.numerator | localeNumber }}
+            ·
+            {{ vm.data.highSignatureFragmentation.percentage | localePercent }}
+          </p>
+          <h3>{{ 'indicators.identity.highFragmentation.name' | translate }}</h3>
+          <p>{{ 'indicators.identity.highFragmentation.description' | translate }}</p>
+          <p class="identity-card__base">
+            {{ 'indicators.identity.baseSignature' | translate: { count: formatCount(vm.data.highSignatureFragmentation.denominator) } }}
+          </p>
+          <a routerLink="/indicators/identity/cases/highSignatureFragmentation" class="identity-card__action">
+            {{ 'indicators.identity.viewCases' | translate }}
+          </a>
+        </article>
+      </div>
+    </section>
+
+    <section class="identity-group" [attr.aria-labelledby]="'identity-orcid-title'">
+      <h2 id="identity-orcid-title">{{ 'indicators.identity.groupOrcid' | translate }}</h2>
+      <div class="identity-cards">
+        <article class="identity-card">
+          <p class="identity-card__value">
+            {{ vm.data.normalizedUssOrcidAffiliation.numerator | localeNumber }}
+            ·
+            {{ vm.data.normalizedUssOrcidAffiliation.percentage | localePercent }}
+          </p>
+          <h3>{{ 'indicators.identity.orcidAffiliation.name' | translate }}</h3>
+          <p>{{ 'indicators.identity.orcidAffiliation.description' | translate }}</p>
+          <p class="identity-card__base">
+            {{ 'indicators.identity.baseOrcid' | translate: { count: formatCount(vm.data.normalizedUssOrcidAffiliation.denominator) } }}
+          </p>
+          <a routerLink="/indicators/identity/cases/normalizedUssOrcidAffiliation" class="identity-card__action">
+            {{ 'indicators.identity.viewCases' | translate }}
+          </a>
+        </article>
+        @if (latestMonth(vm.adoption); as latest) {
+          <article class="identity-card">
+            <p class="identity-card__value">
+              {{ latest.personsWithOrcid | localeNumber }}
+              ·
+              {{ latest.percentage | localePercent }}
+            </p>
+            <h3>{{ 'indicators.identity.orcidAdoption.name' | translate }}</h3>
+            <p>{{ 'indicators.identity.orcidAdoption.description' | translate }}</p>
+            <p class="identity-card__base">
+              {{ 'indicators.identity.orcidAdoption.latestMonth' | translate: { month: latest.month } }}
+            </p>
+            <p class="identity-card__base">
+              {{ 'indicators.identity.orcidAdoption.colUniverse' | translate }}:
+              {{ latest.totalPersons | localeNumber }}
+            </p>
+          </article>
+        }
+      </div>
+    </section>
+
+    @if (vm.adoption; as adoption) {
+      <section class="identity-group orcid-adoption" [attr.aria-labelledby]="'identity-orcid-adoption-title'">
+        <h2 id="identity-orcid-adoption-title">{{ 'indicators.identity.orcidAdoption.name' | translate }}</h2>
+        <p>{{ 'indicators.identity.orcidAdoption.description' | translate }}</p>
+        @if (adoption.availableFrom) {
+          <p class="identity-card__base">
+            {{ 'indicators.identity.orcidAdoption.availableFrom' | translate: { month: adoption.availableFrom } }}
+          </p>
+        }
+        <p class="identity-card__base">{{ 'indicators.identity.orcidAdoption.operationalNote' | translate }}</p>
+        @if (linePoints(adoption); as points) {
+          <svg
+            class="orcid-adoption__chart"
+            viewBox="0 0 100 40"
+            role="img"
+            [attr.aria-label]="'indicators.identity.orcidAdoption.chartLabel' | translate"
+          >
+            <polyline [attr.points]="points" fill="none" stroke="currentColor" stroke-width="1.5" />
+          </svg>
+        } @else {
+          <p class="identity-card__base">{{ 'indicators.identity.orcidAdoption.empty' | translate }}</p>
+        }
+        @if (adoption.months.length) {
+          <table class="orcid-adoption__table">
+            <caption>{{ 'indicators.identity.orcidAdoption.chartLabel' | translate }}</caption>
+            <thead>
+              <tr>
+                <th>{{ 'indicators.identity.orcidAdoption.colMonth' | translate }}</th>
+                <th>{{ 'indicators.identity.orcidAdoption.colUniverse' | translate }}</th>
+                <th>{{ 'indicators.identity.orcidAdoption.colWithOrcid' | translate }}</th>
+                <th>{{ 'indicators.identity.orcidAdoption.colPercent' | translate }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (month of adoption.months; track month.month) {
+                <tr>
+                  <td>{{ month.month }}</td>
+                  @if (month.complete) {
+                    <td>{{ month.totalPersons | localeNumber }}</td>
+                    <td>{{ month.personsWithOrcid | localeNumber }}</td>
+                    <td>{{ month.percentage | localePercent }}</td>
+                  } @else {
+                    <td colspan="3">{{ 'indicators.identity.orcidAdoption.incomplete' | translate }}</td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+      </section>
+    }
+  }
+}

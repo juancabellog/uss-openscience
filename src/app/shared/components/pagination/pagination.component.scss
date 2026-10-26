@@ -1,0 +1,32 @@
+.pagination {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--os-space-md);
+  padding: var(--os-space-md) 0;
+  color: var(--os-text-secondary);
+  font-size: var(--os-fs-sm);
+}
+
+.pagination__size {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-right: auto;
+}
+
+.pagination__size select {
+  min-width: 4.5rem;
+}
+
+button {
+  background: var(--os-surface);
+  border: 1px solid var(--os-border);
+  border-radius: var(--os-radius-sm);
+  padding: 0.4rem 0.8rem;
+  color: var(--os-primary-dark);
+}
+
+button:disabled {
+  opacity: 0.45;
+}

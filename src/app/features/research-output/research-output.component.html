@@ -1,0 +1,77 @@
+<os-page-header
+  [title]="'outputs.title' | translate"
+  [subtitle]="'outputs.subtitle' | translate"
+/>
+<os-demo-banner />
+
+<os-filter-bar>
+  <os-search-box
+    [control]="search"
+    [placeholder]="'outputs.searchPlaceholder' | translate"
+    [label]="'outputs.search' | translate"
+  />
+  <label>
+    <span class="visually-hidden">{{ 'outputs.type' | translate }}</span>
+    <select [formControl]="type">
+      <option value="all">{{ 'outputs.allTypes' | translate }}</option>
+      <option value="Artículo">{{ 'outputs.types.article' | translate }}</option>
+      <option value="Capítulo">{{ 'outputs.types.chapter' | translate }}</option>
+      <option value="Conferencia">{{ 'outputs.types.conference' | translate }}</option>
+    </select>
+  </label>
+  <label>
+    <span class="visually-hidden">{{ 'outputs.metadataStatus' | translate }}</span>
+    <select [formControl]="status">
+      <option value="all">{{ 'status.all' | translate }}</option>
+      <option value="ok">{{ 'status.ok' | translate }}</option>
+      <option value="review">{{ 'status.review' | translate }}</option>
+      <option value="pending">{{ 'status.pending' | translate }}</option>
+    </select>
+  </label>
+</os-filter-bar>
+
+@let vm = result();
+@if (vm.status === 'loading' && vm.data.items.length === 0) {
+  <os-loading-state />
+} @else if (vm.status === 'error') {
+  <os-error-state />
+} @else if (vm.data.items.length === 0) {
+  <os-empty-state />
+} @else {
+  <os-data-table-shell [caption]="'outputs.caption' | translate">
+    <table>
+      <thead>
+        <tr>
+          <th>{{ 'outputs.titleColumn' | translate }}</th>
+          <th>{{ 'outputs.year' | translate }}</th>
+          <th>{{ 'outputs.type' | translate }}</th>
+          <th>{{ 'outputs.doi' | translate }}</th>
+          <th>{{ 'outputs.journal' | translate }}</th>
+          <th>{{ 'outputs.contributors' | translate }}</th>
+          <th>{{ 'outputs.metadataState' | translate }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of vm.data.items; track item.id) {
+          <tr>
+            <td>{{ item.title }}</td>
+            <td>{{ item.year }}</td>
+            <td>{{ item.type }}</td>
+            <td>{{ item.doi || ('common.dash' | translate) }}</td>
+            <td>{{ item.journal || ('common.dash' | translate) }}</td>
+            <td>{{ item.contributorCount | localeNumber }}</td>
+            <td>
+              <os-status-badge [label]="qualityKey(item.metadataStatus) | translate" [tone]="qualityTone(item.metadataStatus)" />
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </os-data-table-shell>
+  <os-pagination
+    [page]="vm.data.page"
+    [pageSize]="vm.data.pageSize"
+    [total]="vm.data.total"
+    (pageChange)="onPageChange($event)"
+  />
+}

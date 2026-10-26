@@ -1,0 +1,15 @@
+<os-page-header
+  [title]="'indicators.title' | translate"
+  [subtitle]="'indicators.subtitle' | translate"
+/>
+
+<nav class="subnav" [attr.aria-label]="'indicators.layersNav' | translate">
+  <a routerLink="/indicators" routerLinkActive="is-active" [routerLinkActiveOptions]="{ exact: true }">{{ 'indicators.summary' | translate }}</a>
+  <a routerLink="/indicators/identity" routerLinkActive="is-active">{{ 'indicators.identity.nav' | translate }}</a>
+  <a routerLink="/indicators/open-access" routerLinkActive="is-active">{{ 'indicators.openAccess.nav' | translate }}</a>
+  <a routerLink="/indicators/layer-1" routerLinkActive="is-active">{{ 'indicators.layer1' | translate }}</a>
+  <a routerLink="/indicators/layer-2" routerLinkActive="is-active">{{ 'indicators.layer2' | translate }}</a>
+  <a routerLink="/indicators/layer-3" routerLinkActive="is-active">{{ 'indicators.layer3' | translate }}</a>
+</nav>
+
+<router-outlet />

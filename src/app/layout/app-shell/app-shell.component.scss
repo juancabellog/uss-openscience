@@ -1,0 +1,78 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow: hidden;
+}
+
+os-institutional-header {
+  flex: 0 0 auto;
+  z-index: var(--os-z-header);
+}
+
+.shell__workspace {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+
+os-sidebar {
+  flex: 0 0 auto;
+  align-self: stretch;
+  height: 100%;
+  z-index: var(--os-z-sidebar);
+}
+
+.shell__main {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: visible;
+  background: var(--os-background);
+  display: flex;
+  flex-direction: column;
+}
+
+.shell__content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  width: 100%;
+  max-width: var(--os-content-max);
+  margin: 0 auto;
+  padding: var(--os-space-xl) var(--os-space-lg) var(--os-space-lg);
+}
+
+.shell__content--wide {
+  max-width: var(--os-content-max-wide);
+}
+
+.shell__backdrop {
+  display: none;
+}
+
+@media (max-width: 960px) {
+  .shell--drawer-open os-sidebar {
+    position: absolute;
+    inset: 0 auto 0 0;
+    z-index: calc(var(--os-z-sidebar) + 1);
+    height: 100%;
+  }
+
+  .shell--drawer-open .shell__backdrop {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: var(--os-z-sidebar);
+    border: 0;
+    background: rgba(16, 43, 66, 0.35);
+  }
+}

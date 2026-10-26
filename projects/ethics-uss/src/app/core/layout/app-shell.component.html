@@ -1,0 +1,65 @@
+<aside class="sidebar">
+  <p class="brand">{{ 'brand.name' | translate }}</p>
+  <p class="brand-sub">{{ 'brand.university' | translate }}</p>
+  <nav>
+    @for (item of nav(); track item.path) {
+      <a [routerLink]="item.path" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: item.path === '/' }">{{ item.labelKey | translate }}</a>
+    }
+  </nav>
+</aside>
+<div class="main">
+  <header class="topbar">
+    <div class="identity">
+      <p class="crumb">{{ 'brand.crumb' | translate }}</p>
+      <strong>{{ user()?.displayName }}</strong>
+      <span class="muted"> {{ roleLabelKey() | translate }}</span>
+      @if (committees().length === 1) {
+        <span class="muted"> · {{ committeeKey(committees()[0]) | translate }}</span>
+      }
+      @if (committees().length > 1) {
+        <label class="role-switch">
+          <span class="sr-only">{{ 'shell.activeCommittee' | translate }}</span>
+          <select [ngModel]="activeCommittee()" (ngModelChange)="setCommittee($event)">
+            @for (code of committees(); track code) {
+              <option [value]="code">{{ committeeKey(code) | translate }}</option>
+            }
+          </select>
+        </label>
+      }
+    </div>
+    <div class="tools">
+      <eth-language-switcher />
+      <div class="tools-actions">
+        <button type="button" class="ghost tools-notify" [attr.aria-label]="'navigation.notifications' | translate" (click)="toggleNotes()">
+          <span>{{ 'navigation.notifications' | translate }}</span>
+          @if (unread()) {
+            <span class="dot">{{ unread() }}</span>
+          }
+        </button>
+        <label class="role-switch">
+          <span class="sr-only">{{ 'common.switchProfile' | translate }}</span>
+          <select [ngModel]="user()?.id" (ngModelChange)="assume($event)" [attr.aria-label]="'common.switchProfile' | translate">
+            @for (item of users; track item.id) {
+              <option [value]="item.id">{{ item.displayName }} · {{ roleKey(item.role) | translate }}@if (item.role === 'COMMITTEE_PRESIDENT' || item.role === 'EXECUTIVE_SECRETARY') { · {{ committeeKey(item.committees[0]) | translate }} }</option>
+            }
+          </select>
+        </label>
+        <button type="button" class="ghost" (click)="logout()">{{ 'common.logout' | translate }}</button>
+      </div>
+    </div>
+  </header>
+  @if (openNotes()) {
+    <div class="notes">
+      <h2>{{ 'notifications.title' | translate }}</h2>
+      @for (note of notes(); track note.item.id) {
+        <button type="button" class="note" (click)="openNote(note.item.id, note.item.link)">
+          <strong>{{ note.text.title }}</strong>
+          <span>{{ note.text.body }}</span>
+        </button>
+      }
+    </div>
+  }
+  <main class="content">
+    <router-outlet />
+  </main>
+</div>

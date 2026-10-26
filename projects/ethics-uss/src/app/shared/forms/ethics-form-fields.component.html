@@ -1,0 +1,146 @@
+@if (mode() === 'edit') {
+  @for (question of questions(); track question.id) {
+    @if (question.type === 'text' || question.type === 'email' || question.type === 'date') {
+      <label class="field">
+        <span class="label-caption">
+          <span class="q-num">{{ question.number }}</span>
+          {{ labelOf(question) }}
+          @if (question.required) { <span class="req">*</span> }
+        </span>
+        <input [type]="question.type === 'text' ? 'text' : question.type" [formControl]="$any(form()?.get(question.fieldKey))" />
+        @if (helpOf(question)) { <span class="hint">{{ helpOf(question) }}</span> }
+      </label>
+    }
+    @if (question.type === 'select') {
+      <label class="field">
+        <span class="label-caption">
+          <span class="q-num">{{ question.number }}</span>
+          {{ labelOf(question) }}
+          @if (question.required) { <span class="req">*</span> }
+        </span>
+        <select [formControl]="$any(form()?.get(question.fieldKey))">
+          <option value="">{{ 'common.select' | translate }}</option>
+          @for (option of question.options; track option.id) {
+            <option [value]="option.id">{{ optionOf(option) }}</option>
+          }
+        </select>
+        @if (helpOf(question)) { <span class="hint">{{ helpOf(question) }}</span> }
+      </label>
+    }
+    @if (question.type === 'multiselect') {
+      <fieldset class="choice-set">
+        <legend>
+          <span class="q-num">{{ question.number }}</span>
+          {{ labelOf(question) }}
+          @if (question.required) { <span class="req">*</span> }
+        </legend>
+        @if (helpOf(question)) { <p class="hint">{{ helpOf(question) }}</p> }
+        @for (group of groupedOptions(question); track group.title ?? $index) {
+          @if (question.showAllOptionsReadonly && group.title) {
+            <p class="group-title">{{ group.title | translate }}</p>
+          }
+          @for (option of group.items; track option.id) {
+            <label class="check-card">
+              <input type="checkbox" [checked]="selected(question, option.id)" (change)="toggle(question, option.id)" />
+              <span>{{ optionOf(option) }}</span>
+            </label>
+          }
+        }
+      </fieldset>
+    }
+    @if (question.type === 'declaration') {
+      <label class="check-card">
+        <input type="checkbox" [formControl]="$any(form()?.get(question.fieldKey))" />
+        <span>
+          <span class="q-num">{{ question.number }}</span>
+          {{ labelOf(question) }}
+          @if (question.required) { <span class="req">*</span> }
+        </span>
+      </label>
+    }
+    @if (question.type === 'file' || question.type === 'file-list') {
+      <div class="field">
+        <p class="label-caption">
+          <span class="q-num">{{ question.number }}</span>
+          {{ labelOf(question) }}
+          @if (question.required) { <span class="req">*</span> }
+        </p>
+        @if (helpOf(question)) { <p class="hint">{{ helpOf(question) }}</p> }
+        <input type="file" accept="application/pdf" (change)="onFile(question, $event)" />
+        @for (file of files(question); track file.name) {
+          <p class="file-row">
+            {{ file.name }} · {{ file.type }} · {{ file.sizeLabel }}
+            <button type="button" class="ghost" (click)="fileRemoved.emit({ question, name: file.name })">{{ 'common.delete' | translate }}</button>
+          </p>
+        }
+      </div>
+    }
+  }
+} @else {
+  @for (question of questions(); track question.id) {
+    <article class="question" [attr.aria-labelledby]="question.id">
+      <p class="q-num">{{ question.number }}</p>
+      <div>
+        <h3 [id]="question.id">{{ labelOf(question) }}</h3>
+        @if (helpOf(question)) { <p class="hint">{{ helpOf(question) }}</p> }
+
+        @if (question.showAllOptionsReadonly) {
+          @for (group of groupedOptions(question); track group.title ?? $index) {
+            @if (group.title) { <p class="group-title">{{ group.title | translate }}</p> }
+            <ul class="choice-readonly">
+              @for (option of group.items; track option.id) {
+                <li [class.on]="selected(question, option.id)">
+                  <span class="mark" [attr.aria-label]="selected(question, option.id) ? ('common.selected' | translate) : ('common.notSelected' | translate)">
+                    {{ selected(question, option.id) ? '☑' : '☐' }}
+                  </span>
+                  <span>
+                    <span class="choice-label">{{ optionOf(option) }}</span>
+                    @if (option.classification) {
+                      <span class="choice-hint">{{ labels[option.classification] | translate }}</span>
+                    }
+                  </span>
+                </li>
+              }
+            </ul>
+          }
+        } @else if (question.type === 'multiselect') {
+          @if (empty(question)) {
+            <p class="empty">{{ 'common.noAnswer' | translate }}</p>
+          } @else {
+            <ul class="choice-readonly">
+              @for (option of selectedOptions(question); track option.id) {
+                <li class="on">
+                  <span class="mark" [attr.aria-label]="'common.selected' | translate">☑</span>
+                  <span>{{ optionOf(option) }}</span>
+                </li>
+              }
+            </ul>
+          }
+        } @else if (question.type === 'declaration') {
+          <p class="declaration" [class.on]="declared(question)">
+            <span class="mark" [attr.aria-label]="declared(question) ? ('common.selected' | translate) : ('common.notSelected' | translate)">
+              {{ declared(question) ? '☑' : '☐' }}
+            </span>
+            {{ labelOf(question) }}
+          </p>
+        } @else if (question.type === 'file' || question.type === 'file-list') {
+          @if (!files(question).length) {
+            <p class="empty">{{ 'common.noAnswer' | translate }}</p>
+          } @else {
+            <ul class="files">
+              @for (file of files(question); track file.name) {
+                <li>
+                  <span>{{ file.name }}</span>
+                  <span class="choice-hint">{{ file.type }} · {{ file.sizeLabel }}</span>
+                  <button type="button" class="ghost" (click)="preview.emit(file)">{{ 'common.view' | translate }}</button>
+                </li>
+              }
+            </ul>
+          }
+        } @else {
+          <p class="value" [class.empty]="empty(question) || notApplicable(question)">{{ textValue(question) }}</p>
+        }
+      </div>
+    </article>
+  }
+}

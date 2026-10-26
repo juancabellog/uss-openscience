@@ -1,0 +1,99 @@
+:root {
+  --uss-primary: #102b42;
+  --uss-secondary: #cfb47c;
+  --ose-cyan: #2bb8c6;
+  --ose-background: #f4f7fa;
+  --ose-surface: #ffffff;
+  --ose-border: #d5e0e8;
+  --ose-text: #102b42;
+  --ose-muted: #5b7384;
+  --ose-danger: #b42318;
+  --ose-radius: 10px;
+  --ose-font: "Montserrat", Arial, sans-serif;
+  --ose-btn-height: 2.5rem;
+  --ose-btn-pad-x: 1.15rem;
+  --ose-btn-radius: 6px;
+  --ose-btn-size: 0.95rem;
+  --ose-btn-weight: 600;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--ose-background);
+  color: var(--ose-text);
+  font-family: var(--ose-font);
+}
+
+a {
+  color: var(--uss-primary);
+  text-decoration: none;
+}
+
+a:hover,
+a:focus-visible {
+  text-decoration: underline;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button.secondary,
+button.copy-action:not(.linkish),
+.button-link {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  height: var(--ose-btn-height);
+  padding: 0 var(--ose-btn-pad-x);
+  border: 0;
+  border-radius: var(--ose-btn-radius);
+  background: var(--uss-primary);
+  color: #fff;
+  font-family: var(--ose-font);
+  font-size: var(--ose-btn-size);
+  font-weight: var(--ose-btn-weight);
+  line-height: 1;
+  letter-spacing: 0;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+button.secondary,
+button.copy-action:not(.linkish) {
+  background: #3d5870;
+}
+
+.button-link:hover,
+.button-link:focus-visible {
+  text-decoration: none;
+}
+
+button:disabled,
+button.secondary:disabled,
+button.copy-action:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

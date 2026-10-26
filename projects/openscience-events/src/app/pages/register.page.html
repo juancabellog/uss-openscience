@@ -1,0 +1,188 @@
+<p><a [routerLink]="['/eventos', slug()]">{{ 'register.back' | translate }}</a></p>
+
+@if (view().kind === 'loading') {
+  <p>{{ 'detail.loading' | translate }}</p>
+} @else if (view().kind === 'missing') {
+  <section class="panel">
+    <h1>{{ 'detail.notFoundTitle' | translate }}</h1>
+    <p>{{ 'detail.notFoundBody' | translate }}</p>
+  </section>
+} @else if (view().kind === 'unpublished') {
+  <section class="panel">
+    <h1>{{ 'detail.unpublishedTitle' | translate }}</h1>
+    <p>{{ 'detail.unpublishedBody' | translate }}</p>
+  </section>
+} @else if (view().kind === 'offline') {
+  <p class="error">{{ 'detail.connectionError' | translate }}</p>
+} @else if (view().kind === 'error') {
+  <p class="error">{{ 'detail.unexpectedError' | translate }}</p>
+} @else if (event(); as item) {
+  <section class="panel">
+    <h1>{{ 'register.title' | translate }}</h1>
+    <p><strong>{{ titleOf(item) }}</strong></p>
+    @if (descriptionOf(item); as description) {
+      <p class="description">{{ description }}</p>
+    }
+    <p class="muted">
+      {{ item.eventType | catalog:'types' }} · {{ item.modality | catalog:'modalities' }}
+    </p>
+    <dl>
+      @if (item.startsAt) {
+        <div><dt>{{ 'detail.start' | translate }}</dt><dd>{{ item.startsAt | localeDate: item.timezone }}</dd></div>
+      }
+      @if (item.endsAt) {
+        <div><dt>{{ 'detail.end' | translate }}</dt><dd>{{ item.endsAt | localeDate: item.timezone }}</dd></div>
+      }
+      @if (item.locationName) {
+        <div><dt>{{ 'detail.place' | translate }}</dt><dd>{{ item.locationName }}</dd></div>
+      }
+      <div>
+        <dt>{{ 'detail.registration' | translate }}</dt>
+        <dd>{{ (item.registrationOpen ? 'detail.registrationOpen' : 'detail.registrationClosed') | translate }}</dd>
+      </div>
+    </dl>
+    @if (!canRegister(item)) {
+      <p class="alert">{{ closedKey(item) | translate }}</p>
+    }
+    @if (canRegister(item) && step() !== 'confirm-link') {
+      <p>{{ 'register.intro' | translate }}</p>
+    }
+  </section>
+
+  @if (errorKey(); as key) {
+    <p class="error" role="alert">{{ key | translate }}</p>
+  }
+
+  @if (canRegister(item) && step() === 'email') {
+    <section class="panel">
+      <h2>{{ 'register.stepEmail' | translate }}</h2>
+      <form [formGroup]="emailForm" (ngSubmit)="request()">
+        <label>
+          {{ 'register.email' | translate }}
+          <input #emailInput type="email" formControlName="email" autocomplete="email" [attr.aria-invalid]="emailForm.controls.email.invalid && emailForm.controls.email.touched" />
+        </label>
+        <button type="submit" [disabled]="busy()" [attr.aria-busy]="busy()">
+          @if (busy()) {
+            <span class="btn-spinner" aria-hidden="true"></span>
+            {{ 'register.sending' | translate }}
+          } @else {
+            {{ 'register.sendLink' | translate }}
+          }
+        </button>
+      </form>
+    </section>
+  }
+
+  @if (canRegister(item) && step() === 'check-email') {
+    <section class="panel confirm-card" role="status" aria-live="polite">
+      <span class="confirm-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="28" height="28" focusable="false">
+          <circle cx="12" cy="12" r="11" fill="#e4f5ea" />
+          <path d="M7.2 12.4 10.1 15.3 16.8 8.5" fill="none" stroke="#1f6b3a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </span>
+      <h2 #confirmHeading tabindex="-1">{{ 'register.checkEmailTitle' | translate }}</h2>
+      <p>{{ confirmationBodyKey() | translate }}</p>
+      <ul class="confirm-hints">
+        <li>{{ 'register.checkInbox' | translate }}</li>
+        <li>{{ 'register.checkSpam' | translate }}</li>
+        <li>{{ 'register.openLink' | translate }}</li>
+        <li>{{ 'register.notConfirmedYet' | translate }}</li>
+      </ul>
+      <div class="actions">
+        <button type="button" [disabled]="busy() || resendWait() > 0" [attr.aria-busy]="busy()" (click)="request()">
+          @if (busy()) {
+            <span class="btn-spinner" aria-hidden="true"></span>
+            {{ 'register.sending' | translate }}
+          } @else if (resendWait() > 0) {
+            {{ 'register.resendIn' | translate: { seconds: resendWait() } }}
+          } @else {
+            {{ 'register.resend' | translate }}
+          }
+        </button>
+        <button type="button" class="secondary" [disabled]="busy()" (click)="changeEmail()">{{ 'register.changeEmail' | translate }}</button>
+      </div>
+    </section>
+  }
+
+  @if (step() === 'confirm-link') {
+    <section class="panel confirm-card continue-card" aria-labelledby="ose-continue-title">
+      <p class="step-label">{{ 'register.confirmEmailStep' | translate }}</p>
+      <h2 id="ose-continue-title" #confirmHeading tabindex="-1">{{ 'register.confirmEmailTitle' | translate }}</h2>
+      <p>{{ 'register.confirmEmailBody' | translate }}</p>
+      <ul class="confirm-hints">
+        <li>{{ 'register.confirmEmailNext' | translate }}</li>
+        <li>{{ 'register.notConfirmedYet' | translate }}</li>
+      </ul>
+      <div class="actions">
+        <button type="button" [disabled]="busy() || !pendingToken()" [attr.aria-busy]="busy()" (click)="confirmEmail()">
+          @if (busy()) {
+            <span class="btn-spinner" aria-hidden="true"></span>
+            {{ 'register.confirmingEmail' | translate }}
+          } @else {
+            {{ 'register.confirmEmail' | translate }}
+          }
+        </button>
+      </div>
+    </section>
+  }
+
+  @if (step() === 'form' && profile(); as profile) {
+    <section class="panel">
+      <h2>{{ 'register.stepConfirm' | translate }}</h2>
+      <p>{{ 'register.verifiedEmail' | translate: { email: profile.email } }}</p>
+      @if (profile.alreadyRegistered) {
+        <p>{{ 'register.alreadyRegistered' | translate }}</p>
+      } @else if (profile.directoryMatch) {
+        <p>{{ 'register.directoryMatch' | translate }}</p>
+        <dl>
+          <div><dt>{{ 'register.name' | translate }}</dt><dd>{{ profile.displayName }}</dd></div>
+          <div><dt>{{ 'register.faculty' | translate }}</dt><dd>{{ profile.facultyOrInstitution }}</dd></div>
+          <div><dt>{{ 'register.campus' | translate }}</dt><dd>{{ profile.campusName }}</dd></div>
+          <div><dt>{{ 'register.position' | translate }}</dt><dd>{{ profile.positionTitle }}</dd></div>
+        </dl>
+        <button type="button" [disabled]="busy() || !profile.registrationOpen" (click)="confirm()">
+          {{ 'register.confirm' | translate }}
+        </button>
+      } @else {
+        <p>{{ 'register.noDirectoryMatch' | translate }}</p>
+        <form [formGroup]="profileForm" (ngSubmit)="confirm()">
+          <label>
+            {{ 'register.fullName' | translate }}
+            <input type="text" formControlName="displayName" />
+          </label>
+          <label>
+            {{ 'register.facultyOrInstitution' | translate }}
+            <input type="text" formControlName="facultyOrInstitution" />
+          </label>
+          <label>
+            {{ 'register.campusOrCity' | translate }}
+            <input type="text" formControlName="campusName" />
+          </label>
+          <label>
+            {{ 'register.position' | translate }}
+            <input type="text" formControlName="positionTitle" />
+          </label>
+          <button type="submit" [disabled]="busy() || !profile.registrationOpen">{{ 'register.confirm' | translate }}</button>
+        </form>
+      }
+    </section>
+  }
+
+  @if (step() === 'done' && receipt(); as receipt) {
+    <section class="panel">
+      <h2>{{ 'register.confirmedTitle' | translate }}</h2>
+      <p>{{ 'register.confirmedBody' | translate }}</p>
+      <dl>
+        <div><dt>{{ 'register.event' | translate }}</dt><dd>{{ receipt.eventTitle }}</dd></div>
+        <div><dt>{{ 'register.code' | translate }}</dt><dd>{{ receipt.publicCode }}</dd></div>
+        <div><dt>{{ 'register.name' | translate }}</dt><dd>{{ receipt.displayName }}</dd></div>
+        <div><dt>{{ 'register.origin' | translate }}</dt><dd>{{ (receipt.directoryMatch ? 'register.originDirectory' : 'register.originSelf') | translate }}</dd></div>
+      </dl>
+    </section>
+  }
+
+  @if (toastKey(); as key) {
+    <div class="toast" role="status" aria-live="polite">{{ key | translate }}</div>
+  }
+}

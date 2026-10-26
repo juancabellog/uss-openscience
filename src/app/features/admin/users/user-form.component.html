@@ -1,0 +1,48 @@
+<div class="drawer" role="dialog" aria-modal="true">
+  <div class="drawer__panel">
+    <h2>{{ (user() ? 'admin.users.edit' : 'admin.users.new') | translate }}</h2>
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <label class="filter-field">
+        <span>{{ 'admin.users.firstName' | translate }}</span>
+        <input class="os-control" formControlName="firstName" />
+      </label>
+      <label class="filter-field">
+        <span>{{ 'admin.users.lastName' | translate }}</span>
+        <input class="os-control" formControlName="lastName" />
+      </label>
+      <label class="filter-field">
+        <span>{{ 'admin.users.email' | translate }}</span>
+        <input class="os-control" type="email" formControlName="email" autocomplete="email" />
+      </label>
+      <label class="filter-field">
+        <span>{{ 'admin.users.language' | translate }}</span>
+        <select class="os-control" formControlName="preferredLanguage">
+          <option value="es">ES</option>
+          <option value="en">EN</option>
+        </select>
+      </label>
+      <fieldset>
+        <legend>{{ 'admin.users.roles' | translate }}</legend>
+        @for (role of roles(); track role.id) {
+          <label>
+            <input
+              type="checkbox"
+              [checked]="form.controls.roleIds.value.includes(role.id)"
+              (change)="toggleRole(role.id, $any($event.target).checked)"
+            />
+            {{ role.name }}
+          </label>
+        }
+      </fieldset>
+      @if (error(); as key) {
+        <p class="auth-error">{{ key | translate }}</p>
+      }
+      <div class="drawer__actions">
+        <button type="button" (click)="closed.emit()">{{ 'common.cancel' | translate }}</button>
+        <button type="submit" class="page-action page-action--primary" [disabled]="busy()">
+          {{ (user() ? 'admin.users.save' : 'admin.users.createInvite') | translate }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

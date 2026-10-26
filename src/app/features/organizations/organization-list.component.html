@@ -1,0 +1,243 @@
+<os-page-header
+  [title]="'organizations.title' | translate"
+  [subtitle]="'organizations.subtitle' | translate"
+>
+  <os-sync-export-bar
+    entity="ORGANIZATIONS"
+    [organizationQuery]="currentQuery()"
+    (completed)="reload()"
+  />
+</os-page-header>
+
+<nav class="tabs" [attr.aria-label]="'organizations.tabs' | translate">
+  <button type="button" [class.is-active]="tab() === 'catalog'" (click)="tab.set('catalog')">
+    {{ 'organizations.tabCatalog' | translate }}
+  </button>
+  <button type="button" [class.is-active]="tab() === 'history'" (click)="tab.set('history')">
+    {{ 'organizations.tabHistory' | translate }}
+  </button>
+</nav>
+
+@if (tab() === 'history') {
+  @let historyVm = historyState();
+  @if (historyVm.status === 'loading') {
+    <os-loading-state />
+  } @else if (historyVm.status === 'error') {
+    <os-error-state
+      [title]="'organizations.historyErrorTitle' | translate"
+      [message]="'organizations.historyErrorMessage' | translate"
+      [actionLabel]="'common.retry' | translate"
+      (action)="reload()"
+    />
+  } @else if (historyVm.items.length === 0) {
+    <os-empty-state
+      [title]="'organizations.emptyHistory' | translate"
+      [message]="'organizations.emptyHistoryMessage' | translate"
+    />
+  } @else {
+    <os-data-table-shell [caption]="'organizations.historyCaption' | translate" [fluid]="true" [stickyEnd]="true">
+      <table>
+        <thead>
+          <tr>
+            <th>{{ 'organizations.historyId' | translate }}</th>
+            <th>{{ 'organizations.historyOperation' | translate }}</th>
+            <th>{{ 'organizations.historyMode' | translate }}</th>
+            <th>{{ 'organizations.historyStatus' | translate }}</th>
+            <th>{{ 'organizations.historyStarted' | translate }}</th>
+            <th>{{ 'organizations.historyFinished' | translate }}</th>
+            <th>{{ 'organizations.historyProcessed' | translate }}</th>
+            <th>{{ 'organizations.historyErrors' | translate }}</th>
+            <th>{{ 'organizations.viewDetail' | translate }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of historyVm.items; track row.syncId) {
+            <tr>
+              <td>{{ row.syncId }}</td>
+              <td>{{ operationKey(row.entity) | translate }}</td>
+              <td>{{ modeKey(row.syncMode) | translate }}</td>
+              <td>{{ statusKey(row.status) | translate }}</td>
+              <td>{{ row.startedAt ? (row.startedAt | localeDate) : ('common.dash' | translate) }}</td>
+              <td>{{ row.finishedAt ? (row.finishedAt | localeDate) : ('common.dash' | translate) }}</td>
+              <td>{{ row.processed | localeNumber }}</td>
+              <td>{{ row.errors | localeNumber }}</td>
+              <td>
+                <button type="button" class="link-button" (click)="openHistoryDetail(row.syncId)">
+                  {{ 'organizations.viewDetail' | translate }}
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </os-data-table-shell>
+  }
+} @else {
+<section
+  class="organization-summary"
+  [class.is-updating]="statsUpdating()"
+  [attr.aria-busy]="statsUpdating()"
+  [attr.aria-label]="'organizations.stats.title' | translate"
+>
+  <os-mini-stat
+    [label]="'organizations.stats.total' | translate"
+    [value]="(stats()?.total | localeNumber) || ('common.dash' | translate)"
+  />
+  <os-mini-stat
+    [label]="'organizations.stats.active' | translate"
+    [value]="(stats()?.active | localeNumber) || ('common.dash' | translate)"
+  />
+  <os-mini-stat
+    [label]="'organizations.stats.inactive' | translate"
+    [value]="(stats()?.inactive | localeNumber) || ('common.dash' | translate)"
+  />
+  <os-mini-stat
+    [label]="'organizations.stats.withParent' | translate"
+    [value]="(stats()?.withParent | localeNumber) || ('common.dash' | translate)"
+  />
+</section>
+@if (hasActiveFilters()) {
+  <p class="filtered-summary">
+    {{ 'organizations.filteredSummary' | translate: { count: (stats()?.total | localeNumber) || 0 } }}
+    <button type="button" class="link-button" (click)="clearFilters()">{{ 'organizations.clearFilters' | translate }}</button>
+  </p>
+}
+
+<div class="organization-filters">
+  <os-filter-bar>
+    <os-search-box
+      [control]="search"
+      [placeholder]="'organizations.searchPlaceholder' | translate"
+      [label]="'organizations.search' | translate"
+      [hint]="'organizations.searchHint' | translate"
+    />
+    <label class="filter-field">
+      <span>{{ 'organizations.presence' | translate }}</span>
+      <select class="os-control" [formControl]="presence">
+        <option value="ACTIVE">{{ 'organizations.active' | translate }}</option>
+        <option value="INACTIVE">{{ 'organizations.inactive' | translate }}</option>
+        <option value="ALL">{{ 'organizations.allPresence' | translate }}</option>
+      </select>
+    </label>
+    <label class="filter-field">
+      <span>{{ 'organizations.type' | translate }}</span>
+      <select class="os-control" [formControl]="typeUri">
+        <option value="">{{ 'organizations.allTypes' | translate }}</option>
+        @for (type of filters().types; track type.uri) {
+          <option [value]="type.uri">{{ typeLabel(type) || type.uri }}</option>
+        }
+      </select>
+    </label>
+    <label class="filter-field">
+      <span>{{ 'organizations.parent' | translate }}</span>
+      <select class="os-control" [formControl]="hasParent">
+        <option value="">{{ 'organizations.allParents' | translate }}</option>
+        <option value="WITH">{{ 'organizations.withParent' | translate }}</option>
+        <option value="WITHOUT">{{ 'organizations.withoutParent' | translate }}</option>
+      </select>
+    </label>
+  </os-filter-bar>
+</div>
+
+@let vm = result();
+@if (vm.status === 'loading') {
+  <os-loading-state />
+} @else if (vm.status === 'error') {
+  <os-error-state
+    [title]="'organizations.errorTitle' | translate"
+    [message]="'organizations.errorMessage' | translate"
+    [actionLabel]="'common.retry' | translate"
+    (action)="reload()"
+  />
+} @else if (vm.data.total === 0) {
+  <os-empty-state
+    [title]="(hasActiveFilters() ? 'organizations.filteredTitle' : 'organizations.emptyTitle') | translate"
+    [message]="(hasActiveFilters() ? 'organizations.filteredMessage' : 'organizations.emptyMessage') | translate"
+    [actionLabel]="hasActiveFilters() ? ('organizations.clearFilters' | translate) : ''"
+    (action)="clearFilters()"
+  />
+} @else {
+  <os-data-table-shell [caption]="'organizations.caption' | translate" [fluid]="true" [stickyStart]="true" [stickyEnd]="true">
+    <table class="organization-table">
+      <thead>
+        <tr>
+          <th scope="col" [attr.aria-sort]="ariaSort('name')">
+            <os-sortable-header
+              field="name"
+              [label]="'organizations.name' | translate"
+              [activeField]="visualSortField()"
+              [direction]="sortDirection()"
+              (sortChange)="onSort($event)"
+            />
+          </th>
+          <th scope="col" [attr.aria-sort]="ariaSort('type')">
+            <os-sortable-header
+              field="type"
+              [label]="'organizations.type' | translate"
+              [activeField]="visualSortField()"
+              [direction]="sortDirection()"
+              (sortChange)="onSort($event)"
+            />
+          </th>
+          <th scope="col" [attr.aria-sort]="ariaSort('parent')">
+            <os-sortable-header
+              field="parent"
+              [label]="'organizations.parent' | translate"
+              [activeField]="visualSortField()"
+              [direction]="sortDirection()"
+              (sortChange)="onSort($event)"
+            />
+          </th>
+          <th scope="col" [attr.aria-sort]="ariaSort('activeInPure')">
+            <os-sortable-header
+              field="activeInPure"
+              [label]="'organizations.presence' | translate"
+              [activeField]="visualSortField()"
+              [direction]="sortDirection()"
+              (sortChange)="onSort($event)"
+            />
+          </th>
+          <th scope="col" [attr.aria-sort]="ariaSort('modifiedDatePure')">
+            <os-sortable-header
+              field="modifiedDatePure"
+              [label]="'organizations.modifiedDatePure' | translate"
+              [activeField]="visualSortField()"
+              [direction]="sortDirection()"
+              (sortChange)="onSort($event)"
+            />
+          </th>
+          <th scope="col">{{ 'organizations.actions' | translate }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of vm.data.items; track item.id) {
+          <tr>
+            <td>
+              <a [routerLink]="['/organizations', item.id]">{{ nameLabel(item) || ('common.dash' | translate) }}</a>
+            </td>
+            <td>{{ typeLabel(item) || ('common.dash' | translate) }}</td>
+            <td>{{ parentLabel(item) || ('common.dash' | translate) }}</td>
+            <td>
+              @if (item.activeInPure === false) {
+                {{ 'organizations.inactive' | translate }}
+              } @else {
+                {{ 'organizations.active' | translate }}
+              }
+            </td>
+            <td>{{ item.modifiedDatePure ? (item.modifiedDatePure | localeDate) : ('common.dash' | translate) }}</td>
+            <td>
+              <a [routerLink]="['/organizations', item.id]">{{ 'organizations.viewDetail' | translate }}</a>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </os-data-table-shell>
+  <os-pagination
+    [page]="vm.data.page"
+    [pageSize]="vm.data.pageSize"
+    [total]="vm.data.total"
+    (pageChange)="onPageChange($event)"
+  />
+}
+}

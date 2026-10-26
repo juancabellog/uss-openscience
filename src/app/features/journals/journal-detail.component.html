@@ -1,0 +1,250 @@
+@let state = vm();
+@if (state.status === 'loading') {
+  <os-loading-state />
+} @else if (state.status === 'error') {
+  <os-error-state
+    [title]="'journals.errorTitle' | translate"
+    [message]="'journals.errorMessage' | translate"
+  />
+} @else if (state.status === 'notfound') {
+  <os-error-state
+    [title]="'journals.notFoundTitle' | translate"
+    [message]="'journals.notFoundMessage' | translate"
+  />
+} @else {
+  <os-page-header
+    [title]="displayTitle() || ('common.dash' | translate)"
+    [subtitle]="'journals.detailSubtitle' | translate"
+  >
+    <a routerLink="/journals" class="back-link">{{ 'journals.backToList' | translate }}</a>
+    @if (state.journal.activeInPure === false) {
+      <span class="inactive-badge">{{ 'sync.inactiveBadge' | translate }}</span>
+    }
+  </os-page-header>
+
+  <os-detail-section-nav
+    [items]="sectionNav"
+    [ariaLabel]="'journals.sections' | translate"
+  />
+
+  <section id="identidad" class="panel">
+    <h2>{{ 'journals.identity' | translate }}</h2>
+    <os-identifier-row
+      [label]="'common.pureId' | translate"
+      [value]="state.journal.pureId"
+      [tooltip]="'common.pureIdTooltip' | translate"
+      copyLabelKey="common.copyPureId"
+    />
+    <os-identifier-row
+      [label]="'journals.uuidPure' | translate"
+      [value]="state.journal.uuid"
+      copyLabelKey="common.copyUuid"
+    />
+    <dl>
+      <div>
+        <dt>{{ 'journals.type' | translate }}</dt>
+        <dd>{{ typeLabel(state.journal) || ('common.dash' | translate) }}</dd>
+      </div>
+      <div>
+        <dt>{{ 'journals.workflow' | translate }}</dt>
+        <dd>{{ workflowLabel(state.journal) || ('common.dash' | translate) }}</dd>
+      </div>
+    </dl>
+  </section>
+
+  <section id="titulos" class="panel">
+    <h2>{{ 'journals.titles' | translate }}</h2>
+    @if (state.journal.titles.length === 0) {
+      <p>{{ 'journals.noTitles' | translate }}</p>
+    } @else {
+      <ul class="record-list">
+        @for (title of state.journal.titles; track title.pureId ?? title.title) {
+          <li>
+            <strong>{{ title.title || ('common.dash' | translate) }}</strong>
+            <p>{{ 'common.pureId' | translate }} {{ title.pureId ?? ('common.dash' | translate) }}</p>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+
+  <section id="issns" class="panel">
+    <h2>{{ 'journals.issns' | translate }}</h2>
+    @if (state.issns.length === 0) {
+      <p>{{ 'journals.noIssns' | translate }}</p>
+    } @else {
+      <ul class="record-list">
+        @for (issn of state.issns; track issn.pureId ?? issn.issn) {
+          <li>
+            <strong>{{ issn.issn || ('common.dash' | translate) }}</strong>
+            <p>{{ 'common.pureId' | translate }} {{ issn.pureId ?? ('common.dash' | translate) }}</p>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+
+  <section id="identificadores" class="panel">
+    <h2>{{ 'journals.identifiers' | translate }}</h2>
+    @if (state.journal.identifiers.length === 0) {
+      <p>{{ 'journals.noIdentifiers' | translate }}</p>
+    } @else {
+      <ul class="record-list">
+        @for (identifier of state.journal.identifiers; track identifier.pureId ?? identifier.value) {
+          <li>
+            <strong>{{ identifier.value || ('common.dash' | translate) }}</strong>
+            <p>{{ identifierType(identifier) || ('common.dash' | translate) }}</p>
+            @if (identifier.typeDiscriminator) {
+              <p>{{ identifier.typeDiscriminator }}</p>
+            }
+            @if (identifier.pureId != null) {
+              <p>{{ 'common.pureId' | translate }} {{ identifier.pureId }}</p>
+            }
+          </li>
+        }
+      </ul>
+    }
+  </section>
+
+  <section id="editorial" class="panel">
+    <h2>{{ 'journals.publisher' | translate }}</h2>
+    <dl>
+      <div>
+        <dt>{{ 'journals.publisherSystemName' | translate }}</dt>
+        <dd>{{ state.journal.publisherSystemName || ('common.dash' | translate) }}</dd>
+      </div>
+    </dl>
+    <os-identifier-row
+      [label]="'journals.publisherUuid' | translate"
+      [value]="state.journal.publisherUuid"
+      copyLabelKey="common.copyUuid"
+    />
+  </section>
+
+  <section id="asjc" class="panel">
+    <h2>{{ 'journals.asjc' | translate }}</h2>
+    @if (state.journal.keywordGroups.length === 0) {
+      <p>{{ 'journals.noAsjc' | translate }}</p>
+    } @else {
+      @for (group of state.journal.keywordGroups; track group.pureId ?? group.logicalName) {
+        <h3>{{ groupName(group) || ('journals.keywordGroup' | translate) }}</h3>
+        @if (group.classifications.length === 0) {
+          <p>{{ 'journals.noClassifications' | translate }}</p>
+        } @else {
+          <ul class="record-list">
+            @for (classification of group.classifications; track classification.uri) {
+              <li>
+                <strong>{{ classificationTerm(classification) || ('common.dash' | translate) }}</strong>
+                @if (classification.uri) {
+                  <p>{{ classification.uri }}</p>
+                }
+              </li>
+            }
+          </ul>
+        }
+      }
+    }
+  </section>
+
+  <section id="metricas" class="panel">
+    <h2>{{ 'metrics.title' | translate }}</h2>
+    @if (!state.metrics) {
+      <p>{{ 'metrics.unavailable' | translate }}</p>
+    } @else {
+      <p class="metric-source">{{ 'metrics.citeScoreSource' | translate }}</p>
+      <p class="metric-status">{{ fetchMessageKey('scopusJournal') | translate }}</p>
+      @if (state.metrics.scopusJournal?.lastSyncedAt) {
+        <p class="metric-updated">{{ 'metrics.lastUpdated' | translate }}: {{ state.metrics.scopusJournal.lastSyncedAt | localeDate }}</p>
+      }
+      <h3>{{ 'metrics.citeScoreHistory' | translate }}</h3>
+      @if (state.metrics.citeScoreHistory.length === 0) {
+        <p>{{ fetchKind('scopusJournal') === 'failed' ? ('metrics.fetchFailed' | translate) : ('metrics.noCiteScore' | translate) }}</p>
+      } @else {
+        <table class="metric-table">
+          <thead>
+            <tr>
+              <th>{{ 'metrics.year' | translate }}</th>
+              <th>{{ 'metrics.citeScore' | translate }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of citeScoreRows(); track row.metricYear ?? $index) {
+              <tr>
+                <td>{{ row.metricYear ?? ('common.dash' | translate) }}</td>
+                <td>{{ displayValue(row) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        @if (citeScoreRows().length < state.metrics.citeScoreHistory.length) {
+          <button type="button" class="link-button" (click)="showMoreCiteScore()">
+            {{ 'metrics.showMore' | translate: { shown: citeScoreRows().length, total: state.metrics.citeScoreHistory.length } }}
+          </button>
+        }
+      }
+
+      <h3>{{ 'metrics.quartiles' | translate }}</h3>
+      <p class="metric-status">{{ fetchMessageKey('scopusCitescore') | translate }}</p>
+      @if (state.metrics.scopusCitescore?.lastSyncedAt) {
+        <p class="metric-updated">{{ 'metrics.lastUpdated' | translate }}: {{ state.metrics.scopusCitescore.lastSyncedAt | localeDate }}</p>
+      }
+      @if (state.metrics.quartileHistory.length === 0) {
+        <p>{{ fetchKind('scopusCitescore') === 'failed' ? ('metrics.fetchFailed' | translate) : ('metrics.noQuartiles' | translate) }}</p>
+      } @else {
+        <table class="metric-table">
+          <thead>
+            <tr>
+              <th>{{ 'metrics.year' | translate }}</th>
+              <th>{{ 'metrics.category' | translate }}</th>
+              <th>{{ 'metrics.quartile' | translate }}</th>
+              <th>{{ 'metrics.percentile' | translate }}</th>
+              <th>{{ 'metrics.rank' | translate }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of quartileRows(); track (row.year ?? '') + (row.categoryUri ?? '') + $index) {
+              <tr>
+                <td>{{ row.year ?? ('common.dash' | translate) }}</td>
+                <td>{{ categoryLabel(row) || ('common.dash' | translate) }}</td>
+                <td>{{ row.quartile == null ? ('common.dash' | translate) : ('Q' + row.quartile) }}</td>
+                <td>{{ row.percentile ?? ('common.dash' | translate) }}</td>
+                <td>{{ row.rank ?? ('common.dash' | translate) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        @if (quartileRows().length < state.metrics.quartileHistory.length) {
+          <button type="button" class="link-button" (click)="showMoreQuartiles()">
+            {{ 'metrics.showMore' | translate: { shown: quartileRows().length, total: state.metrics.quartileHistory.length } }}
+          </button>
+        }
+      }
+    }
+  </section>
+
+  <section id="auditoria" class="panel">
+    <h2>{{ 'journals.pureAudit' | translate }}</h2>
+    <dl>
+      <div>
+        <dt>{{ 'journals.createdBy' | translate }}</dt>
+        <dd>{{ state.journal.createdBy || ('common.dash' | translate) }}</dd>
+      </div>
+      <div>
+        <dt>{{ 'journals.createdDatePure' | translate }}</dt>
+        <dd>{{ state.journal.createdDatePure || ('common.dash' | translate) }}</dd>
+      </div>
+      <div>
+        <dt>{{ 'journals.modifiedBy' | translate }}</dt>
+        <dd>{{ state.journal.modifiedBy || ('common.dash' | translate) }}</dd>
+      </div>
+      <div>
+        <dt>{{ 'journals.modifiedDatePure' | translate }}</dt>
+        <dd>{{ state.journal.modifiedDatePure || ('common.dash' | translate) }}</dd>
+      </div>
+      <div>
+        <dt>{{ 'journals.version' | translate }}</dt>
+        <dd>{{ state.journal.version || ('common.dash' | translate) }}</dd>
+      </div>
+    </dl>
+  </section>
+}

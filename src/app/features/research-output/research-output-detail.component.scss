@@ -1,0 +1,75 @@
+.field-code {
+  margin: 0.2rem 0 0;
+  font-size: var(--os-fs-xs);
+  font-weight: 500;
+  color: var(--os-text-secondary);
+}
+
+.panel {
+  background: var(--os-surface);
+  border: 1px solid var(--os-border);
+  border-radius: var(--os-radius-md);
+  padding: var(--os-space-lg);
+  margin-bottom: var(--os-space-md);
+}
+
+.panel h2,
+.panel h3 {
+  margin-bottom: var(--os-space-md);
+  font-size: var(--os-fs-lg);
+}
+
+.panel h3 {
+  margin-top: var(--os-space-lg);
+  font-size: var(--os-fs-md);
+}
+
+dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: var(--os-space-md);
+}
+
+dt {
+  color: var(--os-text-secondary);
+  font-size: var(--os-fs-sm);
+}
+
+dd {
+  margin: 0.15rem 0 0;
+  font-weight: 600;
+}
+
+.records {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.records li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
+  border-top: 1px solid var(--os-border);
+  padding-top: 0.5rem;
+}
+
+.records span {
+  color: var(--os-text-secondary);
+}
+
+.metric-status,
+.metric-updated {
+  margin: 0 0 0.5rem;
+  color: var(--os-text-secondary);
+  font-size: var(--os-fs-sm);
+}
+
+.current {
+  margin-left: 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--os-primary, #102b42);
+}

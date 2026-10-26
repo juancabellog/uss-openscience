@@ -1,0 +1,305 @@
+<os-page-header
+  [title]="'integrations.title' | translate"
+  [subtitle]="'integrations.subtitle' | translate"
+/>
+
+@if (items().length === 0) {
+  <os-loading-state />
+} @else {
+  <div class="cards">
+    @for (item of items(); track item.id) {
+      <article [class.orcid-card]="item.id === 'orcid' || item.id === 'unpaywall' || item.id === 'crossref' || item.id === 'openalex' || item.id === 'dspace'">
+        <header>
+          <h2>{{ item.name }}</h2>
+          <div class="card-status">
+            @if (healthReasonKey(item); as reasonKey) {
+              <os-status-badge
+                [label]="integrationKey(item.health) | translate"
+                [tone]="integrationTone(item.health)"
+                [icon]="integrationIcon(item.health)"
+                [hint]="reasonKey | translate"
+                [hintAriaLabel]="(item.id === 'pure' ? 'integrations.pure.healthExplain' : item.id === 'unpaywall' ? 'integrations.unpaywall.healthExplain' : item.id === 'crossref' ? 'integrations.crossref.healthExplain' : item.id === 'openalex' ? 'integrations.openalex.healthExplain' : item.id === 'dspace' ? 'integrations.dspace.healthExplain' : 'integrations.orcid.healthExplain') | translate"
+                [hintActionLabel]="'sync.viewDetail' | translate"
+                (hintAction)="openHealthDetail(item)"
+              />
+            } @else {
+              <os-status-badge
+                [label]="integrationKey(item.health) | translate"
+                [tone]="integrationTone(item.health)"
+                [icon]="integrationIcon(item.health)"
+              />
+            }
+          </div>
+        </header>
+        <p>{{ 'integrations.' + item.id + '.description' | translate }}</p>
+        @if (item.id === 'orcid') {
+          <dl>
+            <div>
+              <dt>{{ 'integrations.orcid.peopleWithOrcid' | translate }}</dt>
+              <dd>{{ (orcidStats()?.peopleWithOrcid | localeNumber) || ('common.dash' | translate) }}</dd>
+            </div>
+            <div [title]="'integrations.orcid.peopleSyncedHint' | translate">
+              <dt>{{ 'integrations.orcid.peopleSynced' | translate }}</dt>
+              <dd>{{ (orcidStats()?.peopleSynced | localeNumber) || ('common.dash' | translate) }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'integrations.orcid.works' | translate }}</dt>
+              <dd>{{ (orcidStats()?.workGroupCount | localeNumber) || ('common.dash' | translate) }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'integrations.orcid.assertions' | translate }}</dt>
+              <dd>{{ (orcidStats()?.workAssertionCount | localeNumber) || ('common.dash' | translate) }}</dd>
+            </div>
+          </dl>
+          @if (identity(); as identityStats) {
+            <p class="identity-secondary">
+              {{ 'integrations.orcid.identityNormalized' | translate }}
+              {{ identityStats.normalizedUssOrcidAffiliation.numerator | localeNumber }}
+              /
+              {{ identityStats.normalizedUssOrcidAffiliation.denominator | localeNumber }}
+              ·
+              {{ identityStats.normalizedUssOrcidAffiliation.percentage | localePercent }}
+              @if (auth.canConsult('INDICATORS')) {
+                <a routerLink="/indicators/identity/cases/normalizedUssOrcidAffiliation">
+                  {{ 'integrations.orcid.identityViewCases' | translate }}
+                </a>
+              }
+            </p>
+          }
+          <div class="orcid-toolbar">
+            <a routerLink="/integrations/orcid" class="page-action page-action--secondary">
+              {{ 'integrations.orcid.manage' | translate }}
+              <os-icon name="arrow-right" />
+            </a>
+            <os-sync-export-bar entity="ORCID" [exportEnabled]="false" [policyHint]="item" (completed)="reloadOrcid()" />
+          </div>
+        } @else if (item.id === 'unpaywall') {
+          <dl>
+            <div>
+              <dt>{{ 'integrations.unpaywall.evaluated' | translate }}</dt>
+              <dd>{{ (unpaywallStats()?.evaluated | localeNumber) || ('common.dash' | translate) }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'integrations.unpaywall.oa' | translate }}</dt>
+              <dd>{{ (unpaywallStats()?.oa | localeNumber) || ('common.dash' | translate) }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'integrations.unpaywall.nonOa' | translate }}</dt>
+              <dd>{{ (unpaywallStats()?.nonOa | localeNumber) || ('common.dash' | translate) }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'integrations.unpaywall.repository' | translate }}</dt>
+              <dd>{{ (unpaywallStats()?.repositoryCopy | localeNumber) || ('common.dash' | translate) }}</dd>
+            </div>
+          </dl>
+          <div class="orcid-toolbar">
+            <a routerLink="/integrations/unpaywall" class="page-action page-action--secondary">
+              {{ 'integrations.unpaywall.manage' | translate }}
+              <os-icon name="arrow-right" />
+            </a>
+            <os-sync-export-bar entity="UNPAYWALL" [exportEnabled]="false" [policyHint]="item" (completed)="reloadUnpaywall()" />
+          </div>
+        } @else if (item.id === 'crossref') {
+          <dl>
+            <div>
+              <dt>{{ 'integrations.crossref.uniqueDois' | translate }}</dt>
+              <dd>{{ (crossrefStats()?.uniqueDois | localeNumber) || ('common.dash' | translate) }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'integrations.crossref.evaluated' | translate }}</dt>
+              <dd>{{ (crossrefStats()?.evaluated | localeNumber) || ('common.dash' | translate) }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'integrations.crossref.found' | translate }}</dt>
+              <dd>{{ (crossrefStats()?.found | localeNumber) || ('common.dash' | translate) }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'integrations.crossref.otherAgency' | translate }}</dt>
+              <dd>{{ (crossrefStats()?.otherAgency | localeNumber) || ('common.dash' | translate) }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'integrations.crossref.notFound' | translate }}</dt>
+              <dd>{{ (crossrefStats()?.notFound | localeNumber) || ('common.dash' | translate) }}</dd>
+            </div>
+          </dl>
+          <div class="orcid-toolbar">
+            <a routerLink="/integrations/crossref" class="page-action page-action--secondary">
+              {{ 'integrations.crossref.manage' | translate }}
+              <os-icon name="arrow-right" />
+            </a>
+            <os-sync-export-bar
+              entity="CROSSREF"
+              [exportEnabled]="false"
+              [policyHint]="item"
+              [syncEnabled]="crossrefStats()?.enabled !== false && crossrefStats()?.configured !== false"
+              (completed)="reloadCrossref()"
+            />
+          </div>
+        } @else if (item.id === 'openalex') {
+          <dl>
+            <div>
+              <dt>{{ 'integrations.openalex.works' | translate }}</dt>
+              <dd>{{ (openAlexStats()?.found | localeNumber) || ('common.dash' | translate) }}</dd>
+            </div>
+            <div [title]="'integrations.openalex.authorsHint' | translate">
+              <dt>{{ 'integrations.openalex.authors' | translate }}</dt>
+              <dd>{{ (openAlexStats()?.authors | localeNumber) || ('common.dash' | translate) }}</dd>
+            </div>
+            <div [title]="'integrations.openalex.linkedHint' | translate">
+              <dt>{{ 'integrations.openalex.linked' | translate }}</dt>
+              <dd>{{ (openAlexStats()?.personsLinked | localeNumber) || ('common.dash' | translate) }}</dd>
+            </div>
+            <div [title]="'integrations.openalex.pendingHint' | translate">
+              <dt>{{ 'integrations.openalex.pending' | translate }}</dt>
+              <dd>{{ (openAlexStats()?.pendingMatches | localeNumber) || ('common.dash' | translate) }}</dd>
+            </div>
+          </dl>
+          <div class="orcid-toolbar">
+            <a routerLink="/integrations/openalex" class="page-action page-action--secondary">
+              {{ 'integrations.openalex.manage' | translate }}
+              <os-icon name="arrow-right" />
+            </a>
+            <os-sync-export-bar
+              entity="OPENALEX"
+              [exportEnabled]="false"
+              [policyHint]="item"
+              [syncEnabled]="openAlexStats()?.enabled !== false && openAlexStats()?.configured !== false"
+              [confirmEstimate]="openAlexStats()?.uniqueDois ?? null"
+              (completed)="reloadOpenAlex()"
+            />
+          </div>
+        } @else if (item.id === 'dspace') {
+          <dl>
+            <div>
+              <dt>{{ 'integrations.dspace.version' | translate }}</dt>
+              <dd>{{ dspaceStats()?.dspaceVersion || ('common.dash' | translate) }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'integrations.dspace.items' | translate }}</dt>
+              <dd>{{ (dspaceStats()?.items | localeNumber) || ('common.dash' | translate) }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'integrations.dspace.openAccess' | translate }}</dt>
+              <dd>{{ (dspaceStats()?.openAccess | localeNumber) || ('common.dash' | translate) }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'integrations.dspace.metadataOnly' | translate }}</dt>
+              <dd>{{ (dspaceStats()?.metadataOnly | localeNumber) || ('common.dash' | translate) }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'integrations.dspace.errors' | translate }}</dt>
+              <dd>{{ (dspaceStats()?.errors | localeNumber) || ('common.dash' | translate) }}</dd>
+            </div>
+          </dl>
+          <div class="orcid-toolbar">
+            <a routerLink="/integrations/dspace" class="page-action page-action--secondary">
+              {{ 'integrations.dspace.manage' | translate }}
+              <os-icon name="arrow-right" />
+            </a>
+            <os-sync-export-bar
+              entity="DSPACE"
+              [exportEnabled]="false"
+              [policyHint]="item"
+              [syncEnabled]="dspaceStats()?.enabled !== false && dspaceStats()?.configured !== false"
+              (completed)="reloadDspace()"
+            />
+          </div>
+        } @else if (item.id === 'pure') {
+          <ul class="pure-entities">
+            @for (row of item.entities ?? []; track row.entity) {
+              <li>
+                <button
+                  type="button"
+                  class="pure-entity"
+                  [disabled]="!row.latestExecution?.syncId"
+                  (click)="openPureExecution(row)"
+                >
+                  <span class="pure-entity-name">{{ syncEntityLabelKey(row.entity) | translate }}</span>
+                  @if (row.latestExecution; as run) {
+                    <span class="pure-entity-meta">
+                      @if (entityActivityAt(run); as at) {
+                        {{ at | localeDate }}
+                        ·
+                      }
+                      {{ entityStatusKey(run) | translate }}
+                      @if (isActiveRun(run) && run.totalExpected) {
+                        ·
+                        {{ run.processed | localeNumber }} / {{ run.totalExpected | localeNumber }}
+                      }
+                    </span>
+                  } @else {
+                    <span class="pure-entity-meta">{{ 'integrations.pure.neverSynced' | translate }}</span>
+                  }
+                </button>
+              </li>
+            }
+          </ul>
+          <nav class="pure-links" [attr.aria-label]="'integrations.pure.viewSyncs' | translate">
+            <span>{{ 'integrations.pure.viewSyncs' | translate }}</span>
+            @for (row of item.entities ?? []; track row.entity) {
+              <a [routerLink]="pureEntityPath(row.entity)">{{ syncEntityLabelKey(row.entity) | translate }}</a>
+            }
+          </nav>
+        } @else if (item.id === 'scopus') {
+          <dl>
+            <div>
+              <dt>{{ 'integrations.lastSync' | translate }}</dt>
+              <dd>{{ item.lastSync ? (item.lastSync | localeDate) : ('common.dash' | translate) }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'integrations.lastRun' | translate }}</dt>
+              <dd>{{ item.lastRun ? (item.lastRun | localeDate) : ('common.dash' | translate) }}</dd>
+            </div>
+          </dl>
+          @if (identity(); as identityStats) {
+            <p class="identity-secondary">
+              {{ 'integrations.scopus.identityCoverage' | translate }}
+              {{ identityStats.scopusCoverage.numerator | localeNumber }}
+              /
+              {{ identityStats.scopusCoverage.denominator | localeNumber }}
+              ·
+              {{ identityStats.scopusCoverage.percentage | localePercent }}
+              @if (auth.canConsult('PEOPLE')) {
+                <a routerLink="/people" [queryParams]="{ scopusStatus: 'WITH_SCOPUS' }">
+                  {{ 'integrations.scopus.identityViewCases' | translate }}
+                </a>
+              }
+            </p>
+            <p class="identity-secondary">
+              {{ 'integrations.scopus.identityMultiple' | translate }}
+              {{ identityStats.multipleScopusProfiles.numerator | localeNumber }}
+              /
+              {{ identityStats.multipleScopusProfiles.denominator | localeNumber }}
+              ·
+              {{ identityStats.multipleScopusProfiles.percentage | localePercent }}
+              @if (auth.canConsult('PEOPLE')) {
+                <a routerLink="/people" [queryParams]="{ minDistinctScopusCount: 2 }">
+                  {{ 'integrations.scopus.identityViewCases' | translate }}
+                </a>
+              }
+            </p>
+          }
+        } @else {
+          <dl>
+            <div>
+              <dt>{{ 'integrations.lastSync' | translate }}</dt>
+              <dd>{{ item.lastSync ? (item.lastSync | localeDate) : ('common.dash' | translate) }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'integrations.lastRun' | translate }}</dt>
+              <dd>{{ item.lastRun ? (item.lastRun | localeDate) : ('common.dash' | translate) }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'integrations.processed' | translate }}</dt>
+              <dd>{{ item.processedCount === undefined ? ('common.dash' | translate) : (item.processedCount | localeNumber) }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'integrations.errors' | translate }}</dt>
+              <dd>{{ item.errorCount === undefined ? ('common.dash' | translate) : (item.errorCount | localeNumber) }}</dd>
+            </div>
+          </dl>
+        }
+      </article>
+    }
+  </div>
+}

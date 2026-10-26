@@ -1,0 +1,197 @@
+:host {
+  display: block;
+}
+
+:host ::ng-deep os-page-header .page-header {
+  margin-bottom: var(--os-space-md);
+}
+
+.tabs {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: var(--os-space-md);
+}
+
+.tabs button {
+  border: 0;
+  background: transparent;
+  padding: 0.35rem 0;
+  font-weight: 650;
+  color: var(--os-text-secondary);
+  cursor: pointer;
+}
+
+.tabs button.is-active {
+  color: var(--os-primary);
+  box-shadow: inset 0 -2px 0 var(--os-primary);
+}
+
+.journal-summary {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(8.5rem, 1fr));
+  align-items: stretch;
+  gap: var(--os-space-sm);
+  margin-bottom: var(--os-space-md);
+}
+
+.journal-summary.is-updating {
+  opacity: 0.72;
+}
+
+.filtered-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--os-space-sm);
+  margin: 0 0 var(--os-space-md);
+  color: var(--os-text-secondary);
+  font-size: var(--os-fs-sm);
+}
+
+.link-button {
+  border: 0;
+  background: transparent;
+  color: var(--os-info, #2563eb);
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 0.16em;
+}
+
+@media (max-width: 72rem) {
+  .journal-summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 40rem) {
+  .journal-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.journal-unresolved {
+  margin: 0 0 var(--os-space-md);
+  color: var(--os-text-secondary);
+  font-size: var(--os-fs-sm);
+}
+
+.journal-filters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--os-space-xs);
+  margin-bottom: var(--os-space-md);
+}
+
+.journal-filters os-filter-bar {
+  display: block;
+  width: 100%;
+  margin-bottom: 0;
+}
+
+.journal-filters os-search-box {
+  flex: 1 1 22rem;
+  min-width: min(100%, 18rem);
+}
+
+.journal-filters .filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 0 1 12.5rem;
+  width: 12.5rem;
+  min-width: 11.5rem;
+  font-size: var(--os-fs-sm);
+  color: var(--os-text-secondary);
+}
+
+:host ::ng-deep .journal-table {
+  table-layout: auto;
+  width: max-content;
+  min-width: 118rem;
+}
+
+:host ::ng-deep .journal-table col.col-pure-id,
+:host ::ng-deep .journal-table .col-id {
+  width: 8rem;
+}
+
+:host ::ng-deep .journal-table col.col-title,
+:host ::ng-deep .journal-table .col-title {
+  width: auto;
+  min-width: 18rem;
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+:host ::ng-deep .journal-table col.col-publications,
+:host ::ng-deep .journal-table .col-publications {
+  width: 10.5rem;
+}
+
+:host ::ng-deep .journal-table td.col-publications,
+:host ::ng-deep .journal-table .numeric-cell {
+  text-align: center;
+  white-space: nowrap;
+}
+
+:host ::ng-deep .journal-table col.col-issn,
+:host ::ng-deep .journal-table .col-issn {
+  width: 10.5rem;
+  white-space: nowrap;
+}
+
+:host ::ng-deep .journal-table col.col-scopus,
+:host ::ng-deep .journal-table .col-scopus {
+  width: 12rem;
+}
+
+:host ::ng-deep .journal-table col.col-citescore,
+:host ::ng-deep .journal-table .col-citescore {
+  width: 8.5rem;
+}
+
+:host ::ng-deep .journal-table col.col-quartile,
+:host ::ng-deep .journal-table .col-quartile {
+  width: 8.5rem;
+  white-space: nowrap;
+}
+
+.metric-value {
+  font-weight: 650;
+}
+
+.metric-year {
+  display: block;
+  color: var(--os-text-secondary);
+  font-size: var(--os-fs-xs, 0.75rem);
+  font-weight: 500;
+}
+
+:host ::ng-deep .journal-table col.col-type,
+:host ::ng-deep .journal-table .col-type {
+  width: 10rem;
+}
+
+:host ::ng-deep .journal-table col.col-workflow,
+:host ::ng-deep .journal-table .col-workflow {
+  width: 10rem;
+}
+
+:host ::ng-deep .journal-table col.col-audit,
+:host ::ng-deep .journal-table .col-audit {
+  width: 9.5rem;
+}
+
+.journal-link {
+  color: inherit;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.journal-link:hover,
+.journal-link:focus-visible {
+  color: var(--os-primary);
+  text-decoration: underline;
+}

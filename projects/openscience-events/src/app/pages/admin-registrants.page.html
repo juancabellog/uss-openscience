@@ -1,0 +1,75 @@
+<p><a routerLink="/admin/eventos">{{ 'form.back' | translate }}</a></p>
+<ose-event-admin-tabs [eventId]="id()" />
+<section class="panel">
+  <h1>{{ 'registrants.title' | translate }}</h1>
+  @if (data(); as list) {
+    <p>
+      {{ 'registrants.summary' | translate: { title: list.title, count: list.confirmedCount } }}
+      @if (list.capacity) {
+        {{ 'registrants.capacity' | translate: { capacity: list.capacity } }}
+      }
+    </p>
+  }
+</section>
+
+<section class="panel">
+  <h2>{{ 'registrants.addTitle' | translate }}</h2>
+  <p>{{ 'registrants.addIntro' | translate }}</p>
+  <form [formGroup]="form" (ngSubmit)="add()">
+    <label>{{ 'registrants.email' | translate }} <input type="email" formControlName="email" /></label>
+    <div class="grid-2">
+      <label>{{ 'registrants.fullName' | translate }} <input type="text" formControlName="displayName" /></label>
+      <label>{{ 'registrants.faculty' | translate }} <input type="text" formControlName="facultyOrInstitution" /></label>
+    </div>
+    <div class="grid-2">
+      <label>{{ 'registrants.campus' | translate }} <input type="text" formControlName="campusName" /></label>
+      <label>{{ 'registrants.position' | translate }} <input type="text" formControlName="positionTitle" /></label>
+    </div>
+    <button type="submit" [disabled]="busy()">{{ 'registrants.add' | translate }}</button>
+  </form>
+</section>
+
+@if (messageKey(); as key) {
+  <p>{{ key | translate }}</p>
+}
+@if (errorKey(); as key) {
+  <p class="error">{{ key | translate }}</p>
+}
+
+@if (data(); as list) {
+  @if (list.items.length === 0) {
+    <section class="panel"><p>{{ 'registrants.empty' | translate }}</p></section>
+  } @else {
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>{{ 'registrants.number' | translate }}</th>
+            <th>{{ 'registrants.name' | translate }}</th>
+            <th>{{ 'registrants.email' | translate }}</th>
+            <th>{{ 'registrants.faculty' | translate }}</th>
+            <th>{{ 'registrants.position' | translate }}</th>
+            <th>{{ 'registrants.origin' | translate }}</th>
+            <th>{{ 'registrants.status' | translate }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of list.items; track item.id) {
+            <tr>
+              <td>{{ item.seqNo }}</td>
+              <td>
+                {{ item.displayName }}
+                <div class="muted">{{ item.publicCode }}</div>
+              </td>
+              <td>{{ item.email }}</td>
+              <td>{{ item.facultyOrInstitution }}</td>
+              <td>{{ item.positionTitle }}</td>
+              <td>{{ originKey(item.affiliationOrigin) | translate }}</td>
+              <td>{{ item.status | catalog:'statuses' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+}

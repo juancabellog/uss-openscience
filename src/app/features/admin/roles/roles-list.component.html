@@ -1,0 +1,57 @@
+<os-page-header [title]="'admin.rolesTitle' | translate" [subtitle]="'admin.rolesManage' | translate">
+  @if (auth.canAdminister('ADMINISTRATION')) {
+    <button type="button" class="page-action page-action--primary" (click)="editing.set('new')">
+      {{ 'admin.roles.new' | translate }}
+    </button>
+  }
+  <a routerLink="/admin">{{ 'admin.back' | translate }}</a>
+</os-page-header>
+
+@if (roles(); as vm) {
+  @if (vm.status === 'loading') {
+    <os-loading-state />
+  } @else if (vm.status === 'error') {
+    <os-error-state />
+  } @else if (vm.items.length === 0) {
+    <os-empty-state [title]="'admin.roles.empty' | translate" />
+  } @else {
+    <table>
+      <thead>
+        <tr>
+          <th>{{ 'admin.roles.name' | translate }}</th>
+          <th>{{ 'admin.roles.description' | translate }}</th>
+          <th>{{ 'admin.roles.users' | translate }}</th>
+          <th>{{ 'admin.roles.active' | translate }}</th>
+          <th>{{ 'admin.users.actions' | translate }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (role of vm.items; track role.id) {
+          <tr>
+            <td>{{ role.name }}</td>
+            <td>{{ role.description || ('common.dash' | translate) }}</td>
+            <td>{{ role.userCount }}</td>
+            <td>{{ role.active ? ('admin.roles.yes' | translate) : ('admin.roles.no' | translate) }}</td>
+            <td>
+              @if (auth.canAdminister('ADMINISTRATION')) {
+                <button type="button" (click)="editing.set(role)">{{ 'admin.roles.edit' | translate }}</button>
+                <button type="button" (click)="duplicate(role)">{{ 'admin.roles.duplicate' | translate }}</button>
+                @if (role.active) {
+                  <button type="button" (click)="disable(role)">{{ 'admin.roles.disable' | translate }}</button>
+                }
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+}
+
+@if (editing(); as current) {
+  <os-role-form
+    [role]="current === 'new' ? null : current"
+    (closed)="editing.set(null)"
+    (saved)="editing.set(null); reload()"
+  />
+}

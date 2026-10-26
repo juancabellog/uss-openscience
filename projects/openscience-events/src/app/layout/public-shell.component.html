@@ -1,0 +1,30 @@
+<header class="ose-public-header">
+  <a routerLink="/" class="brand">
+    <strong>{{ 'brand.name' | translate }}</strong>
+    <span>{{ 'brand.university' | translate }}</span>
+  </a>
+  <div class="header-tools">
+    <ose-language-switcher />
+    <div class="header-controls">
+      <nav class="header-nav" [attr.aria-label]="'nav.publicAria' | translate">
+        <a routerLink="/" routerLinkActive="is-active" [routerLinkActiveOptions]="{ exact: true }">{{ 'nav.home' | translate }}</a>
+        <a routerLink="/eventos" routerLinkActive="is-active">{{ 'nav.events' | translate }}</a>
+        @if (canAdmin()) {
+          <a routerLink="/admin" routerLinkActive="is-active">{{ 'nav.admin' | translate }}</a>
+        }
+      </nav>
+      @if (email(); as user) {
+        <div class="header-session">
+          <span class="user">{{ user }}</span>
+          <button type="button" class="linkish" (click)="logout()">{{ 'common.logout' | translate }}</button>
+        </div>
+      }
+    </div>
+  </div>
+</header>
+<main class="ose-public-main">
+  <router-outlet />
+</main>
+<footer class="ose-public-footer">
+  {{ 'public.footer' | translate }}
+</footer>

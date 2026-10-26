@@ -1,0 +1,52 @@
+<p><a routerLink="/admin/eventos">{{ 'form.back' | translate }}</a></p>
+<ose-event-admin-tabs [eventId]="id()" />
+<section class="panel">
+  <h1>{{ 'minutes.title' | translate }}</h1>
+  <p>{{ 'minutes.intro' | translate }}</p>
+  <label>
+    {{ 'minutes.blankRows' | translate }}
+    <input type="number" min="0" max="200" [formControl]="blankRows" />
+  </label>
+  <label>
+    {{ 'minutes.language' | translate }}
+    <select [formControl]="language">
+      <option value="es">{{ 'catalogs.languages.es' | translate }}</option>
+      <option value="en">{{ 'catalogs.languages.en' | translate }}</option>
+    </select>
+    <span class="hint">{{ 'minutes.languageHint' | translate }}</span>
+  </label>
+  <button type="button" [disabled]="busy()" (click)="generate()">{{ 'minutes.generate' | translate }}</button>
+</section>
+@if (errorKey(); as key) {
+  <p class="error">{{ key | translate }}</p>
+}
+@if (items().length === 0) {
+  <section class="panel"><p>{{ 'minutes.empty' | translate }}</p></section>
+} @else {
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>{{ 'minutes.version' | translate }}</th>
+          <th>{{ 'minutes.file' | translate }}</th>
+          <th>{{ 'minutes.hash' | translate }}</th>
+          <th>{{ 'form.blankRows' | translate }}</th>
+          <th>{{ 'minutes.languageCol' | translate }}</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of items(); track item.id) {
+          <tr>
+            <td>{{ item.versionNo }}</td>
+            <td>{{ item.filename }}</td>
+            <td class="muted">{{ item.sha256 }}</td>
+            <td>{{ item.blankRows }}</td>
+            <td>{{ (item.language || 'es') | catalog:'languages' }}</td>
+            <td><a [href]="download(item)">{{ 'common.download' | translate }}</a></td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}

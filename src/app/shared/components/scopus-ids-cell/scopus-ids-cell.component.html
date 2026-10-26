@@ -1,0 +1,108 @@
+@if (count() === 0) {
+  <span class="scopus-value">{{ 'common.dash' | translate }}</span>
+} @else if (!interactive()) {
+  <span class="scopus-value">
+    {{ displayValue() || ('common.dash' | translate) }}
+  </span>
+} @else {
+  <button
+    type="button"
+    class="scopus-count-trigger"
+    [attr.aria-expanded]="open()"
+    [attr.aria-controls]="panelId()"
+    [attr.aria-label]="'people.scopusPopover.viewCount' | translate: { count: count() }"
+    [title]="'people.scopusPopover.view' | translate"
+    (click)="toggle($event)"
+  >
+    {{ 'people.scopusIdsCount' | translate: { count: count() } }}
+  </button>
+}
+
+@if (open()) {
+  <div
+    #panel
+    class="scopus-popover"
+    role="dialog"
+    tabindex="-1"
+    [id]="panelId()"
+    [attr.aria-label]="titleKey() | translate: { count: recordCount() }"
+    [style.top]="panelStyle()['top']"
+    [style.left]="panelStyle()['left']"
+    [style.width]="panelStyle()['width']"
+    [style.max-height]="panelStyle()['maxHeight']"
+  >
+    <header class="scopus-popover__header">
+      <p>{{ titleKey() | translate: { count: recordCount() } }}</p>
+      @if (subtitleKey(); as subtitle) {
+        <p class="scopus-popover__distinct">
+          {{ subtitle | translate: { count: subtitleCount() } }}
+        </p>
+      }
+      @if (showCoverage()) {
+        <p class="scopus-popover__coverage">
+          {{ 'people.scopusPopover.coveragePartial' | translate: { matched: matchedCount(), total: recordCount() } }}
+        </p>
+      }
+    </header>
+
+    @if (loading()) {
+      <p class="scopus-popover__status" aria-live="polite">{{ 'common.loading' | translate }}</p>
+    } @else if (error()) {
+      <p class="scopus-popover__status scopus-popover__status--error" role="alert">
+        {{ 'people.scopusPopover.error' | translate }}
+      </p>
+    } @else {
+      <ul class="scopus-popover__list">
+        @for (item of items(); track itemTrack(item, $index)) {
+          <li class="scopus-popover__item">
+            <div class="scopus-popover__value">
+              @if (item.value) {
+                <span class="scopus-id" [title]="item.value">{{ item.value }}</span>
+                <os-copy-button [value]="item.value" labelKey="common.copyScopus" />
+                @if (canCorrect() && item.pureId != null) {
+                  <button
+                    type="button"
+                    class="scopus-popover__trash"
+                    [attr.aria-label]="'pureCorrection.ariaScopus' | translate: { value: item.value }"
+                    [title]="'pureCorrection.removeFromPure' | translate"
+                    (click)="askRemove($event, item)"
+                  >
+                    <os-icon name="trash" />
+                  </button>
+                }
+              } @else {
+                <span class="scopus-missing">{{ 'people.scopusPopover.missing' | translate }}</span>
+              }
+              @if (item.showDuplicate) {
+                <os-status-badge [label]="'people.scopusPopover.duplicate' | translate" tone="neutral" />
+              }
+            </div>
+            @if (item.value && item.foundInScopus && item.authorName) {
+              <p class="scopus-popover__author">{{ item.authorName }}</p>
+            } @else if (item.value && !item.foundInScopus) {
+              <p class="scopus-popover__local-miss">{{ 'people.scopusPopover.notInLocal' | translate }}</p>
+            }
+            <p
+              class="scopus-popover__pure-id"
+              [attr.title]="'people.scopusPopover.identifierPureId' | translate"
+            >
+              {{ 'common.pureId' | translate }}
+              {{ item.pureId == null ? ('common.dash' | translate) : item.pureId }}
+            </p>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+}
+
+<os-pure-correction-dialog
+  kind="scopus"
+  [open]="pending() != null"
+  [busy]="removing()"
+  [parentName]="personName()"
+  [value]="pending()?.value ?? null"
+  [childPureId]="pending()?.pureId ?? null"
+  (cancelled)="closeConfirm()"
+  (confirmed)="confirmRemove()"
+/>

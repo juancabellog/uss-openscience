@@ -1,0 +1,92 @@
+:host {
+  position: relative;
+  display: inline-flex;
+}
+
+.lang {
+  position: relative;
+}
+
+.lang__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2.4rem;
+  padding: 0 0.65rem;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+}
+
+.lang__trigger:hover,
+.lang__trigger:focus-visible,
+.lang--open .lang__trigger {
+  background: rgba(255, 255, 255, 0.08);
+  outline: none;
+}
+
+.ose-icon {
+  display: inline-flex;
+  width: 1.25rem;
+  height: 1.25rem;
+  color: currentColor;
+  flex: 0 0 auto;
+}
+
+.ose-icon svg {
+  width: 100%;
+  height: 100%;
+  fill: currentColor;
+}
+
+.lang__label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.lang--open .lang__chevron {
+  transform: rotate(180deg);
+}
+
+.lang__menu {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  left: 0;
+  z-index: 20;
+  min-width: 10rem;
+  margin: 0;
+  padding: 0.25rem;
+  list-style: none;
+  background: #fff;
+  border: 1px solid #d5e0e8;
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(16, 43, 66, 0.06);
+}
+
+.lang__option {
+  display: block;
+  width: 100%;
+  padding: 0.45rem 0.7rem;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #102b42;
+  text-align: left;
+  cursor: pointer;
+}
+
+.lang__option.is-focused,
+.lang__option:hover,
+.lang__option.is-active {
+  background: #eef3f7;
+  font-weight: 600;
+}
+
+@media (max-width: 720px) {
+  .lang__label {
+    display: none;
+  }
+}

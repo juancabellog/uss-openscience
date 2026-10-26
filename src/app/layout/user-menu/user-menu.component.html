@@ -1,0 +1,32 @@
+<div class="user-menu" [class.user-menu--open]="open()">
+  <button
+    type="button"
+    class="user-menu__trigger"
+    (click)="toggle()"
+    [attr.aria-label]="'header.userMenu' | translate"
+    aria-haspopup="menu"
+    [attr.aria-expanded]="open()"
+  >
+    <span class="user-menu__avatar" aria-hidden="true">{{ initials() }}</span>
+    <span class="user-menu__name">{{ user()?.displayName }}</span>
+    <os-icon name="chevron" />
+  </button>
+
+  @if (open()) {
+    <div class="user-menu__panel" role="menu">
+      <div class="user-menu__identity">
+        <strong>{{ user()?.displayName }}</strong>
+        <small>{{ user()?.email }}</small>
+      </div>
+      <button type="button" role="menuitem" class="user-menu__item" (click)="closeMenu()">
+        {{ 'header.profile' | translate }}
+      </button>
+      <button type="button" role="menuitem" class="user-menu__item" (click)="closeMenu()">
+        {{ 'header.preferences' | translate }}
+      </button>
+      <button type="button" role="menuitem" class="user-menu__item" (click)="signOut()">
+        {{ 'header.signOut' | translate }}
+      </button>
+    </div>
+  }
+</div>

@@ -1,0 +1,14 @@
+.layers {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: var(--os-space-md);
+}
+
+p {
+  margin-top: var(--os-space-md);
+}
+
+a {
+  font-weight: 600;
+  text-decoration: none;
+}

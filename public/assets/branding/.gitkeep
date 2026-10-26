@@ -1,0 +1,6 @@
+Los logos oficiales se publican desde la raíz del proyecto:
+
+- USShorizontal-tagline-ilumina-dark.svg
+- logo openscience.png
+
+Angular los copia a assets/branding sin modificar el archivo original.

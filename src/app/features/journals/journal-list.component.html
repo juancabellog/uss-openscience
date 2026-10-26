@@ -1,0 +1,404 @@
+<os-page-header
+  [title]="'journals.title' | translate"
+  [subtitle]="'journals.subtitle' | translate"
+>
+  <os-sync-export-bar
+    entity="JOURNALS"
+    metricsEntity="JOURNAL_METRICS"
+    [journalQuery]="currentQuery()"
+    (completed)="reload()"
+  />
+</os-page-header>
+
+<nav class="tabs" [attr.aria-label]="'journals.tabs' | translate">
+  <button type="button" [class.is-active]="tab() === 'catalog'" (click)="tab.set('catalog')">
+    {{ 'journals.tabCatalog' | translate }}
+  </button>
+  <button type="button" [class.is-active]="tab() === 'history'" (click)="tab.set('history')">
+    {{ 'journals.tabHistory' | translate }}
+  </button>
+</nav>
+
+@if (tab() === 'history') {
+  @let historyVm = historyState();
+  @if (historyVm.status === 'loading') {
+    <os-loading-state />
+  } @else if (historyVm.status === 'error') {
+    <os-error-state
+      [title]="'journals.historyErrorTitle' | translate"
+      [message]="'journals.historyErrorMessage' | translate"
+      [actionLabel]="'common.retry' | translate"
+      (action)="reload()"
+    />
+  } @else if (historyVm.items.length === 0) {
+    <os-empty-state
+      [title]="'journals.emptyHistory' | translate"
+      [message]="'journals.emptyHistoryMessage' | translate"
+    />
+  } @else {
+    <os-data-table-shell [caption]="'journals.historyCaption' | translate" [fluid]="true" [stickyEnd]="true">
+      <table>
+        <thead>
+          <tr>
+            <th>{{ 'journals.historyId' | translate }}</th>
+            <th>{{ 'journals.historyOperation' | translate }}</th>
+            <th>{{ 'journals.historyMode' | translate }}</th>
+            <th>{{ 'journals.historyStatus' | translate }}</th>
+            <th>{{ 'journals.historyStarted' | translate }}</th>
+            <th>{{ 'journals.historyFinished' | translate }}</th>
+            <th>{{ 'journals.historyProcessed' | translate }}</th>
+            <th>{{ 'journals.historyErrors' | translate }}</th>
+            <th>{{ 'journals.viewDetail' | translate }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of historyVm.items; track row.syncId) {
+            <tr>
+              <td>{{ row.syncId }}</td>
+              <td>{{ operationKey(row.entity) | translate }}</td>
+              <td>{{ modeKey(row.syncMode) | translate }}</td>
+              <td>{{ statusKey(row.status) | translate }}</td>
+              <td>{{ row.startedAt ? (row.startedAt | localeDate) : ('common.dash' | translate) }}</td>
+              <td>{{ row.finishedAt ? (row.finishedAt | localeDate) : ('common.dash' | translate) }}</td>
+              <td>{{ row.processed | localeNumber }}</td>
+              <td>{{ row.errors | localeNumber }}</td>
+              <td>
+                <button type="button" class="link-button" (click)="openHistoryDetail(row.syncId)">
+                  {{ 'journals.viewDetail' | translate }}
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </os-data-table-shell>
+  }
+} @else {
+<section
+  class="journal-summary"
+  [class.is-updating]="statsUpdating()"
+  [attr.aria-busy]="statsUpdating()"
+  [attr.aria-label]="'journals.stats.title' | translate"
+>
+  <os-mini-stat
+    [label]="'journals.stats.total' | translate"
+    [value]="(stats()?.total | localeNumber) || ('common.dash' | translate)"
+  />
+  <os-mini-stat
+    [label]="'journals.stats.withoutIssn' | translate"
+    [value]="(stats()?.withoutIssn | localeNumber) || ('common.dash' | translate)"
+  />
+  <os-mini-stat
+    [label]="'journals.stats.oneIssn' | translate"
+    [value]="(stats()?.oneIssn | localeNumber) || ('common.dash' | translate)"
+  />
+  <os-mini-stat
+    [label]="'journals.stats.twoOrMoreIssn' | translate"
+    [value]="(stats()?.twoOrMoreIssn | localeNumber) || ('common.dash' | translate)"
+  />
+  <os-mini-stat
+    [label]="'journals.stats.withScopusId' | translate"
+    [value]="(stats()?.withScopusId | localeNumber) || ('common.dash' | translate)"
+  />
+  <os-mini-stat
+    [label]="'journals.stats.withoutPublications' | translate"
+    [value]="(stats()?.withoutPublications | localeNumber) || ('common.dash' | translate)"
+    [tooltip]="'journals.stats.withoutPublicationsTooltip' | translate"
+  />
+  <os-mini-stat
+    [label]="'journals.stats.withCiteScore' | translate"
+    [value]="(stats()?.withCiteScore | localeNumber) || ('common.dash' | translate)"
+    [tooltip]="'journals.stats.withCiteScoreTooltip' | translate"
+  />
+  <os-mini-stat
+    [label]="'journals.stats.withQuartile' | translate"
+    [value]="(stats()?.withQuartile | localeNumber) || ('common.dash' | translate)"
+    [tooltip]="'journals.stats.withQuartileTooltip' | translate"
+  />
+</section>
+@if (hasActiveFilters()) {
+  <p class="filtered-summary">
+    {{ 'journals.filteredSummary' | translate: { count: (stats()?.total | localeNumber) || 0 } }}
+    <button type="button" class="link-button" (click)="clearFilters()">{{ 'journals.clearFilters' | translate }}</button>
+  </p>
+}
+
+@if (showUnresolved()) {
+  <p class="journal-unresolved">
+    {{ 'journals.stats.unresolved' | translate: { count: stats()?.unresolvedResearchOutputRefs ?? 0 } }}
+  </p>
+}
+
+<div class="journal-filters">
+  <os-filter-bar>
+    <os-search-box
+      [control]="search"
+      [placeholder]="'journals.searchPlaceholder' | translate"
+      [label]="'journals.search' | translate"
+      [hint]="'journals.searchHint' | translate"
+    />
+    <label class="filter-field">
+      <span>{{ 'journals.type' | translate }}</span>
+      <select class="os-control" [formControl]="typeUri">
+        <option value="">{{ 'journals.allTypes' | translate }}</option>
+        @for (type of filters().types; track type.uri) {
+          <option [value]="type.uri">{{ typeLabel(type) || type.uri }}</option>
+        }
+      </select>
+    </label>
+    <label class="filter-field">
+      <span>{{ 'journals.workflow' | translate }}</span>
+      <select class="os-control" [formControl]="workflowStep">
+        <option value="">{{ 'journals.allWorkflows' | translate }}</option>
+        @for (workflow of filters().workflows; track workflow.step) {
+          <option [value]="workflow.step">{{ workflowLabel(workflow) || workflow.step }}</option>
+        }
+      </select>
+    </label>
+    <label class="filter-field">
+      <span>{{ 'journals.issnCount' | translate }}</span>
+      <select class="os-control" [formControl]="issnCount">
+        <option value="">{{ 'journals.allIssnCounts' | translate }}</option>
+        <option value="0">{{ 'journals.withoutIssn' | translate }}</option>
+        <option value="1">{{ 'journals.oneIssn' | translate }}</option>
+        <option value="2+">{{ 'journals.twoOrMoreIssn' | translate }}</option>
+      </select>
+    </label>
+    <label class="filter-field">
+      <span>{{ 'journals.publications' | translate }}</span>
+      <select class="os-control" [formControl]="publications">
+        <option value="">{{ 'journals.allPublications' | translate }}</option>
+        <option value="WITH_PUBLICATIONS">{{ 'journals.withPublications' | translate }}</option>
+        <option value="WITHOUT_PUBLICATIONS">{{ 'journals.withoutPublications' | translate }}</option>
+      </select>
+    </label>
+    <label class="filter-field">
+      <span>{{ 'journals.citeScore' | translate }}</span>
+      <select class="os-control" [formControl]="citescore">
+        <option value="">{{ 'journals.allCiteScore' | translate }}</option>
+        <option value="WITH">{{ 'journals.withCiteScore' | translate }}</option>
+        <option value="WITHOUT">{{ 'journals.withoutCiteScore' | translate }}</option>
+      </select>
+    </label>
+    <label class="filter-field" [attr.title]="'journals.quartileFilterHint' | translate">
+      <span>{{ 'journals.quartiles' | translate }}</span>
+      <select class="os-control" [formControl]="quartile">
+        <option value="">{{ 'journals.allQuartiles' | translate }}</option>
+        <option value="Q1">Q1</option>
+        <option value="Q2">Q2</option>
+        <option value="Q3">Q3</option>
+        <option value="Q4">Q4</option>
+      </select>
+    </label>
+  </os-filter-bar>
+</div>
+
+@let vm = result();
+@if (vm.status === 'loading') {
+  <os-loading-state />
+} @else if (vm.status === 'error') {
+  <os-error-state
+    [title]="'journals.errorTitle' | translate"
+    [message]="'journals.errorMessage' | translate"
+    [actionLabel]="'common.retry' | translate"
+    (action)="reload()"
+  />
+} @else if (vm.data.total === 0) {
+  <os-empty-state
+    [title]="(hasActiveFilters() ? 'journals.filteredTitle' : 'journals.emptyTitle') | translate"
+    [message]="(hasActiveFilters() ? 'journals.filteredMessage' : 'journals.emptyMessage') | translate"
+    [actionLabel]="hasActiveFilters() ? ('journals.clearFilters' | translate) : ''"
+    (action)="clearFilters()"
+  />
+} @else {
+  <os-data-table-shell [caption]="'journals.caption' | translate" [fluid]="true" [stickyStart]="true">
+    <table class="journal-table">
+      <colgroup>
+        <col class="col-pure-id" />
+        <col class="col-title" />
+        <col class="col-publications" />
+        <col class="col-issn" />
+        <col class="col-scopus" />
+        <col class="col-citescore" />
+        <col class="col-quartile" />
+        <col class="col-type" />
+        <col class="col-workflow" />
+        <col class="col-audit" />
+        <col class="col-audit" />
+      </colgroup>
+      <thead>
+        <tr>
+          <th scope="col" class="col-id" [attr.aria-sort]="ariaSort('pureId')">
+            <os-sortable-header
+              field="pureId"
+              [label]="'common.pureId' | translate"
+              [activeField]="visualSortField()"
+              [direction]="sortDirection()"
+              (sortChange)="onSort($event)"
+            />
+          </th>
+          <th scope="col" class="col-title col-sticky-start" [attr.aria-sort]="ariaSort('title')">
+            <os-sortable-header
+              field="title"
+              [label]="'journals.journal' | translate"
+              [activeField]="visualSortField()"
+              [direction]="sortDirection()"
+              (sortChange)="onSort($event)"
+            />
+          </th>
+          <th scope="col" class="col-publications" [attr.aria-sort]="ariaSort('publicationCount')">
+            <os-sortable-header
+              field="publicationCount"
+              [label]="'journals.publications' | translate"
+              [activeField]="visualSortField()"
+              [direction]="sortDirection()"
+              [numeric]="true"
+              (sortChange)="onSort($event)"
+            />
+          </th>
+          <th scope="col" class="col-issn" [attr.aria-sort]="ariaSort('issn')">
+            <os-sortable-header
+              field="issn"
+              [label]="'journals.issn' | translate"
+              [activeField]="visualSortField()"
+              [direction]="sortDirection()"
+              (sortChange)="onSort($event)"
+            />
+          </th>
+          <th scope="col" class="col-scopus" [attr.aria-sort]="ariaSort('scopusId')">
+            <os-sortable-header
+              field="scopusId"
+              [label]="'journals.scopusId' | translate"
+              [activeField]="visualSortField()"
+              [direction]="sortDirection()"
+              (sortChange)="onSort($event)"
+            />
+          </th>
+          <th scope="col" class="col-citescore" [attr.aria-sort]="ariaSort('citeScore')">
+            <os-sortable-header
+              field="citeScore"
+              [label]="'journals.citeScore' | translate"
+              [activeField]="visualSortField()"
+              [direction]="sortDirection()"
+              [numeric]="true"
+              (sortChange)="onSort($event)"
+            />
+          </th>
+          <th
+            scope="col"
+            class="col-quartile"
+            [attr.aria-sort]="ariaSort('quartile')"
+            [attr.title]="'journals.quartileColumnHint' | translate"
+          >
+            <os-sortable-header
+              field="quartile"
+              [label]="'journals.quartiles' | translate"
+              [activeField]="visualSortField()"
+              [direction]="sortDirection()"
+              (sortChange)="onSort($event)"
+            />
+          </th>
+          <th scope="col" class="col-type" [attr.aria-sort]="ariaSort('type')">
+            <os-sortable-header
+              field="type"
+              [label]="'journals.type' | translate"
+              [activeField]="visualSortField()"
+              [direction]="sortDirection()"
+              (sortChange)="onSort($event)"
+            />
+          </th>
+          <th scope="col" class="col-workflow" [attr.aria-sort]="ariaSort('workflow')">
+            <os-sortable-header
+              field="workflow"
+              [label]="'journals.workflow' | translate"
+              [activeField]="visualSortField()"
+              [direction]="sortDirection()"
+              (sortChange)="onSort($event)"
+            />
+          </th>
+          <th scope="col" class="col-audit" [attr.aria-sort]="ariaSort('createdBy')">
+            <os-sortable-header
+              field="createdBy"
+              [label]="'journals.createdBy' | translate"
+              [activeField]="visualSortField()"
+              [direction]="sortDirection()"
+              (sortChange)="onSort($event)"
+            />
+          </th>
+          <th scope="col" class="col-audit" [attr.aria-sort]="ariaSort('modifiedBy')">
+            <os-sortable-header
+              field="modifiedBy"
+              [label]="'journals.modifiedBy' | translate"
+              [activeField]="visualSortField()"
+              [direction]="sortDirection()"
+              (sortChange)="onSort($event)"
+            />
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of vm.data.items; track item.id) {
+          <tr>
+            <td class="col-id">{{ item.pureId ?? ('common.dash' | translate) }}</td>
+            <td class="col-title col-sticky-start">
+              <a [routerLink]="['/journals', item.id]" class="journal-link">
+                {{ item.title || ('common.dash' | translate) }}
+              </a>
+            </td>
+            <td class="col-publications numeric-cell">{{ item.publicationCount | localeNumber }}</td>
+            <td class="col-issn">
+              <os-issn-cell
+                [journalId]="item.id"
+                [title]="item.title"
+                [count]="item.issnCount ?? item.issns.length"
+                [displayValue]="item.issns.length === 1 ? item.issns[0] : null"
+              />
+            </td>
+            <td class="col-scopus">{{ item.scopusId || ('common.dash' | translate) }}</td>
+            <td
+              class="col-citescore numeric-cell"
+              [attr.title]="item.citeScore == null ? '' : ('journals.citeScoreTooltip' | translate: { value: item.citeScore, year: item.citeScoreYear ?? ('common.dash' | translate) })"
+            >
+              @if (item.citeScore == null) {
+                {{ 'common.dash' | translate }}
+              } @else {
+                <span class="metric-value">{{ item.citeScore }}</span>
+                @if (item.citeScoreYear != null) {
+                  <span class="metric-year">{{ item.citeScoreYear }}</span>
+                }
+              }
+            </td>
+            <td
+              class="col-quartile"
+              [attr.title]="item.quartilesCompact ? ('journals.quartileTooltip' | translate: { value: item.quartilesCompact, year: item.quartileYear ?? ('common.dash' | translate) }) : ''"
+            >
+              {{ item.quartilesCompact || ('common.dash' | translate) }}
+            </td>
+            <td class="col-type">{{ typeLabel(item) || ('common.dash' | translate) }}</td>
+            <td class="col-workflow">
+              @let journalStatus = workflowLabel(item);
+              @if (journalStatus) {
+                <span class="workflow-badge" [title]="journalStatus">{{ journalStatus }}</span>
+              } @else {
+                {{ 'common.dash' | translate }}
+              }
+            </td>
+            <td class="col-audit" [title]="item.createdBy || ''">
+              {{ item.createdBy || ('common.dash' | translate) }}
+            </td>
+            <td class="col-audit" [title]="item.modifiedBy || ''">
+              {{ item.modifiedBy || ('common.dash' | translate) }}
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </os-data-table-shell>
+  <os-pagination
+    [page]="vm.data.page"
+    [pageSize]="vm.data.pageSize"
+    [total]="vm.data.total"
+    (pageChange)="onPageChange($event)"
+  />
+}
+}

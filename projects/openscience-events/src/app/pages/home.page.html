@@ -1,0 +1,26 @@
+<section class="panel">
+  <h1>{{ 'home.title' | translate }}</h1>
+  <p>{{ 'home.intro' | translate }}</p>
+  <p>
+    <a routerLink="/eventos">{{ 'home.seePublished' | translate }}</a>
+  </p>
+</section>
+
+<section class="panel">
+  <h2>{{ 'home.backendTitle' | translate }}</h2>
+  @if (connection().state === 'loading') {
+    <p>{{ 'home.checking' | translate: { path: '/api/v1/events/health' } }}</p>
+  } @else if (connection().state === 'error') {
+    <p class="error">{{ 'home.backendError' | translate }}</p>
+  } @else {
+    @let status = connection().status!;
+    <dl>
+      <div><dt>{{ 'home.module' | translate }}</dt><dd>{{ status.module }}</dd></div>
+      <div><dt>{{ 'home.backend' | translate }}</dt><dd>{{ status.backend }}</dd></div>
+      <div><dt>{{ 'home.catalog' | translate }}</dt><dd>{{ status.catalog }}</dd></div>
+      <div><dt>{{ 'home.eventTables' | translate }}</dt><dd>{{ (status.tablesAvailable ? 'home.tablesReady' : 'home.tablesPending') | translate }}</dd></div>
+      <div><dt>{{ 'home.directory' | translate }}</dt><dd>{{ (status.directoryAvailable ? 'home.directoryReady' : 'home.directoryMissing') | translate }}</dd></div>
+      <div><dt>{{ 'home.publishedCount' | translate }}</dt><dd>{{ status.publishedCount }}</dd></div>
+    </dl>
+  }
+</section>

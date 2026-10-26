@@ -1,0 +1,114 @@
+@if (!interactive()) {
+  <span class="doi-count">{{ count() }}</span>
+} @else {
+  <button
+    type="button"
+    class="doi-count-trigger"
+    [attr.aria-expanded]="open()"
+    [attr.aria-controls]="panelId()"
+    [attr.aria-label]="'outputs.doiPopover.viewCount' | translate: { count: count() }"
+    [title]="'outputs.doiPopover.view' | translate"
+    (click)="toggle($event)"
+  >
+    {{ count() }}
+  </button>
+}
+
+@if (open()) {
+  <div
+    #panel
+    class="doi-popover"
+    role="dialog"
+    tabindex="-1"
+    [id]="panelId()"
+    [attr.aria-label]="titleKey() | translate: { count: versionCount() }"
+    [style.top]="panelStyle()['top']"
+    [style.left]="panelStyle()['left']"
+    [style.width]="panelStyle()['width']"
+    [style.max-height]="panelStyle()['maxHeight']"
+  >
+    <header class="doi-popover__header">
+      <p>{{ titleKey() | translate: { count: versionCount() } }}</p>
+      @if (subtitleKey(); as subtitle) {
+        <p class="doi-popover__distinct">
+          {{ subtitle | translate: { count: subtitleCount() } }}
+        </p>
+      }
+    </header>
+
+    @if (loading()) {
+      <p class="doi-popover__status" aria-live="polite">{{ 'common.loading' | translate }}</p>
+    } @else if (error()) {
+      <p class="doi-popover__status doi-popover__status--error" role="alert">
+        {{ 'outputs.doiPopover.error' | translate }}
+      </p>
+    } @else {
+      <ul class="doi-popover__list">
+        @for (version of items(); track itemTrack(version, $index)) {
+          <li class="doi-popover__item">
+            <div class="doi-popover__doi">
+              @if (version.doi) {
+                <a
+                  class="external-link doi-link"
+                  [href]="doiHref(version.doi)"
+                  [title]="version.doi"
+                  [attr.aria-label]="'outputs.openDoiValue' | translate: { doi: version.doi }"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {{ version.doi }}
+                </a>
+                <os-copy-button [value]="version.doi" labelKey="common.copyDoi" />
+                @if (canCorrect() && version.pureId != null) {
+                  <button
+                    type="button"
+                    class="doi-popover__trash"
+                    [attr.aria-label]="'pureCorrection.ariaDoi' | translate: { doi: version.doi }"
+                    [title]="'pureCorrection.removeFromPure' | translate"
+                    (click)="askRemove($event, version)"
+                  >
+                    <os-icon name="trash" />
+                  </button>
+                }
+              } @else {
+                <span class="doi-missing">{{ 'outputs.doiPopover.missing' | translate }}</span>
+              }
+              @if (version.showDuplicate) {
+                <os-status-badge [label]="'outputs.doiPopover.duplicate' | translate" tone="neutral" />
+              }
+            </div>
+            <div class="doi-popover__identity">
+              <span
+                class="doi-popover__pure-id"
+                [attr.title]="'outputs.doiPopover.electronicVersionPureId' | translate"
+              >
+                {{ 'common.pureId' | translate }}
+                {{ version.pureId == null ? ('common.dash' | translate) : version.pureId }}
+              </span>
+              <os-status-badge
+                [label]="version.accessLabel || ('common.dash' | translate)"
+                [tone]="version.accessTone"
+              />
+            </div>
+            <p class="doi-popover__version">
+              {{ version.versionLabel || ('common.dash' | translate) }}
+            </p>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+}
+
+<os-pure-correction-dialog
+  kind="doi"
+  [open]="pending() != null"
+  [busy]="removing()"
+  [parentName]="title()"
+  [value]="pending()?.doi ?? null"
+  [childPureId]="pending()?.pureId ?? null"
+  [accessLabel]="pending()?.accessLabel ?? null"
+  [versionLabel]="pending()?.versionLabel ?? null"
+  (cancelled)="closeConfirm()"
+  (confirmed)="confirmRemove()"
+/>

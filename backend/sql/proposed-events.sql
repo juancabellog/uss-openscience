@@ -1,0 +1,3 @@
+-- El SQL de las fases 1 y 2 está en proposed-events-phase1-2.sql.
+-- Este archivo se conserva como referencia: no ejecutar.
+-- Las tablas de asistencia y actas PDF no forman parte de las fases 1 y 2.

@@ -1,0 +1,20 @@
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--os-space-sm);
+  align-items: flex-end;
+  margin-bottom: var(--os-space-lg);
+}
+
+:host ::ng-deep .filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: var(--os-fs-sm);
+  color: var(--os-text-secondary);
+}
+
+:host ::ng-deep .filter-field select,
+:host ::ng-deep .os-control {
+  min-width: 10rem;
+}

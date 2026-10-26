@@ -1,0 +1,183 @@
+@let state = vm();
+@if (state.status === 'loading') {
+  <os-loading-state />
+} @else if (state.status === 'error') {
+  <os-error-state
+    [title]="'organizations.errorTitle' | translate"
+    [message]="'organizations.errorMessage' | translate"
+  />
+} @else if (state.status === 'notfound') {
+  <os-error-state
+    [title]="'organizations.notFoundTitle' | translate"
+    [message]="'organizations.notFoundMessage' | translate"
+  />
+} @else {
+  <os-page-header
+    [title]="displayName() || ('common.dash' | translate)"
+    [subtitle]="'organizations.detailSubtitle' | translate"
+  >
+    <a routerLink="/organizations" class="back-link">{{ 'organizations.backToList' | translate }}</a>
+    @if (state.organization.activeInPure === false) {
+      <span class="inactive-badge">{{ 'sync.inactiveBadge' | translate }}</span>
+    }
+  </os-page-header>
+
+  <os-detail-section-nav
+    [items]="sectionNav"
+    [ariaLabel]="'organizations.sections' | translate"
+  />
+
+  <section id="identidad" class="panel">
+    <h2>{{ 'organizations.identity' | translate }}</h2>
+    <os-identifier-row
+      [label]="'common.pureId' | translate"
+      [value]="state.organization.pureId"
+      [tooltip]="'common.pureIdTooltip' | translate"
+      copyLabelKey="common.copyPureId"
+    />
+    <os-identifier-row
+      [label]="'organizations.uuidPure' | translate"
+      [value]="state.organization.uuid"
+      copyLabelKey="common.copyUuid"
+    />
+    <dl>
+      <div>
+        <dt>{{ 'organizations.name' | translate }}</dt>
+        <dd>{{ displayName() || ('common.dash' | translate) }}</dd>
+      </div>
+      <div>
+        <dt>{{ 'organizations.type' | translate }}</dt>
+        <dd>{{ typeLabel(state.organization) || ('common.dash' | translate) }}</dd>
+      </div>
+      @if (state.organization.typeDiscriminator) {
+        <div>
+          <dt>{{ 'organizations.typeDiscriminator' | translate }}</dt>
+          <dd>{{ state.organization.typeDiscriminator }}</dd>
+        </div>
+      }
+      @if (state.organization.systemName) {
+        <div>
+          <dt>{{ 'organizations.systemName' | translate }}</dt>
+          <dd>{{ state.organization.systemName }}</dd>
+        </div>
+      }
+    </dl>
+  </section>
+
+  <section id="jerarquia" class="panel">
+    <h2>{{ 'organizations.hierarchy' | translate }}</h2>
+    @if (!state.organization.parentUuid) {
+      <p>{{ 'organizations.noParent' | translate }}</p>
+    } @else if (state.organization.parentResolved) {
+      <dl>
+        <div>
+          <dt>{{ 'organizations.parent' | translate }}</dt>
+          <dd>
+            @if (state.organization.parentId) {
+              <a [routerLink]="['/organizations', state.organization.parentId]">{{ parentLabel(state.organization) }}</a>
+            } @else {
+              {{ parentLabel(state.organization) }}
+            }
+          </dd>
+        </div>
+      </dl>
+    } @else {
+      <p>{{ 'organizations.unavailableLocally' | translate }}</p>
+      <p class="secondary-uuid">{{ state.organization.parentUuid }}</p>
+    }
+  </section>
+
+  <section id="personas" class="panel">
+    <h2>{{ 'organizations.relatedPersons' | translate }}</h2>
+    @if (persons().total === 0) {
+      <p>{{ 'organizations.noPersons' | translate }}</p>
+    } @else {
+      <ul class="record-list">
+        @for (person of persons().items; track person.personId ?? person.personUuid) {
+          <li>
+            <strong>
+              @if (person.personId) {
+                <a [routerLink]="['/people', person.personId]">{{ person.displayName || ('common.dash' | translate) }}</a>
+              } @else {
+                {{ person.displayName || ('common.dash' | translate) }}
+              }
+            </strong>
+            @if (person.jobTitle) {
+              <p>{{ person.jobTitle }}</p>
+            } @else if (person.employmentType) {
+              <p>{{ person.employmentType }}</p>
+            }
+            @if (person.fte != null) {
+              <p>{{ 'organizations.fte' | translate }} {{ person.fte }}</p>
+            }
+            @if (person.startDate || person.endDate) {
+              <p>{{ person.startDate || ('common.dash' | translate) }} — {{ person.endDate || ('common.dash' | translate) }}</p>
+            }
+          </li>
+        }
+      </ul>
+      <os-pagination
+        [page]="persons().page"
+        [pageSize]="persons().pageSize"
+        [total]="persons().total"
+        (pageChange)="personsPage.set($event)"
+      />
+    }
+  </section>
+
+  <section id="proyectos" class="panel">
+    <h2>{{ 'organizations.relatedProjects' | translate }}</h2>
+    @if (projects().total === 0) {
+      <p>{{ 'organizations.noProjects' | translate }}</p>
+    } @else {
+      <ul class="record-list">
+        @for (project of projects().items; track (project.projectId ?? project.projectUuid) + (project.relationType ?? '')) {
+          <li>
+            <strong>
+              @if (project.projectId) {
+                <a [routerLink]="['/projects', project.projectId]">{{ projectTitle(project) }}</a>
+              } @else {
+                {{ projectTitle(project) }}
+              }
+            </strong>
+            <p>{{ relationLabel(project) }}</p>
+          </li>
+        }
+      </ul>
+      <os-pagination
+        [page]="projects().page"
+        [pageSize]="projects().pageSize"
+        [total]="projects().total"
+        (pageChange)="projectsPage.set($event)"
+      />
+    }
+  </section>
+
+  <section id="auditoria" class="panel">
+    <h2>{{ 'organizations.pureAudit' | translate }}</h2>
+    <dl>
+      <div>
+        <dt>{{ 'common.createdBy' | translate }}</dt>
+        <dd>{{ state.organization.createdBy || ('common.dash' | translate) }}</dd>
+      </div>
+      <div>
+        <dt>{{ 'organizations.createdDatePure' | translate }}</dt>
+        <dd>{{ state.organization.createdDatePure ? (state.organization.createdDatePure | localeDate) : ('common.dash' | translate) }}</dd>
+      </div>
+      <div>
+        <dt>{{ 'common.modifiedBy' | translate }}</dt>
+        <dd>{{ state.organization.modifiedBy || ('common.dash' | translate) }}</dd>
+      </div>
+      <div>
+        <dt>{{ 'organizations.modifiedDatePure' | translate }}</dt>
+        <dd>{{ state.organization.modifiedDatePure ? (state.organization.modifiedDatePure | localeDate) : ('common.dash' | translate) }}</dd>
+      </div>
+      @if (state.organization.version) {
+        <div>
+          <dt>{{ 'organizations.version' | translate }}</dt>
+          <dd>{{ state.organization.version }}</dd>
+        </div>
+      }
+    </dl>
+  </section>
+}

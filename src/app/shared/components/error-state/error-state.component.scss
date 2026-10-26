@@ -1,0 +1,29 @@
+:host {
+  display: block;
+}
+
+.state-box {
+  background: var(--os-surface);
+  border: 1px solid #f0c4c4;
+  border-radius: var(--os-radius-md);
+  padding: var(--os-space-xl);
+  color: var(--os-text-secondary);
+}
+
+.state-box h2 {
+  margin-bottom: var(--os-space-xs);
+  font-size: var(--os-fs-lg);
+  color: var(--os-danger);
+}
+
+.state-box__action {
+  margin-top: var(--os-space-md);
+  border: 1px solid var(--os-border);
+  background: var(--os-surface);
+  color: var(--uss-primary);
+  border-radius: var(--os-radius-sm);
+  padding: 0.45rem 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+

@@ -1,0 +1,12 @@
+<button
+  type="button"
+  class="copy-button"
+  [attr.aria-label]="ariaLabel()"
+  [title]="ariaLabel()"
+  (click)="copy()"
+>
+  <os-icon name="copy" />
+  @if (copied()) {
+    <span class="copy-button__feedback" aria-live="polite">{{ 'common.copied' | translate }}</span>
+  }
+</button>

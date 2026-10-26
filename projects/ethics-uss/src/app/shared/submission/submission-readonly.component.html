@@ -1,0 +1,63 @@
+@if (form(); as formDef) {
+  <article class="readonly">
+    <header class="lead">
+      <h1>{{ title() }}</h1>
+      <p class="identity">
+        @if (project()?.code) { <span>{{ project()?.code }}</span> }
+        @if (project()?.code && researcher()) { <span aria-hidden="true"> · </span> }
+        @if (researcher()) { <span>{{ researcher() }}</span> }
+      </p>
+      <dl class="meta">
+        <div>
+          <dt>{{ 'readonly.type' | translate }}</dt>
+          <dd>{{ typeLabel() }}</dd>
+        </div>
+        <div>
+          <dt>{{ 'readonly.status' | translate }}</dt>
+          <dd>{{ statusLabel() }}</dd>
+        </div>
+        @if (submission().submittedAt) {
+          <div>
+            <dt>{{ 'readonly.receivedDate' | translate }}</dt>
+            <dd>{{ submittedAt() }}</dd>
+          </div>
+        }
+        <div>
+          <dt>{{ 'readonly.formReceived' | translate }}</dt>
+          <dd>{{ 'readonly.questionsAnswered' | translate: { answered: progress().answered, total: progress().total } }}</dd>
+        </div>
+      </dl>
+    </header>
+
+    @for (section of sections(); track section.id) {
+      <section class="block" [attr.aria-labelledby]="'sec-' + section.id">
+        <h2 [id]="'sec-' + section.id">{{ section.titleKey | translate }}</h2>
+        <eth-ethics-form-fields
+          [questions]="section.questions"
+          [answers]="answers()"
+          mode="readonly"
+          (preview)="showPreview()"
+        />
+      </section>
+    }
+    @if (submission().type === 'VALIDATION') {
+      <section class="block">
+        <h2>{{ 'validation.transversal' | translate }}</h2>
+        @for (doc of letters(); track doc.id) {
+          <p>{{ 'validation.letter' | translate }} · {{ doc.name }} · v{{ doc.version }}</p>
+        }
+      </section>
+      @for (committee of validationCommittees(); track committee) {
+        <section class="block">
+          <h2>{{ committeeLabels[committee] | translate }}</h2>
+          @for (doc of docsFor(committee); track doc.id) {
+            <p>{{ documentLabel(doc) | translate }} · {{ doc.name }} · v{{ doc.version }}</p>
+          }
+        </section>
+      }
+    }
+    @if (previewNote(); as text) {
+      <p class="alert">{{ text }}</p>
+    }
+  </article>
+}

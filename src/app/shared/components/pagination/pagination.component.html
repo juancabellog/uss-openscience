@@ -1,0 +1,15 @@
+<nav class="pagination" [attr.aria-label]="'common.pagination' | translate">
+  @if (pageSizeOptions().length) {
+    <label class="pagination__size">
+      <span>{{ 'common.pageSize' | translate }}</span>
+      <select class="os-control" [value]="pageSize()" (change)="changePageSize($any($event.target).value)">
+        @for (size of pageSizeOptions(); track size) {
+          <option [value]="size">{{ size }}</option>
+        }
+      </select>
+    </label>
+  }
+  <button type="button" [disabled]="!canPrev()" (click)="prev()">{{ 'common.previous' | translate }}</button>
+  <p>{{ 'common.paginationSummary' | translate: summaryParams() }}</p>
+  <button type="button" [disabled]="!canNext()" (click)="next()">{{ 'common.next' | translate }}</button>
+</nav>

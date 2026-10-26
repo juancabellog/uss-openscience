@@ -1,0 +1,13 @@
+<div class="search-field">
+  <span class="search-field__label">{{ displayLabel() }}</span>
+  <label class="search">
+    <os-icon name="search" />
+    <input
+      type="search"
+      [formControl]="control()"
+      [placeholder]="displayPlaceholder()"
+      [attr.title]="hint() || null"
+      [attr.aria-description]="hint() || null"
+    />
+  </label>
+</div>

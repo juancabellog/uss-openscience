@@ -1,0 +1,25 @@
+.drawer {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: grid;
+  justify-content: end;
+  z-index: 20;
+}
+
+.drawer__panel {
+  width: min(32rem, 100vw);
+  height: 100%;
+  overflow: auto;
+  background: var(--os-surface);
+  padding: var(--os-space-lg);
+  display: grid;
+  gap: var(--os-space-md);
+}
+
+.drawer__actions,
+fieldset,
+.filter-field {
+  display: grid;
+  gap: 0.4rem;
+}

@@ -1,0 +1,88 @@
+:host {
+  display: block;
+}
+
+.review {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(18rem, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.classification {
+  position: sticky;
+  top: 1rem;
+  display: grid;
+  gap: 1.1rem;
+}
+
+.classification h2,
+.validated legend {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+  font-family: var(--eth-serif);
+  font-weight: 600;
+}
+
+.validated {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.auto-list,
+.summary-codes {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0.7rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.auto-list li,
+.class-option {
+  display: flex;
+  gap: 0.55rem;
+  align-items: flex-start;
+  color: var(--eth-muted);
+}
+
+.auto-list li.on,
+.class-option {
+  color: var(--eth-ink);
+}
+
+.class-option {
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--eth-border);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.class-option.exclusive {
+  margin-top: 0.7rem;
+  padding-top: 0.85rem;
+  border-top: 1px dashed var(--eth-border);
+  border-radius: 0 0 10px 10px;
+}
+
+.class-option input {
+  width: auto;
+  margin-top: 0.2rem;
+}
+
+.summary-codes li {
+  font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  .review {
+    grid-template-columns: 1fr;
+  }
+
+  .classification {
+    position: static;
+  }
+}

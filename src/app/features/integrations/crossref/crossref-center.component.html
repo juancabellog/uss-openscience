@@ -1,0 +1,316 @@
+<os-page-header
+  [title]="'crossref.title' | translate"
+  [subtitle]="'crossref.subtitle' | translate"
+>
+  <os-sync-export-bar
+    entity="CROSSREF"
+    [crossrefQuery]="currentQuery()"
+    [syncEnabled]="stats()?.enabled !== false && stats()?.configured !== false"
+    (completed)="reload()"
+  />
+</os-page-header>
+
+<section class="upw-stats" [attr.aria-label]="'crossref.title' | translate">
+  <os-mini-stat [label]="'crossref.uniqueDois' | translate" [value]="(stats()?.uniqueDois | localeNumber) || ('common.dash' | translate)" />
+  <os-mini-stat [label]="'crossref.evaluated' | translate" [value]="(stats()?.evaluated | localeNumber) || ('common.dash' | translate)" />
+  <os-mini-stat [label]="'crossref.found' | translate" [value]="(stats()?.found | localeNumber) || ('common.dash' | translate)" />
+  <os-mini-stat [label]="'crossref.otherAgency' | translate" [value]="(stats()?.otherAgency | localeNumber) || ('common.dash' | translate)" />
+  <os-mini-stat [label]="'crossref.notFound' | translate" [value]="(stats()?.notFound | localeNumber) || ('common.dash' | translate)" />
+  <os-mini-stat [label]="'crossref.differences' | translate" [value]="(stats()?.withDifferences | localeNumber) || ('common.dash' | translate)" />
+</section>
+<p class="crx-note">{{ 'crossref.operationalNote' | translate }}</p>
+
+<os-filter-bar>
+  <os-search-box
+    [control]="search"
+    [placeholder]="'crossref.searchPlaceholder' | translate"
+    [label]="'crossref.search' | translate"
+  />
+  <label class="filter-field">
+    <span>{{ 'crossref.result' | translate }}</span>
+    <select class="os-control" [formControl]="status">
+      <option value="">{{ 'crossref.allResults' | translate }}</option>
+      <option value="FOUND">{{ 'crossref.status.FOUND' | translate }}</option>
+      <option value="OTHER_AGENCY">{{ 'crossref.status.OTHER_AGENCY' | translate }}</option>
+      <option value="NOT_FOUND">{{ 'crossref.status.NOT_FOUND' | translate }}</option>
+      <option value="INVALID_DOI">{{ 'crossref.status.INVALID_DOI' | translate }}</option>
+      <option value="ERROR">{{ 'crossref.status.ERROR' | translate }}</option>
+    </select>
+  </label>
+  <label class="filter-field">
+    <span>{{ 'crossref.type' | translate }}</span>
+    <select class="os-control" [formControl]="workType">
+      <option value="">{{ 'crossref.allTypes' | translate }}</option>
+      @for (type of filters().workTypes; track type) {
+        <option [value]="type">{{ type }}</option>
+      }
+    </select>
+  </label>
+  <label class="filter-field">
+    <span>{{ 'crossref.orcid' | translate }}</span>
+    <select class="os-control" [formControl]="hasOrcid">
+      <option value="">{{ 'common.all' | translate }}</option>
+      <option value="yes">{{ 'crossref.yes' | translate }}</option>
+      <option value="no">{{ 'crossref.no' | translate }}</option>
+    </select>
+  </label>
+  <label class="filter-field">
+    <span>{{ 'crossref.affiliation' | translate }}</span>
+    <select class="os-control" [formControl]="hasAffiliation">
+      <option value="">{{ 'common.all' | translate }}</option>
+      <option value="yes">{{ 'crossref.yes' | translate }}</option>
+      <option value="no">{{ 'crossref.no' | translate }}</option>
+    </select>
+  </label>
+  <label class="filter-field">
+    <span>{{ 'crossref.ror' | translate }}</span>
+    <select class="os-control" [formControl]="hasRor">
+      <option value="">{{ 'common.all' | translate }}</option>
+      <option value="yes">{{ 'crossref.yes' | translate }}</option>
+      <option value="no">{{ 'crossref.no' | translate }}</option>
+    </select>
+  </label>
+  <label class="filter-field">
+    <span>{{ 'crossref.funding' | translate }}</span>
+    <select class="os-control" [formControl]="hasFunding">
+      <option value="">{{ 'common.all' | translate }}</option>
+      <option value="yes">{{ 'crossref.yes' | translate }}</option>
+      <option value="no">{{ 'crossref.no' | translate }}</option>
+    </select>
+  </label>
+  <label class="filter-field">
+    <span>{{ 'crossref.license' | translate }}</span>
+    <select class="os-control" [formControl]="hasLicense">
+      <option value="">{{ 'common.all' | translate }}</option>
+      <option value="yes">{{ 'crossref.yes' | translate }}</option>
+      <option value="no">{{ 'crossref.no' | translate }}</option>
+    </select>
+  </label>
+  <label class="filter-field">
+    <span>{{ 'crossref.update' | translate }}</span>
+    <select class="os-control" [formControl]="hasUpdate">
+      <option value="">{{ 'common.all' | translate }}</option>
+      <option value="yes">{{ 'crossref.yes' | translate }}</option>
+      <option value="no">{{ 'crossref.no' | translate }}</option>
+    </select>
+  </label>
+  <label class="filter-field">
+    <span>{{ 'crossref.comparison' | translate }}</span>
+    <select class="os-control" [formControl]="comparison">
+      <option value="">{{ 'common.all' | translate }}</option>
+      <option value="MATCH">{{ 'crossref.comparisonMatch' | translate }}</option>
+      <option value="DIFFERENCE">{{ 'crossref.comparisonDiff' | translate }}</option>
+      <option value="NOT_APPLICABLE">{{ 'crossref.comparisonNa' | translate }}</option>
+    </select>
+  </label>
+</os-filter-bar>
+
+@if (result(); as vm) {
+  @if (vm.status === 'loading') {
+    <os-loading-state />
+  } @else if (vm.status === 'error') {
+    <os-error-state [message]="'crossref.loadError' | translate" />
+  } @else if (emptyKind() === 'disabled') {
+    <os-empty-state [title]="'crossref.disabledTitle' | translate" [message]="'crossref.disabledMessage' | translate" />
+  } @else if (emptyKind() === 'never') {
+    <os-empty-state [title]="'crossref.neverTitle' | translate" [message]="'crossref.neverMessage' | translate" />
+  } @else if (emptyKind() === 'filtered') {
+    <os-empty-state [title]="'crossref.filteredTitle' | translate" [message]="'crossref.filteredMessage' | translate" />
+  } @else if (emptyKind() === 'none') {
+    <os-empty-state [title]="'crossref.emptyTitle' | translate" [message]="'crossref.emptyMessage' | translate" />
+  } @else {
+    <os-data-table-shell>
+      <table>
+        <thead>
+          <tr>
+            <th><os-sortable-header field="doi" [label]="'crossref.doi' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" /></th>
+            <th><os-sortable-header field="pureTitle" [label]="'crossref.publication' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" /></th>
+            <th>{{ 'common.pureId' | translate }}</th>
+            <th><os-sortable-header field="status" [label]="'crossref.result' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" /></th>
+            <th><os-sortable-header field="title" [label]="'crossref.crossrefTitle' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" /></th>
+            <th><os-sortable-header field="type" [label]="'crossref.type' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" /></th>
+            <th><os-sortable-header field="container" [label]="'crossref.container' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" /></th>
+            <th><os-sortable-header field="publishedDate" [label]="'crossref.date' | translate" [activeField]="sortField()" [direction]="sortDirection()" (sortChange)="onSort($event)" /></th>
+            <th>{{ 'crossref.metadata' | translate }}</th>
+            <th>{{ 'crossref.differences' | translate }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of vm.data.items; track row.id) {
+            <tr (click)="openDetail(row)">
+              <td>
+                @if (doiHref(row.normalizedDoi || row.doi); as href) {
+                  <a [href]="href" target="_blank" rel="noopener noreferrer" (click)="$event.stopPropagation()">{{ row.normalizedDoi || row.doi }}</a>
+                } @else {
+                  {{ 'common.dash' | translate }}
+                }
+              </td>
+              <td>
+                @if (row.researchOutputCount > 1) {
+                  <button type="button" class="crx-multi" (click)="openDetail(row); $event.stopPropagation()">
+                    {{ 'crossref.multipleOutputs' | translate: { count: row.researchOutputCount } }}
+                  </button>
+                } @else if (row.researchOutputs[0]; as output) {
+                  <a [routerLink]="['/research-output', output.researchOutputId]" (click)="$event.stopPropagation()">
+                    {{ output.title || row.publicationTitle || ('common.dash' | translate) }}
+                  </a>
+                } @else {
+                  {{ row.publicationTitle || ('common.dash' | translate) }}
+                }
+              </td>
+              <td>
+                @if (row.researchOutputs[0]?.pureId; as pureId) {
+                  {{ pureId }}
+                } @else {
+                  {{ 'common.dash' | translate }}
+                }
+              </td>
+              <td>
+                <span [class.crx-retraction]="row.hasRetraction" [class.crx-update]="row.hasUpdate && !row.hasRetraction">
+                  {{ statusKey(row.status) | translate }}
+                </span>
+              </td>
+              <td>{{ row.title || ('common.dash' | translate) }}</td>
+              <td>{{ row.workType || ('common.dash' | translate) }}</td>
+              <td>{{ row.containerTitle || ('common.dash' | translate) }}</td>
+              <td>{{ row.publishedDate || ('common.dash' | translate) }}</td>
+              <td>
+                @if (row.hasOrcid) { ORCID }
+                @if (row.hasAffiliation) { · AFF }
+                @if (row.hasRor) { · ROR }
+                @if (row.hasFunding) { · FND }
+                @if (row.hasLicense) { · LIC }
+              </td>
+              <td>{{ row.comparisonStatus === 'DIFFERENCE' ? ('crossref.comparisonDiff' | translate) : ('common.dash' | translate) }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </os-data-table-shell>
+    <os-pagination
+      [page]="vm.data.page"
+      [pageSize]="vm.data.pageSize"
+      [total]="vm.data.total"
+      (pageChange)="goToPage($event)"
+    />
+  }
+}
+
+@if (detail(); as current) {
+  <div class="upw-drawer" role="dialog" aria-modal="true">
+    <button type="button" class="upw-drawer__backdrop" (click)="closeDetail()" tabindex="-1" aria-hidden="true"></button>
+    <aside class="upw-drawer__panel">
+      <header class="upw-drawer__header">
+        <h2>{{ 'crossref.detailTitle' | translate }}</h2>
+        <button type="button" class="page-action page-action--secondary upw-drawer__close-action" (click)="closeDetail()" [attr.aria-label]="'common.close' | translate">{{ 'common.close' | translate }}</button>
+      </header>
+      <p>
+        <strong>{{ statusKey(current.status) | translate }}</strong>
+        @if (current.registrationAgency) {
+          · {{ current.registrationAgency }}
+        }
+      </p>
+      @if (current.hasRetraction) {
+        <p class="crx-retraction">{{ 'crossref.retractionBadge' | translate }}</p>
+      } @else if (current.hasUpdate) {
+        <p class="crx-update">{{ 'crossref.updateBadge' | translate }}</p>
+      }
+
+      <h3>{{ 'crossref.section.identity' | translate }}</h3>
+      <p>{{ 'crossref.source.pure' | translate }}: {{ current.publicationTitle || ('common.dash' | translate) }}</p>
+      <p>{{ 'crossref.source.crossref' | translate }}: {{ current.title || ('common.dash' | translate) }}</p>
+      <p>
+        DOI
+        @if (doiHref(current.normalizedDoi || current.doi); as href) {
+          <a [href]="href" target="_blank" rel="noopener noreferrer">{{ current.normalizedDoi || current.doi }}</a>
+        }
+      </p>
+
+      <h3>{{ 'crossref.section.outputs' | translate }}</h3>
+      <ul>
+        @for (output of current.researchOutputs; track output.researchOutputId) {
+          <li>
+            <a [routerLink]="['/research-output', output.researchOutputId]">{{ output.title || output.uuid }}</a>
+            @if (output.pureId) { · {{ output.pureId }} }
+          </li>
+        }
+      </ul>
+
+      <h3>{{ 'crossref.section.publication' | translate }}</h3>
+      <p>{{ current.containerTitle || ('common.dash' | translate) }} · {{ current.publisher || ('common.dash' | translate) }}</p>
+      <p>{{ current.publishedDate || ('common.dash' | translate) }} · {{ current.workType || ('common.dash' | translate) }}</p>
+
+      <h3>{{ 'crossref.section.authors' | translate }}</h3>
+      @if (current.authors.length === 0) {
+        <p>{{ 'common.dash' | translate }}</p>
+      } @else {
+        <ul>
+          @for (author of current.authors; track author.sequenceNo) {
+            <li>
+              {{ author.fullName || ('common.dash' | translate) }}
+              @if (author.orcid) {
+                · {{ 'crossref.orcidEvidence' | translate }} {{ author.orcid }}
+              }
+            </li>
+          }
+        </ul>
+      }
+
+      <h3>{{ 'crossref.section.affiliations' | translate }}</h3>
+      <ul>
+        @for (author of current.authors; track author.sequenceNo + '-aff') {
+          @for (aff of author.affiliations; track $index) {
+            <li>{{ aff.name || ('common.dash' | translate) }} @if (aff.ror) { · ROR {{ aff.ror }} }</li>
+          }
+        }
+      </ul>
+
+      <h3>{{ 'crossref.section.issn' | translate }}</h3>
+      <ul>
+        @for (issn of current.issns; track issn.issn + '-' + issn.type) {
+          <li>{{ issn.issn }} @if (issn.type) { ({{ issn.type }}) }</li>
+        }
+      </ul>
+
+      <h3>{{ 'crossref.section.funding' | translate }}</h3>
+      @if (current.funders.length === 0) {
+        <p>{{ 'common.dash' | translate }}</p>
+      } @else {
+        <ul>
+          @for (funder of current.funders; track $index) {
+            <li>{{ funder.name || ('common.dash' | translate) }} @if (funder.award) { · {{ funder.award }} }</li>
+          }
+        </ul>
+      }
+
+      <h3>{{ 'crossref.section.license' | translate }}</h3>
+      @if (current.licenses.length === 0) {
+        <p>{{ 'common.dash' | translate }}</p>
+      } @else {
+        <ul>
+          @for (license of current.licenses; track $index) {
+            <li>{{ license.url }} · {{ license.contentVersion || ('common.dash' | translate) }}</li>
+          }
+        </ul>
+      }
+
+      <h3>{{ 'crossref.section.relations' | translate }}</h3>
+      @if (current.relations.length === 0) {
+        <p>{{ 'common.dash' | translate }}</p>
+      } @else {
+        <ul>
+          @for (relation of current.relations; track $index) {
+            <li>{{ relation.type }} · {{ relation.doi || relation.id }}</li>
+          }
+        </ul>
+      }
+
+      <h3>{{ 'crossref.section.raw' | translate }}</h3>
+      @if (current.rawJson) {
+        <pre class="crx-raw">{{ current.rawJson }}</pre>
+      } @else {
+        <p>{{ 'common.dash' | translate }}</p>
+      }
+    </aside>
+  </div>
+}
