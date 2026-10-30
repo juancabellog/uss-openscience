@@ -1,9 +1,11 @@
 package cl.uss.ca;
 
+import cl.uss.ca.ethics.auth.AuthorizationService;
 import cl.uss.ca.events.EventPublicLinks;
 import cl.uss.ca.exception.ErrorLog;
 import cl.uss.ca.service.EventPublicUrlSettings;
 import cl.uss.ca.service.PublicAppUrl;
+import cl.uss.ca.ethics.auth.EthicsAdminBootstrapService;
 import cl.uss.ca.service.UserAdminService;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
@@ -31,6 +33,9 @@ public class StartupDiagnostics {
     UserAdminService userAdminService;
 
     @Inject
+    EthicsAdminBootstrapService ethicsAdminBootstrap;
+
+    @Inject
     @ConfigProperty(name = "openscience.frontend.origin", defaultValue = "http://localhost:4200")
     String frontendOrigin;
 
@@ -40,6 +45,9 @@ public class StartupDiagnostics {
 
     @Inject
     EventPublicUrlSettings eventsPublicUrl;
+
+    @Inject
+    AuthorizationService ethicsAuthorization;
 
     @PostConstruct
     void logStartup() {
@@ -54,11 +62,17 @@ public class StartupDiagnostics {
         LOG.info("API local: http://<hydra>:9080/api/v1/dashboard");
         LOG.info("Si al abrir el Dashboard NO aparece REQUEST GET /api/v1/dashboard, el browser no pega a este Java (sigue en :81/api).");
         probeJdbc();
+        LOG.info("Ethics authorization ready: " + (ethicsAuthorization != null));
         LOG.info("Auth bootstrap begin");
         try {
             userAdminService.bootstrapIfNeeded();
         } catch (Exception ex) {
             LOG.log(Level.WARNING, "Auth bootstrap skipped: " + ex.getMessage(), ex);
+        }
+        try {
+            ethicsAdminBootstrap.ensureConfigured();
+        } catch (Exception ex) {
+            LOG.log(Level.WARNING, "Ethics admin bootstrap skipped: " + ex.getMessage(), ex);
         }
     }
 

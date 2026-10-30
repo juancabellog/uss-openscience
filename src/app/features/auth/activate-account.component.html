@@ -26,7 +26,20 @@
       @if (preview().maskedEmail) {
         <p>{{ 'auth.account' | translate }}: {{ preview().maskedEmail }}</p>
       }
+      @if (preview().profileRequired) {
+        <p>{{ 'auth.activateProfileHelp' | translate }}</p>
+      } @else if (preview().givenName || preview().familyName) {
+        <p>{{ 'auth.activateKnownIdentity' | translate }}</p>
+        <p>{{ preview().givenName }} {{ preview().familyName }}</p>
+      }
       <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+        @if (preview().profileRequired) {
+          <label class="filter-field"><span>{{ 'auth.givenName' | translate }} *</span><input class="os-control" formControlName="givenName" autocomplete="given-name" /></label>
+          <label class="filter-field"><span>{{ 'auth.familyName' | translate }} *</span><input class="os-control" formControlName="familyName" autocomplete="family-name" /></label>
+          <label class="filter-field"><span>{{ 'auth.campus' | translate }} *</span><select class="os-control" formControlName="campus"><option value=""></option>@for (item of campuses; track item) { <option [value]="item">{{ item }}</option> }</select></label>
+          <label class="filter-field"><span>{{ 'auth.faculty' | translate }} *</span><select class="os-control" formControlName="faculty"><option value=""></option>@for (item of faculties; track item) { <option [value]="item">{{ item }}</option> }</select></label>
+          <label class="filter-field"><span>{{ 'auth.position' | translate }} *</span><select class="os-control" formControlName="positionTitle"><option value=""></option>@for (item of positions; track item) { <option [value]="item">{{ item }}</option> }</select></label>
+        }
         <label class="filter-field">
           <span>{{ 'auth.newPassword' | translate }}</span>
           <span class="auth-password">

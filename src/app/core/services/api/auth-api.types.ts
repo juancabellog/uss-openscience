@@ -38,6 +38,10 @@ export interface ActivationPreviewDto {
   status?: 'VALID' | 'INVALID' | 'EXPIRED' | 'USED' | 'ALREADY_ACTIVE' | string;
   maskedEmail?: string | null;
   purpose?: string;
+  profileRequired?: boolean;
+  givenName?: string | null;
+  familyName?: string | null;
+  preferredLanguage?: string | null;
 }
 
 export interface AuthPermissionDto extends AuthPermission {}

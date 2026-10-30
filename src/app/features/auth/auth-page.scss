@@ -81,6 +81,11 @@
   color: var(--os-text-primary);
 }
 
+.auth-password__toggle:focus-visible {
+  outline: 2px solid var(--os-secondary);
+  outline-offset: 1px;
+}
+
 .auth-forgot {
   justify-self: end;
   font-size: var(--os-fs-sm);

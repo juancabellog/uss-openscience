@@ -1,0 +1,320 @@
+<section class="users" [attr.aria-busy]="loading()">
+  <header class="users-head">
+    <h1>{{ 'users.title' | translate }}</h1>
+    @if (mode() === 'list') {
+      <button type="button" class="btn" (click)="startCreate()">{{ 'users.create' | translate }}</button>
+    } @else {
+      <button type="button" class="ghost" (click)="back()">{{ 'users.back' | translate }}</button>
+    }
+  </header>
+
+  @if (message()) {
+    <p class="hint" role="status">{{ message()! | translate }}</p>
+  }
+
+  @if (mode() === 'list') {
+    <div class="filters">
+      <label class="filter-field search-field">
+        <span>{{ 'users.search' | translate }}</span>
+        <span class="search-box">
+          <input
+            type="search"
+            [ngModel]="searchInput()"
+            (ngModelChange)="onSearch($event)"
+            [attr.placeholder]="'users.searchPlaceholder' | translate"
+            [attr.aria-label]="'users.searchPlaceholder' | translate"
+          />
+          @if (searchInput()) {
+            <button type="button" class="search-clear" (click)="clearSearch()" [attr.aria-label]="'users.clearSearch' | translate">×</button>
+          }
+        </span>
+      </label>
+      <label class="filter-field">
+        <span>{{ 'users.type' | translate }}</span>
+        <select [ngModel]="kind()" (ngModelChange)="setKind($event)">
+          <option value="ALL">{{ 'users.typeAll' | translate }}</option>
+          <option value="INSTITUTIONAL">{{ 'users.institutional' | translate }}</option>
+          <option value="EXTERNAL">{{ 'users.external' | translate }}</option>
+        </select>
+      </label>
+      <label class="filter-field">
+        <span>{{ 'users.status' | translate }}</span>
+        <select [ngModel]="status()" (ngModelChange)="setStatus($event)">
+          <option value="ALL">{{ 'users.statusAll' | translate }}</option>
+          <option value="ACTIVE">{{ 'users.active' | translate }}</option>
+          <option value="INACTIVE">{{ 'users.inactive' | translate }}</option>
+        </select>
+      </label>
+      <label class="filter-field">
+        <span>{{ 'users.ethicsAccess' | translate }}</span>
+        <select [ngModel]="access()" (ngModelChange)="setAccess($event)">
+          <option value="ALL">{{ 'users.typeAll' | translate }}</option>
+          <option value="YES">{{ 'users.ethicsYes' | translate }}</option>
+          <option value="NO">{{ 'users.ethicsNo' | translate }}</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="results-bar">
+      <p class="results-count">
+        @if (!loading() && !loadError()) {
+          {{ resultCountLabel() }}
+        }
+      </p>
+      @if (filtersActive()) {
+        <button type="button" class="filter-reset" (click)="clearFilters()">{{ 'users.clearFilters' | translate }}</button>
+      }
+    </div>
+
+    <div class="results">
+    @if (loading()) {
+      <p class="hint" role="status">{{ 'users.loading' | translate }}</p>
+    } @else if (loadError()) {
+      <p class="hint" role="alert">{{ loadError()! | translate }}</p>
+    } @else if (!rows().length) {
+      <p class="hint">{{ 'users.emptyCriteria' | translate }}</p>
+    } @else {
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">{{ 'users.name' | translate }}</th>
+              <th scope="col">{{ 'users.email' | translate }}</th>
+              <th scope="col">{{ 'users.type' | translate }}</th>
+              <th scope="col">{{ 'users.origin' | translate }}</th>
+              <th scope="col">{{ 'users.ethicsAccess' | translate }}</th>
+              <th scope="col">{{ 'users.roles' | translate }}</th>
+              <th scope="col">{{ 'users.status' | translate }}</th>
+              <th scope="col">{{ 'users.actions' | translate }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (user of rows(); track user.id) {
+              <tr>
+                <td>{{ user.displayName }}</td>
+                <td>{{ user.email }}</td>
+                <td><eth-status-chip [tone]="user.personKind === 'EXTERNAL' ? 'warning' : 'info'" [labelKey]="user.personKind === 'EXTERNAL' ? 'users.external' : 'users.institutional'" /></td>
+                <td><eth-status-chip [tone]="user.dataSource === 'PURE' ? 'info' : 'muted'" [labelKey]="user.dataSource === 'PURE' ? 'users.pure' : 'users.local'" /></td>
+                <td>{{ (user.ethicsAccess ? 'users.ethicsYes' : 'users.ethicsNo') | translate }}</td>
+                <td>
+                  <span class="role-list">
+                    @for (role of user.roles; track role.assignmentId ?? role.id + (role.scopeId ?? '')) {
+                      <span class="role-chip">{{ role.idLabel | translate }}@if (role.scopeLabel) { · {{ role.scopeLabel }} }</span>
+                    }
+                  </span>
+                </td>
+                <td><eth-status-chip [tone]="user.accountStatus === 'ACTIVE' ? 'success' : 'muted'" [labelKey]="user.accountStatus === 'ACTIVE' ? 'users.active' : 'users.inactive'" /></td>
+                <td>
+                  <div class="row-actions">
+                    @if (!user.ethicsAccess) {
+                      <button type="button" class="ghost" (click)="enableFromList(user)">{{ 'users.enableAccess' | translate }}</button>
+                    }
+                    <button type="button" class="ghost" (click)="openDetail(user.id)">{{ 'users.detail' | translate }}</button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      @if (totalPages() > 1) {
+        <div class="pager">
+          <button type="button" class="ghost" (click)="previous()" [disabled]="page() <= 1">{{ 'users.previous' | translate }}</button>
+          <span>{{ 'users.pageStatus' | translate: { page: page(), pages: totalPages() } }}</span>
+          <button type="button" class="ghost" (click)="next()" [disabled]="page() >= totalPages()">{{ 'users.next' | translate }}</button>
+        </div>
+      }
+    }
+    </div>
+  }
+
+  @if (mode() === 'create') {
+    <form class="panel" (submit)="$event.preventDefault()">
+      <fieldset class="choices">
+        <legend>{{ 'users.type' | translate }}</legend>
+        <label><input type="radio" name="accountType" value="INSTITUTIONAL" [ngModel]="accountType()" (ngModelChange)="accountType.set($event)" /> {{ 'users.institutional' | translate }}</label>
+        <label><input type="radio" name="accountType" value="EXTERNAL" [ngModel]="accountType()" (ngModelChange)="accountType.set($event)" /> {{ 'users.externalReviewer' | translate }}</label>
+      </fieldset>
+
+      @if (accountType() === 'INSTITUTIONAL') {
+        <label class="field">
+          <span>{{ 'users.institutionalEmail' | translate }} *</span>
+          <input type="email" [ngModel]="email()" (ngModelChange)="email.set($event); lookedUp.set(null); resolution.set(null)" name="email" required autocomplete="email" />
+        </label>
+        <button type="button" class="btn" (click)="searchInstitutional()" [disabled]="resolving()">{{ 'users.continue' | translate }}</button>
+        @if (resolving()) {
+          <p class="hint" role="status">{{ 'users.searchingUser' | translate }}</p>
+        }
+        @if (resolution(); as found) {
+          @if (found.kind === 'EXISTING_USER') {
+            <h2>{{ 'users.userFound' | translate }}</h2>
+            <p class="hint">{{ 'users.openScienceExists' | translate }}</p>
+            <p>{{ 'users.name' | translate }}: {{ found.user?.displayName || ((found.givenName || '') + ' ' + (found.familyName || '')) }}</p>
+            <p>{{ 'users.email' | translate }}: {{ found.email }}</p>
+            <p>{{ 'users.status' | translate }}: {{ accountStatusKey(found.accountStatus) | translate }}</p>
+            <p>{{ 'users.ethicsAccess' | translate }}: {{ (found.ethicsAccess ? 'users.ethicsYes' : 'users.ethicsNo') | translate }}</p>
+            @if (found.accountStatus === 'PENDING_ACTIVATION') {
+              <p class="hint">{{ 'users.pendingInviteHint' | translate }}</p>
+              <button type="button" class="btn" (click)="sendInvitation()">{{ 'users.resendInvitation' | translate }}</button>
+            } @else if (found.ethicsAccess) {
+              <p class="hint">{{ 'users.alreadyEthics' | translate }}</p>
+            } @else {
+              <button type="button" class="btn" (click)="createInstitutional()">{{ 'users.enableEthics' | translate }}</button>
+            }
+          } @else if (found.kind === 'PURE_PERSON') {
+            <h2>{{ 'users.pureFound' | translate }}</h2>
+            <p>{{ 'users.givenName' | translate }}: {{ found.givenName }}</p>
+            <p>{{ 'users.familyName' | translate }}: {{ found.familyName }}</p>
+            <p>{{ 'users.email' | translate }}: {{ found.email }}</p>
+            @if (found.position) {
+              <p>{{ 'users.position' | translate }}: {{ found.position }}</p>
+            }
+            <p class="hint">{{ 'users.pureReadonly' | translate }}</p>
+            <p class="hint">{{ 'users.pureInviteHint' | translate }}</p>
+            <button type="button" class="btn" (click)="sendInvitation()">{{ (found.invitation === 'PENDING' || found.invitation === 'EXPIRED' ? 'users.resendInvitation' : 'users.sendInvitation') | translate }}</button>
+          } @else {
+            <p>{{ 'users.notFoundInstitutional' | translate }}</p>
+            <p class="hint">{{ 'users.registerInviteHint' | translate }}</p>
+            <button type="button" class="btn" (click)="sendInvitation()">{{ (found.invitation === 'PENDING' || found.invitation === 'EXPIRED' ? 'users.resendInvitation' : 'users.sendRegistrationInvite') | translate }}</button>
+          }
+        }
+      } @else {
+        <label class="field"><span>{{ 'users.givenName' | translate }}</span><input [ngModel]="givenName()" (ngModelChange)="givenName.set($event)" name="given" /></label>
+        <label class="field"><span>{{ 'users.familyName' | translate }}</span><input [ngModel]="familyName()" (ngModelChange)="familyName.set($event)" name="family" /></label>
+        <label class="field"><span>{{ 'users.email' | translate }}</span><input type="email" [ngModel]="email()" (ngModelChange)="email.set($event)" name="email" required /></label>
+        <label class="field"><span>{{ 'users.institution' | translate }}</span><input [ngModel]="institution()" (ngModelChange)="institution.set($event)" name="institution" /></label>
+        <p class="hint">{{ 'users.externalByAdmin' | translate }}</p>
+        <button type="button" class="btn" (click)="createExternal()">{{ 'users.enableEthics' | translate }}</button>
+      }
+    </form>
+  }
+
+  @if (mode() === 'detail') {
+    @if (loading()) {
+      <p class="hint" role="status">{{ 'users.loading' | translate }}</p>
+    } @else if (loadError()) {
+      <p class="hint" role="alert">{{ loadError()! | translate }}</p>
+    } @else if (selected(); as user) {
+      <article class="panel">
+        <h2>{{ 'users.identification' | translate }}</h2>
+        <p>
+          <eth-status-chip [tone]="user.personKind === 'EXTERNAL' ? 'warning' : 'info'" [labelKey]="user.personKind === 'EXTERNAL' ? 'users.external' : 'users.institutional'" />
+          <eth-status-chip [tone]="user.dataSource === 'PURE' ? 'info' : 'muted'" [labelKey]="user.dataSource === 'PURE' ? 'users.pure' : 'users.local'" />
+          <eth-status-chip [tone]="user.accountStatus === 'ACTIVE' ? 'success' : 'muted'" [labelKey]="user.accountStatus === 'ACTIVE' ? 'users.active' : 'users.inactive'" />
+        </p>
+        @if (user.dataSource === 'PURE') {
+          <p>{{ user.displayName }}</p>
+          <p>{{ user.email }}</p>
+          <p class="hint">{{ 'users.pureReadonly' | translate }}</p>
+          <p class="hint">{{ 'users.pureLocked' | translate }}</p>
+        } @else if (user.personKind === 'EXTERNAL') {
+          <label class="field"><span>{{ 'users.givenName' | translate }}</span><input [ngModel]="givenName()" (ngModelChange)="givenName.set($event)" name="detail-given" /></label>
+          <label class="field"><span>{{ 'users.familyName' | translate }}</span><input [ngModel]="familyName()" (ngModelChange)="familyName.set($event)" name="detail-family" /></label>
+          <p>{{ user.email }}</p>
+          <button type="button" class="btn" (click)="saveExternal()">{{ 'users.save' | translate }}</button>
+        } @else {
+          <p>{{ user.displayName }}</p>
+          <p>{{ user.email }}</p>
+          <p class="hint">{{ 'users.localInstitutional' | translate }}</p>
+        }
+
+        <h2>{{ 'users.applications' | translate }}</h2>
+        <p>{{ 'users.applicationsNote' | translate }}</p>
+        <div class="access-section">
+          <p class="access-status">{{ 'users.ethicsAccess' | translate }}: {{ (user.ethicsAccess ? 'users.ethicsYes' : 'users.ethicsNo') | translate }}</p>
+          @if (!user.ethicsAccess) {
+            <button type="button" class="btn" (click)="enableSelected()">{{ 'users.enableEthics' | translate }}</button>
+          } @else {
+            @if (disableNeedsConfirm()) {
+              <p class="active-review-warning" id="active-review-warning">{{ 'users.activeReviewWarning' | translate }}</p>
+              <label class="confirm-disable-row">
+                <input
+                  type="checkbox"
+                  [ngModel]="confirmDisable()"
+                  (ngModelChange)="confirmDisable.set($event)"
+                  aria-describedby="active-review-warning"
+                />
+                <span>{{ 'users.confirmDisable' | translate }}</span>
+              </label>
+            }
+            <button
+              type="button"
+              class="ghost disable-access-action"
+              (click)="disable()"
+              [disabled]="disableNeedsConfirm() && !confirmDisable()"
+            >{{ 'users.disableEthics' | translate }}</button>
+          }
+        </div>
+
+        <h2>{{ 'users.ethicsRoles' | translate }}</h2>
+        <p class="role-list">
+          @for (role of structuralRoles(); track role.assignmentId) {
+            <span class="role-chip">
+              <span>{{ role.idLabel | translate }}@if (role.scopeLabel) { · {{ role.scopeLabel }} }</span>
+              @if (canManage() && role.removable && role.assignmentId) {
+                <button
+                  type="button"
+                  class="role-remove"
+                  (click)="askRemove(role)"
+                  [attr.aria-label]="'users.removeRoleNamed' | translate: { role: chipName(role) }"
+                  [attr.title]="'users.removeRole' | translate"
+                >×</button>
+              }
+            </span>
+          }
+        </p>
+        @if (contextualRoles().length) {
+          <h2>{{ 'users.contextualRoles' | translate }}</h2>
+          <p class="hint">{{ 'users.contextualHint' | translate }}</p>
+          <p class="role-list">
+            @for (role of contextualRoles(); track role.assignmentId) {
+              <span class="role-chip">
+                <span>{{ role.idLabel | translate }}@if (role.scopeLabel) { · {{ role.scopeLabel }} }</span>
+              </span>
+            }
+          </p>
+        }
+        @if (user.personKind === 'INSTITUTIONAL') {
+          @if (grantChoices().length) {
+            <label class="field">
+              <span>{{ 'users.roles' | translate }}</span>
+              <select [ngModel]="structuralRole()" (ngModelChange)="structuralRole.set($event)">
+                <option value="">{{ 'common.select' | translate }}</option>
+                @for (choice of grantChoices(); track choice.id) {
+                  <option [value]="choice.id">{{ choice.label | translate }}</option>
+                }
+              </select>
+            </label>
+            <button type="button" class="ghost" (click)="grantRole()">{{ 'users.grantRole' | translate }}</button>
+          } @else {
+            <p class="hint">{{ 'users.allRolesAssigned' | translate }}</p>
+          }
+          @if (roleFeedback(); as feedback) {
+            <p class="hint" role="status">{{ feedback | translate }}</p>
+          }
+        } @else {
+          <p class="hint">{{ 'users.externalRoleDenied' | translate }}</p>
+        }
+      </article>
+    }
+  }
+</section>
+
+@if (pendingRemove(); as role) {
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="remove-role-title" [attr.aria-busy]="revoking()" (keydown.escape)="cancelRemove()">
+    <div class="modal-card">
+      <h2 id="remove-role-title">{{ 'users.removeConfirm' | translate: { role: chipName(role), name: selected()?.displayName ?? '' } }}</h2>
+      <p>{{ 'users.removeConfirmBody' | translate }}</p>
+      @if (role.id === 'ADMINISTRATOR') {
+        <p>{{ 'users.removeAdminWarning' | translate }}</p>
+      }
+      @if (selfRevoke(role)) {
+        <p>{{ 'users.removeSelfAdmin' | translate }}</p>
+      }
+      <div class="choices">
+        <button type="button" class="ghost" (click)="cancelRemove()" [disabled]="revoking()" autofocus>{{ 'common.cancel' | translate }}</button>
+        <button type="button" class="btn" (click)="confirmRemove()" [disabled]="revoking()">{{ (revoking() ? 'users.removingRole' : 'users.removeRole') | translate }}</button>
+      </div>
+    </div>
+  </div>
+}

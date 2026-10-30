@@ -1,4 +1,4 @@
-import { ClassificationCode } from '../core/models/ethics.models';
+import type { ClassificationCode } from '../core/models/ethics.models';
 import { NEW_PROJECT_FORM } from '../core/forms/new-project-form.definition';
 import { FormOption, optionsOf } from '../core/forms/form.types';
 

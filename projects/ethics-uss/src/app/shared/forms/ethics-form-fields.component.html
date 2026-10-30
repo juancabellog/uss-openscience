@@ -1,33 +1,43 @@
 @if (mode() === 'edit') {
   @for (question of questions(); track question.id) {
-    @if (question.type === 'text' || question.type === 'email' || question.type === 'date') {
+    @if (visible(question) && (question.type === 'text' || question.type === 'email' || question.type === 'date')) {
       <label class="field">
         <span class="label-caption">
           <span class="q-num">{{ question.number }}</span>
           {{ labelOf(question) }}
           @if (question.required) { <span class="req">*</span> }
         </span>
-        <input [type]="question.type === 'text' ? 'text' : question.type" [formControl]="$any(form()?.get(question.fieldKey))" />
+        <input
+          [type]="question.type === 'text' ? 'text' : question.type"
+          [formControl]="$any(form()?.get(question.fieldKey))"
+          [readonly]="locked(question)"
+          [attr.aria-readonly]="locked(question) ? true : null"
+          [attr.placeholder]="locked(question) && !controlValue(question).trim() ? ('forms.pureUnavailable' | translate) : null"
+        />
         @if (helpOf(question)) { <span class="hint">{{ helpOf(question) }}</span> }
       </label>
     }
-    @if (question.type === 'select') {
+    @if (visible(question) && question.type === 'select') {
       <label class="field">
         <span class="label-caption">
           <span class="q-num">{{ question.number }}</span>
           {{ labelOf(question) }}
           @if (question.required) { <span class="req">*</span> }
         </span>
-        <select [formControl]="$any(form()?.get(question.fieldKey))">
-          <option value="">{{ 'common.select' | translate }}</option>
-          @for (option of question.options; track option.id) {
-            <option [value]="option.id">{{ optionOf(option) }}</option>
-          }
-        </select>
+        @if (locked(question)) {
+          <p class="readonly-value">{{ lockedLabel(question) }}</p>
+        } @else {
+          <select [formControl]="$any(form()?.get(question.fieldKey))">
+            <option value="">{{ 'common.select' | translate }}</option>
+            @for (option of question.options; track option.id) {
+              <option [value]="option.id">{{ optionOf(option) }}</option>
+            }
+          </select>
+        }
         @if (helpOf(question)) { <span class="hint">{{ helpOf(question) }}</span> }
       </label>
     }
-    @if (question.type === 'multiselect') {
+    @if (visible(question) && question.type === 'multiselect') {
       <fieldset class="choice-set">
         <legend>
           <span class="q-num">{{ question.number }}</span>
@@ -48,17 +58,37 @@
         }
       </fieldset>
     }
-    @if (question.type === 'declaration') {
-      <label class="check-card">
-        <input type="checkbox" [formControl]="$any(form()?.get(question.fieldKey))" />
-        <span>
-          <span class="q-num">{{ question.number }}</span>
-          {{ labelOf(question) }}
-          @if (question.required) { <span class="req">*</span> }
-        </span>
-      </label>
+    @if (visible(question) && question.type === 'declaration') {
+      <div class="declaration-block">
+        <input [id]="question.id" type="checkbox" [formControl]="$any(form()?.get(question.fieldKey))" />
+        <div class="declaration-copy">
+          <label class="declaration-text" [attr.for]="question.id">
+            <span class="q-num">{{ question.number }}</span>
+            {{ labelOf(question) }}
+            @if (question.required) { <span class="req">*</span> }
+          </label>
+          @if (question.linkHref) {
+            <a
+              class="declaration-link"
+              [href]="question.linkHref"
+              target="_blank"
+              rel="noopener noreferrer"
+              [attr.title]="'forms.singaporePdfTooltip' | translate"
+            >
+              <eth-icon name="file" />
+              <span class="declaration-link-label">
+                {{ linkLabel(question) }}
+                <span class="declaration-trailing">
+                  <span class="declaration-format">{{ 'forms.singaporePdfFormat' | translate }}</span>
+                  <eth-icon class="declaration-external" name="external" />
+                </span>
+              </span>
+            </a>
+          }
+        </div>
+      </div>
     }
-    @if (question.type === 'file' || question.type === 'file-list') {
+    @if (visible(question) && (question.type === 'file' || question.type === 'file-list')) {
       <div class="field">
         <p class="label-caption">
           <span class="q-num">{{ question.number }}</span>
@@ -78,6 +108,7 @@
   }
 } @else {
   @for (question of questions(); track question.id) {
+    @if (visible(question)) {
     <article class="question" [attr.aria-labelledby]="question.id">
       <p class="q-num">{{ question.number }}</p>
       <div>
@@ -95,9 +126,6 @@
                   </span>
                   <span>
                     <span class="choice-label">{{ optionOf(option) }}</span>
-                    @if (option.classification) {
-                      <span class="choice-hint">{{ labels[option.classification] | translate }}</span>
-                    }
                   </span>
                 </li>
               }
@@ -139,8 +167,12 @@
           }
         } @else {
           <p class="value" [class.empty]="empty(question) || notApplicable(question)">{{ textValue(question) }}</p>
+          @if (question.linkHref) {
+            <a [href]="question.linkHref" target="_blank" rel="noopener noreferrer">{{ linkLabel(question) }}</a>
+          }
         }
       </div>
     </article>
+    }
   }
 }

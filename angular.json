@@ -183,6 +183,12 @@
           },
           "configurations": {
             "production": {
+              "fileReplacements": [
+                {
+                  "replace": "projects/ethics-uss/src/environments/environment.ts",
+                  "with": "projects/ethics-uss/src/environments/environment.production.ts"
+                }
+              ],
               "budgets": [
                 {
                   "type": "initial",
@@ -209,7 +215,8 @@
           "builder": "@angular/build:dev-server",
           "options": {
             "port": 4400,
-            "host": "0.0.0.0"
+            "host": "0.0.0.0",
+            "proxyConfig": "projects/ethics-uss/proxy.conf.json"
           },
           "configurations": {
             "production": {

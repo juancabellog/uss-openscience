@@ -145,7 +145,12 @@ public abstract class JdbcRepository {
             "app_role_permission",
             "app_account_token",
             "app_session",
-            "app_security_event"
+            "app_security_event",
+            "person",
+            "app_application",
+            "user_application",
+            "ethics_role_assignment",
+            "ethics_request_person_snapshot"
     );
     private final ConcurrentHashMap<String, Boolean> presentTables = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Boolean> presentColumns = new ConcurrentHashMap<>();

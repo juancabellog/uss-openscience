@@ -63,10 +63,15 @@ const STATUS_TONES: Record<string, string> = {
 export class StatusChipComponent {
   private readonly i18n = inject(I18nService);
   readonly value = input('');
+  readonly labelKey = input<string | null>(null);
   readonly tone = input<string | undefined>(undefined);
   readonly resolvedTone = computed(() => this.tone() ?? STATUS_TONES[this.value()] ?? 'info');
 
   label(): string {
+    const override = this.labelKey();
+    if (override) {
+      return this.i18n.translate(override);
+    }
     const key = CASE_STATUS_LABELS[this.value()];
     return key ? this.i18n.translate(key) : this.value();
   }

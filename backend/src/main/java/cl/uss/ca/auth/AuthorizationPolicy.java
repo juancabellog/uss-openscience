@@ -19,6 +19,7 @@ public final class AuthorizationPolicy {
         }
         return path.equals("/auth/login")
                 || path.equals("/auth/register")
+                || path.equals("/auth/ethics-start")
                 || path.equals("/auth/config")
                 || path.equals("/auth/forgot-password")
                 || path.equals("/auth/reset-password")
@@ -34,7 +35,8 @@ public final class AuthorizationPolicy {
         if (path == null) {
             return Requirement.denied();
         }
-        if (path.equals("/auth/me") || path.equals("/auth/logout") || path.startsWith("/system/")) {
+        if (path.equals("/auth/me") || path.equals("/auth/logout") || path.startsWith("/system/")
+                || path.equals("/ethics") || path.startsWith("/ethics/")) {
             return Requirement.authenticated();
         }
         if (path.startsWith("/sync/")) {

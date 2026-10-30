@@ -1,4 +1,4 @@
-import { ClassificationCode, EthicsSubmissionType } from '../models/ethics.models';
+import type { ClassificationCode, EthicsSubmissionType } from '../models/ethics.models';
 
 export type FormVersion = 'NEW_PROJECT_V1' | 'VALIDATION_V1';
 
@@ -49,7 +49,12 @@ export interface FormQuestion {
   options?: FormOption[];
   exclusiveOptionId?: string;
   showAllOptionsReadonly?: boolean;
+  /** Oculta la pregunta hasta que el cargo del IR cumple la condición. */
+  displayWhen?: 'formative-ir' | 'supervised-ir';
   notApplicableWhen?: 'tutor-not-required';
+  /** Enlace asociado, por ejemplo el PDF de la Declaración de Singapur. */
+  linkHref?: string;
+  linkLabelKey?: string;
 }
 
 export interface FormSection {

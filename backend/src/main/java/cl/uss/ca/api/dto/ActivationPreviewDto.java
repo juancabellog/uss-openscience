@@ -5,4 +5,8 @@ public class ActivationPreviewDto {
     public String status;
     public String maskedEmail;
     public String purpose;
+    public boolean profileRequired;
+    public String givenName;
+    public String familyName;
+    public String preferredLanguage;
 }

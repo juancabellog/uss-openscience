@@ -94,6 +94,19 @@ export class I18nService {
     ).format(date);
   }
 
+  formatStamp(value?: string | null): string {
+    if (!value) {
+      return this.translate('common.dash');
+    }
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+    const day = new Intl.DateTimeFormat(this.locale(), { day: 'numeric', month: 'short', year: 'numeric' }).format(date);
+    const time = new Intl.DateTimeFormat(this.locale(), { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(date);
+    return `${day} · ${time}`;
+  }
+
   private applyDocumentLanguage(language: AppLanguage): void {
     if (typeof document === 'undefined') {
       return;

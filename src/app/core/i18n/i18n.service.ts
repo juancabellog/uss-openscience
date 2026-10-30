@@ -27,6 +27,17 @@ export class I18nService {
     this.applyDocumentLanguage(this.language());
   }
 
+  applyRequestedLanguage(raw: string | null | undefined): void {
+    const value = (raw ?? '').trim().toLowerCase();
+    if (value === 'en' || value.startsWith('en-')) {
+      this.setLanguage('en');
+      return;
+    }
+    if (value === 'es' || value.startsWith('es-')) {
+      this.setLanguage('es');
+    }
+  }
+
   setLanguage(language: AppLanguage): void {
     if (!APP_LANGUAGES.includes(language) || language === this.language()) {
       this.applyDocumentLanguage(language);

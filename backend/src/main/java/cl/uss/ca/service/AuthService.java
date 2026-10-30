@@ -20,13 +20,18 @@ import cl.uss.ca.auth.SelfRegistrationDefaultRole;
 import cl.uss.ca.auth.TokenPolicy;
 import cl.uss.ca.auth.TokenPreviewStatus;
 import cl.uss.ca.auth.UserStatus;
+import cl.uss.ca.ethics.auth.EthicsAccountActivated;
 import cl.uss.ca.exception.UnauthorizedException;
 import cl.uss.ca.exception.ValidationException;
+import cl.uss.ca.identity.InstitutionalCatalog;
+import cl.uss.ca.mail.MailLocale;
+import cl.uss.ca.identity.InstitutionalOnboarding;
 import cl.uss.ca.repository.AccessRepository;
 import cl.uss.ca.repository.AccessRoleRecord;
 import cl.uss.ca.repository.AccessUserRecord;
 import cl.uss.ca.security.CurrentUser;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
@@ -66,6 +71,9 @@ public class AuthService {
 
     @Inject
     AccountMailer accountMailer;
+
+    @Inject
+    Instance<EthicsAccountActivated> ethicsActivation;
 
     @Inject
     AuthRateLimiter rateLimiter;
@@ -198,12 +206,17 @@ public class AuthService {
     }
 
     public GenericMessageDto forgotPassword(String email, String clientKey) {
+        return forgotPassword(email, clientKey, null);
+    }
+
+    public GenericMessageDto forgotPassword(String email, String clientKey, String flowLocale) {
         accessRepository.assertAvailable();
         if (!rateLimiter.allow("forgot:" + clientKey, forgotLimit, 15 * 60_000L)) {
             return GenericMessageDto.of("AUTH_FORGOT_ACCEPTED", GENERIC_FORGOT);
         }
         AccessUserRecord user = accessRepository.findUserByEmail(email);
         if (user != null && !user.isDeleted() && UserStatus.ACTIVE.name().equals(user.status)) {
+            rememberFlowLanguage(user, flowLocale);
             issueReset(user);
         }
         return GenericMessageDto.of("AUTH_FORGOT_ACCEPTED", GENERIC_FORGOT);
@@ -240,12 +253,35 @@ public class AuthService {
         dto.status = status.name();
         dto.valid = status == TokenPreviewStatus.VALID;
         dto.maskedEmail = mask(user == null ? null : user.email);
+        if (user != null) {
+            dto.preferredLanguage = MailLocale.resolve(user.preferredLanguage, null);
+        }
+        if (dto.valid && user != null) {
+            dto.profileRequired = InstitutionalOnboarding.profileRequired(user.firstName, user.lastName);
+            dto.givenName = user.firstName == null || user.firstName.isBlank() ? null : user.firstName;
+            dto.familyName = user.lastName == null || user.lastName.isBlank() ? null : user.lastName;
+        }
         return dto;
     }
 
+    public boolean issueEthicsInvitation(AccessUserRecord user) {
+        return issueActivation(user, ActivationOrigin.ETHICS_INVITE);
+    }
+
     public AuthUserDto activate(String rawToken, String password) {
+        return activate(rawToken, password, null, null, null, null, null);
+    }
+
+    public AuthUserDto activate(
+            String rawToken,
+            String password,
+            String givenName,
+            String familyName,
+            String campus,
+            String faculty,
+            String positionTitle
+    ) {
         accessRepository.assertAvailable();
-        passwordPolicy.validate(password);
         AccessRepository.TokenRecord token = validToken(rawToken, PURPOSE_ACTIVATION);
         if (token == null) {
             throw new ValidationException("AUTH_TOKEN_INVALID", "El enlace de activación no es válido o ha expirado.");
@@ -257,10 +293,27 @@ public class AuthService {
         if (UserStatus.ACTIVE.name().equals(user.status)) {
             throw new ValidationException("AUTH_ALREADY_ACTIVE", "Esta cuenta ya fue activada.");
         }
+        boolean needsProfile = InstitutionalOnboarding.profileRequired(user.firstName, user.lastName);
+        String given = PersonNamePolicy.normalize(givenName);
+        String family = PersonNamePolicy.normalize(familyName);
+        if (needsProfile && (!PersonNamePolicy.isAcceptable(given) || !PersonNamePolicy.isAcceptable(family)
+                || !InstitutionalCatalog.accepts(campus, faculty, positionTitle))) {
+            throw new ValidationException("AUTH_PROFILE_REQUIRED", "Complete los datos institucionales y la contraseña.");
+        }
+        passwordPolicy.validate(password);
+        if (needsProfile) {
+            accessRepository.updateUser(user.id, given, family, user.preferredLanguage == null ? "es" : user.preferredLanguage);
+        }
         accessRepository.activate(user.id, PasswordHasher.hash(password.toCharArray(), iterations));
         accessRepository.markTokenUsed(token.id);
         accessRepository.invalidateTokens(user.id, PURPOSE_ACTIVATION);
         accessRepository.recordEvent("USER_ACTIVATED", user.id, user.id, null, null);
+        if (ethicsActivation != null) {
+            String storedGiven = needsProfile ? given : user.firstName;
+            String storedFamily = needsProfile ? family : user.lastName;
+            ethicsActivation.forEach(listener -> listener.onActivated(
+                    user.id, storedGiven, storedFamily, campus, faculty, positionTitle));
+        }
         return toDto(accessRepository.findUserById(user.id));
     }
 
@@ -442,6 +495,18 @@ public class AuthService {
                 false,
                 mask(existing.email)
         );
+    }
+
+    private void rememberFlowLanguage(AccessUserRecord user, String flowLocale) {
+        if (user == null || user.preferredLanguage != null && !user.preferredLanguage.isBlank()) {
+            return;
+        }
+        if (flowLocale == null || flowLocale.isBlank()) {
+            return;
+        }
+        String language = MailLocale.resolve(null, flowLocale);
+        accessRepository.updatePreferredLanguage(user.id, language);
+        user.preferredLanguage = language;
     }
 
     private void issueReset(AccessUserRecord user) {

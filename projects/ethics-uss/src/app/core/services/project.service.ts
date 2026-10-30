@@ -9,6 +9,8 @@ import {
 } from '../models/ethics.models';
 import { DemoAuthService } from '../auth/demo-auth.service';
 import { EthicsStore } from './ethics-store.service';
+import { hasScope } from '../workflow/role-capabilities';
+import { PermissionService } from './permission.service';
 import { addYears, daysUntil } from './ids';
 
 export interface ProjectRow {
@@ -23,7 +25,8 @@ export interface ProjectRow {
 export class ProjectService {
   constructor(
     private readonly store: EthicsStore,
-    private readonly auth: DemoAuthService
+    private readonly auth: DemoAuthService,
+    private readonly permissions: PermissionService
   ) {}
 
   listVisible(): ProjectRow[] {
@@ -47,6 +50,23 @@ export class ProjectService {
   researcherOf(project: Project): User | undefined {
     return this.store.snapshot().users.find((user) => user.id === project.researcherId);
   }
+
+  /**
+   * Orden oficial de GlobalProjectStatus. El filtro de Proyectos muestra solo
+   * los que aparecen en la vista autorizada y reutiliza estas claves.
+   * Un filtro futuro por estado de CommitteeCase (en revisión, respuesta del IR,
+   * presidencia, enmienda en borrador) es independiente y no se mezcla aquí.
+   */
+  readonly globalStatusOrder: readonly GlobalProjectStatus[] = [
+    'DRAFT',
+    'PENDING_CLASSIFICATION',
+    'IN_EVALUATION',
+    'WITH_OBSERVATIONS',
+    'APPROVED',
+    'MIXED',
+    'EXEMPT',
+    'REJECTED'
+  ];
 
   globalStatus(projectId: string): GlobalProjectStatus {
     const state = this.store.snapshot();
@@ -115,16 +135,26 @@ export class ProjectService {
     if (!user) {
       return false;
     }
-    if (user.role === 'ADMINISTRATOR') {
+    if (hasScope(user, 'GLOBAL')) {
       return true;
     }
-    if (user.role === 'RESEARCHER') {
+    if (hasScope(user, 'OWN_PROJECT')) {
       return project.researcherId === user.id;
     }
     const related = cases.filter((item) => item.projectId === project.id);
-    if (user.role === 'COMMITTEE_PRESIDENT' || user.role === 'EXECUTIVE_SECRETARY') {
+    if (hasScope(user, 'COMMITTEE')) {
       return related.some((item) => user.committees.includes(item.committee));
     }
-    return related.some((item) => item.reviewerIds.includes(user.id));
+    if (!related.length) {
+      return false;
+    }
+    return related.some((item) =>
+      this.permissions.can(user, 'VIEW_PROJECTS', {
+        projectId: project.id,
+        committeeCaseId: item.id,
+        committeeType: item.committee,
+        workflowStatus: item.status
+      })
+    );
   }
 }

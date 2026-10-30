@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, signal } f
 import { DemoAuthService } from '../../core/auth/demo-auth.service';
 import { I18nService } from '../../core/i18n/i18n.service';
 import { CommitteeCaseService } from '../../core/services/committee-case.service';
+import { PermissionService } from '../../core/services/permission.service';
 import { DocumentService } from '../../core/services/document.service';
 import { EthicsStore } from '../../core/services/ethics-store.service';
 import { PdfGenerationService } from '../../core/services/pdf-generation.service';
@@ -35,7 +36,7 @@ import { I18N_IMPORTS } from '../../shared/i18n/i18n.imports';
             <button type="button" class="secondary" (click)="rejecting.set(true)">{{ 'reviews.reject' | translate }}</button>
           </div>
         }
-        @if (isAssignee() && (asg.status === 'ACCEPTED' || asg.status === 'COMPLETED') && !currentReview()?.submittedAt) {
+        @if (canEdit() && !currentReview()?.submittedAt) {
           <label class="field"><span class="label-caption">{{ 'reviews.methodology' | translate }}</span><textarea [value]="methodology()" (input)="methodology.set($any($event.target).value)"></textarea></label>
           <label class="field"><span class="label-caption">{{ 'reviews.risks' | translate }}</span><textarea [value]="risks()" (input)="risks.set($any($event.target).value)"></textarea></label>
           <label class="field"><span class="label-caption">{{ 'reviews.notes' | translate }}</span><textarea [value]="notes()" (input)="notes.set($any($event.target).value)"></textarea></label>
@@ -83,6 +84,7 @@ export class ReviewDetailPage {
   private readonly documents = inject(DocumentService);
   private readonly pdf = inject(PdfGenerationService);
   private readonly auth = inject(DemoAuthService);
+  private readonly permissions = inject(PermissionService);
   private readonly i18n = inject(I18nService);
   readonly rejecting = signal(false);
   readonly accepting = signal(false);
@@ -97,10 +99,33 @@ export class ReviewDetailPage {
     if (!user || !assignment) {
       return false;
     }
-    if (user.role === 'COMMITTEE_MEMBER') {
-      return assignment.reviewerId === user.id;
+    if (assignment.reviewerId === user.id && assignment.status !== 'REJECTED') {
+      return true;
     }
-    return user.role === 'EXECUTIVE_SECRETARY' || user.role === 'COMMITTEE_PRESIDENT' || user.role === 'ADMINISTRATOR';
+    const item = this.cases.get(assignment.caseId);
+    return this.permissions.can(user, 'VIEW_ALL_REVIEWS', {
+      projectId: item?.projectId,
+      committeeCaseId: assignment.caseId,
+      committeeType: item?.committee,
+      workflowStatus: item?.status
+    });
+  });
+  readonly canEdit = computed(() => {
+    const user = this.auth.currentUser();
+    const assignment = this.assignment();
+    if (!user || !assignment || assignment.reviewerId !== user.id) {
+      return false;
+    }
+    if (assignment.status !== 'ACCEPTED') {
+      return false;
+    }
+    const item = this.cases.get(assignment.caseId);
+    return this.permissions.can(user, 'EDIT_OWN_REVIEW', {
+      projectId: item?.projectId,
+      committeeCaseId: assignment.caseId,
+      committeeType: item?.committee,
+      workflowStatus: item?.status
+    });
   });
   readonly isAssignee = computed(() => {
     const user = this.auth.currentUser();
@@ -114,8 +139,20 @@ export class ReviewDetailPage {
     }
     const cycle = this.cases.get(assignment.caseId)?.currentCycle ?? 1;
     const review = this.store.state().reviews.find((item) => item.assignmentId === assignment.id && item.cycleNumber === cycle);
-    if (!review || (user.role === 'COMMITTEE_MEMBER' && review.reviewerId !== user.id)) {
+    if (!review || review.reviewerId !== assignment.reviewerId) {
       return undefined;
+    }
+    if (review.reviewerId !== user.id) {
+      const item = this.cases.get(assignment.caseId);
+      const visible = this.permissions.can(user, 'VIEW_ALL_REVIEWS', {
+        projectId: item?.projectId,
+        committeeCaseId: assignment.caseId,
+        committeeType: item?.committee,
+        workflowStatus: item?.status
+      });
+      if (!visible) {
+        return undefined;
+      }
     }
     return review;
   });

@@ -2,78 +2,389 @@
   <h1>{{ 'dashboard.home' | translate }}</h1>
   <p class="muted">
     {{ user()?.displayName }} · {{ roleLabelKey() | translate }}
-    @if (activeCommittee(); as committee) {
+    @if (committeeScope() && activeCommittee(); as committee) {
       · {{ committees[committee] | translate }}
     }
   </p>
 
-  @if (user()?.role === 'RESEARCHER') {
-    <div class="kpi-grid">
-      <article class="card"><strong>{{ kpis().projects }}</strong><p>{{ 'dashboard.myProjects' | translate }}</p></article>
-      <article class="card"><strong>{{ kpis().evaluation }}</strong><p>{{ 'dashboard.underReview' | translate }}</p></article>
-      <article class="card"><strong>{{ kpis().observations }}</strong><p>{{ 'dashboard.withComments' | translate }}</p></article>
-      <article class="card"><strong>{{ kpis().approved }}</strong><p>{{ 'dashboard.activeApprovals' | translate }}</p></article>
-      <article class="card"><strong>{{ kpis().expiring }}</strong><p>{{ 'dashboard.expiringSoon' | translate }}</p></article>
+  @if (workHome()) {
+    <section class="work-block" aria-labelledby="home-summary">
+      <h2 id="home-summary">{{ 'dashboard.workSummary' | translate }}</h2>
+      <div class="work-summary">
+        @for (item of indicators(); track item.id) {
+          <eth-home-summary-tile [labelKey]="item.labelKey" [count]="item.count" />
+        }
+      </div>
+    </section>
+
+    <section class="work-block" aria-labelledby="home-attention">
+      <h2 id="home-attention">{{ 'dashboard.attentionTitle' | translate }}</h2>
+      @if (!attention().length) {
+        <p class="empty">{{ 'dashboard.noAttention' | translate }}</p>
+      } @else {
+        <div class="table-wrap attention-table">
+          <table [attr.aria-labelledby]="'home-attention'">
+            <colgroup>
+              <col class="col-project" />
+              <col class="col-committee" />
+              <col class="col-status" />
+              <col class="col-reason" />
+              <col class="col-activity" />
+              <col class="col-action" />
+            </colgroup>
+            <thead>
+              <tr>
+                <th>{{ 'dashboard.project' | translate }}</th>
+                <th>{{ 'dashboard.committee' | translate }}</th>
+                <th>{{ 'cases.status' | translate }}</th>
+                <th>{{ 'dashboard.attentionRequired' | translate }}</th>
+                <th>{{ 'projects.lastActivity' | translate }}</th>
+                <th><span class="sr-only">{{ 'cases.action' | translate }}</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of attention(); track row.id) {
+                <tr>
+                  <td>{{ row.title }}</td>
+                  <td>{{ row.committeeKey | translate }}</td>
+                  <td><eth-status-chip [value]="row.status" /></td>
+                  <td>{{ row.reasonKey | translate }}</td>
+                  <td>
+                    @if (row.activity; as activity) {
+                      {{ activity.date | localeDate }} · {{ i18n.auditAction(activity.action, activity.fallback) }}
+                    } @else {
+                      {{ 'common.dash' | translate }}
+                    }
+                  </td>
+                  <td>
+                    <a [routerLink]="['/proyectos', row.projectId]" [attr.aria-label]="'dashboard.viewProjectNamed' | translate: { name: row.title }">
+                      {{ 'dashboard.viewProject' | translate }}
+                      <span aria-hidden="true"> →</span>
+                    </a>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <ol class="attention-cards">
+          @for (row of attention(); track row.id) {
+            <li>
+              <p class="card-title">{{ row.title }}</p>
+              <p>{{ row.committeeKey | translate }} · <eth-status-chip [value]="row.status" /></p>
+              <p>{{ row.reasonKey | translate }}</p>
+              @if (row.activity; as activity) {
+                <p class="meta">{{ activity.date | localeDate }} · {{ i18n.auditAction(activity.action, activity.fallback) }}</p>
+              }
+              <a [routerLink]="['/proyectos', row.projectId]" [attr.aria-label]="'dashboard.viewProjectNamed' | translate: { name: row.title }">
+                {{ 'dashboard.viewProject' | translate }}
+                <span aria-hidden="true"> →</span>
+              </a>
+            </li>
+          }
+        </ol>
+      }
+      <p class="home-all">
+        <a routerLink="/proyectos">
+          {{ 'dashboard.viewAllProjects' | translate }}
+          <span aria-hidden="true"> →</span>
+        </a>
+      </p>
+    </section>
+
+    @if (recent().length) {
+      <section class="work-block" aria-labelledby="home-recent">
+        <h2 id="home-recent">{{ 'dashboard.recentActivity' | translate }}</h2>
+        <ol class="recent">
+          @for (event of recent(); track event.id) {
+            <li>
+              <time [attr.datetime]="event.date">{{ event.date | localeDate }}</time>
+              <a [routerLink]="['/proyectos', event.projectId]">{{ event.title }}</a>
+              <span>{{ i18n.auditAction(event.action, event.fallback) }}</span>
+            </li>
+          }
+        </ol>
+      </section>
+    }
+  } @else if (ownHome()) {
+    <section class="work-block" aria-labelledby="home-summary">
+      <h2 id="home-summary">{{ 'dashboard.summary' | translate }}</h2>
+      <div class="work-summary is-inventory">
+        @for (item of inventory(); track item.id) {
+          <eth-home-summary-tile
+            [labelKey]="item.labelKey"
+            [count]="item.count"
+            route="/proyectos"
+            [query]="item.query"
+            [ariaKey]="item.ariaKey"
+          />
+        }
+      </div>
+    </section>
+
+    <section class="work-block" aria-labelledby="home-own-attention">
+      <h2 id="home-own-attention">{{ 'dashboard.yourAttention' | translate }}</h2>
+      @if (!ownAttention().length) {
+        <p class="empty">{{ 'dashboard.noAttention' | translate }}</p>
+      } @else {
+        <div class="table-wrap attention-table">
+          <table class="own-attention" [attr.aria-labelledby]="'home-own-attention'">
+            <colgroup>
+              <col class="own-project" />
+              <col class="own-committee" />
+              <col class="own-reason" />
+              <col class="own-date" />
+              <col class="own-action" />
+            </colgroup>
+            <thead>
+              <tr>
+                <th>{{ 'dashboard.project' | translate }}</th>
+                <th>{{ 'dashboard.committee' | translate }}</th>
+                <th>{{ 'dashboard.reason' | translate }}</th>
+                <th>{{ 'dashboard.relevantDate' | translate }}</th>
+                <th><span class="sr-only">{{ 'cases.action' | translate }}</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of ownAttention(); track row.id) {
+                <tr>
+                  <td>{{ row.title }}</td>
+                  <td>{{ row.committeeKey | translate }}</td>
+                  <td>{{ row.reasonKey | translate }}</td>
+                  <td>
+                    @if (row.date) {
+                      {{ row.date | localeDate }}
+                    } @else {
+                      {{ 'common.dash' | translate }}
+                    }
+                  </td>
+                  <td>
+                    <a [routerLink]="['/proyectos', row.projectId]" [attr.aria-label]="'dashboard.viewProjectNamed' | translate: { name: row.title }">
+                      {{ 'dashboard.viewProject' | translate }}
+                      <span aria-hidden="true"> →</span>
+                    </a>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <ol class="attention-cards">
+          @for (row of ownAttention(); track row.id) {
+            <li>
+              <p class="card-title">{{ row.title }}</p>
+              <p class="meta">{{ row.committeeKey | translate }}</p>
+              <p>{{ row.reasonKey | translate }}</p>
+              @if (row.date) {
+                <p class="meta">{{ row.date | localeDate }}</p>
+              }
+              <a [routerLink]="['/proyectos', row.projectId]" [attr.aria-label]="'dashboard.viewProjectNamed' | translate: { name: row.title }">
+                {{ 'dashboard.viewProject' | translate }}
+                <span aria-hidden="true"> →</span>
+              </a>
+            </li>
+          }
+        </ol>
+      }
+      <p class="home-all">
+        <a routerLink="/proyectos/nuevo">{{ 'dashboard.newEthicsApplication' | translate }}</a>
+        <a routerLink="/proyectos">
+          {{ 'dashboard.viewAllProjects' | translate }}
+          <span aria-hidden="true"> →</span>
+        </a>
+      </p>
+    </section>
+  }
+  @if (unassignedReviewer()) {
+    <p class="empty">{{ 'dashboard.noAssignedReviews' | translate }}</p>
+  } @else if (tiles().length) {
+    <section class="work-block" aria-labelledby="home-modules">
+      <h2 id="home-modules">{{ 'dashboard.workSummary' | translate }}</h2>
+      <div class="work-summary is-operational">
+        @for (item of tiles(); track item.id) {
+          <eth-home-summary-tile
+            [labelKey]="item.labelKey"
+            [count]="item.count"
+            [route]="item.route"
+            [query]="item.query"
+            [ariaKey]="item.ariaKey"
+          />
+        }
+      </div>
+    </section>
+    @if (granted().has('VIEW_OWN_REVIEW')) {
+      <section class="work-block" aria-labelledby="home-review-attention">
+        <h2 id="home-review-attention">{{ 'dashboard.yourAttention' | translate }}</h2>
+        @if (unassignedReviewer()) {
+          <p class="empty">{{ 'dashboard.noAssignedReviews' | translate }}</p>
+        } @else if (!reviewAttention().length) {
+          <p class="empty">{{ 'dashboard.noTasks' | translate }}</p>
+        } @else {
+          <div class="table-wrap attention-table">
+            <table [attr.aria-labelledby]="'home-review-attention'">
+              <thead>
+                <tr>
+                  <th>{{ 'dashboard.project' | translate }}</th>
+                  <th>{{ 'dashboard.committee' | translate }}</th>
+                  <th>{{ 'dashboard.reason' | translate }}</th>
+                  <th>{{ 'cases.status' | translate }}</th>
+                  <th><span class="sr-only">{{ 'cases.action' | translate }}</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of reviewAttention(); track row.id) {
+                  <tr>
+                    <td>{{ row.title }}</td>
+                    <td>{{ row.committeeKey | translate }}</td>
+                    <td>{{ row.reasonKey | translate }}</td>
+                    <td>{{ row.statusKey | translate }}</td>
+                    <td>
+                      <a [routerLink]="['/proyectos', row.projectId]" [attr.aria-label]="'dashboard.viewProjectNamed' | translate: { name: row.title }">
+                        {{ 'dashboard.viewProject' | translate }}
+                        <span aria-hidden="true"> →</span>
+                      </a>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <ol class="attention-cards">
+            @for (row of reviewAttention(); track row.id) {
+              <li>
+                <p class="card-title">{{ row.title }}</p>
+                <p>{{ row.committeeKey | translate }} · {{ row.statusKey | translate }}</p>
+                <p>{{ row.reasonKey | translate }}</p>
+                <a [routerLink]="['/proyectos', row.projectId]" [attr.aria-label]="'dashboard.viewProjectNamed' | translate: { name: row.title }">
+                  {{ 'dashboard.viewProject' | translate }}
+                  <span aria-hidden="true"> →</span>
+                </a>
+              </li>
+            }
+          </ol>
+        }
+      </section>
+    }
+  }
+  @if (institutionalHome()) {
+    <section class="work-block" aria-labelledby="home-admin">
+      <h2 id="home-admin">{{ 'dashboard.workSummary' | translate }}</h2>
+      <div class="work-summary">
+        @for (item of institutionalTiles(); track item.id) {
+          <eth-home-summary-tile
+            [labelKey]="item.labelKey"
+            [count]="item.count"
+            [route]="item.route"
+            [query]="item.query"
+            [ariaKey]="item.ariaKey"
+          />
+        }
+      </div>
+    </section>
+
+    <section class="work-block" aria-labelledby="home-attention">
+      <h2 id="home-attention">{{ 'dashboard.attentionTitle' | translate }}</h2>
+      @if (!institutionalAttention().length) {
+        <p class="empty">{{ 'dashboard.noAttentionNow' | translate }}</p>
+      } @else {
+        <div class="table-wrap attention-table">
+          <table [attr.aria-labelledby]="'home-attention'">
+            <colgroup>
+              <col class="col-project" />
+              <col class="col-committee" />
+              <col class="col-status" />
+              <col class="col-reason" />
+              <col class="col-activity" />
+              <col class="col-action" />
+            </colgroup>
+            <thead>
+              <tr>
+                <th>{{ 'dashboard.project' | translate }}</th>
+                <th>{{ 'dashboard.committee' | translate }}</th>
+                <th>{{ 'cases.status' | translate }}</th>
+                <th>{{ 'dashboard.attentionRequired' | translate }}</th>
+                <th>{{ 'projects.lastActivity' | translate }}</th>
+                <th><span class="sr-only">{{ 'cases.action' | translate }}</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of institutionalAttention(); track row.id) {
+                <tr>
+                  <td>{{ row.title }}</td>
+                  <td>{{ row.committeeKey | translate }}</td>
+                  <td><eth-status-chip [value]="row.status" /></td>
+                  <td>{{ row.reasonKey | translate }}</td>
+                  <td>
+                    @if (row.activity; as activity) {
+                      {{ activity.date | localeDate }} · {{ i18n.auditAction(activity.action, activity.fallback) }}
+                    } @else {
+                      {{ 'common.dash' | translate }}
+                    }
+                  </td>
+                  <td>
+                    <a [routerLink]="['/proyectos', row.projectId]" [attr.aria-label]="'dashboard.viewProjectNamed' | translate: { name: row.title }">
+                      {{ 'dashboard.viewProject' | translate }}
+                      <span aria-hidden="true"> →</span>
+                    </a>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <ol class="attention-cards">
+          @for (row of institutionalAttention(); track row.id) {
+            <li>
+              <p class="card-title">{{ row.title }}</p>
+              <p>{{ row.committeeKey | translate }} · <eth-status-chip [value]="row.status" /></p>
+              <p>{{ row.reasonKey | translate }}</p>
+              @if (row.activity; as activity) {
+                <p class="meta">{{ activity.date | localeDate }} · {{ i18n.auditAction(activity.action, activity.fallback) }}</p>
+              }
+              <a [routerLink]="['/proyectos', row.projectId]" [attr.aria-label]="'dashboard.viewProjectNamed' | translate: { name: row.title }">
+                {{ 'dashboard.viewProject' | translate }}
+                <span aria-hidden="true"> →</span>
+              </a>
+            </li>
+          }
+        </ol>
+      }
+      @if (granted().has('VIEW_PROJECTS')) {
+        <p class="home-all is-follow">
+          <a routerLink="/proyectos">
+            {{ 'dashboard.viewAllProjects' | translate }}
+            <span aria-hidden="true"> →</span>
+          </a>
+        </p>
+      }
+    </section>
+
+    @if (granted().has('VIEW_AUDIT') && recent().length) {
+      <section class="work-block" aria-labelledby="home-recent">
+        <h2 id="home-recent">{{ 'dashboard.recentActivity' | translate }}</h2>
+        <ol class="recent">
+          @for (event of recent(); track event.id) {
+            <li>
+              <time [attr.datetime]="event.date">{{ event.date | localeDate }}</time>
+              <a [routerLink]="['/proyectos', event.projectId]">{{ event.title }}</a>
+              <span>{{ i18n.auditAction(event.action, event.fallback) }}</span>
+            </li>
+          }
+        </ol>
+      </section>
+    }
+  } @else if (!workHome() && !ownHome() && !tiles().length) {
+    <div class="work-summary">
+      <eth-home-summary-tile labelKey="dashboard.pendingAdmissibility" [count]="secretaryBuckets().admissibility" />
+      <eth-home-summary-tile labelKey="dashboard.reviewsInProgress" [count]="secretaryBuckets().review" />
+      <eth-home-summary-tile labelKey="dashboard.pendingResolution" [count]="secretaryBuckets().resolution" />
+      <eth-home-summary-tile labelKey="dashboard.expiring" [count]="secretaryBuckets().expiring" />
     </div>
-    <p class="actions">
-      <a class="btn" routerLink="/proyectos/nuevo">
-        <span class="button-icon" aria-hidden="true">+</span>
-        <span>{{ 'dashboard.newEthicsApplication' | translate }}</span>
+    <p class="home-all">
+      <a routerLink="/proyectos">
+        {{ 'dashboard.viewAllProjects' | translate }}
+        <span aria-hidden="true"> →</span>
       </a>
     </p>
-    <div class="table-wrap panel">
-      <table>
-        <thead>
-          <tr>
-            <th>{{ 'dashboard.project' | translate }}</th>
-            <th>{{ 'dashboard.type' | translate }}</th>
-            <th>{{ 'dashboard.globalStatus' | translate }}</th>
-            <th>{{ 'dashboard.committees' | translate }}</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (row of rows(); track row.project.id) {
-            <tr>
-              <td>{{ row.project.title }}<div class="muted">{{ row.project.code }}</div></td>
-              <td>{{ (row.project.type === 'VALIDATION' ? 'dashboard.typeValidation' : 'dashboard.typeNew') | translate }}</td>
-              <td><eth-status-chip [value]="row.globalStatus" /></td>
-              <td>
-                @for (item of row.cases; track item.id) {
-                  <div>{{ committees[item.committee] | translate }}: <eth-status-chip [value]="item.status" /></div>
-                }
-              </td>
-              <td><a routerLink="/proyectos/{{ row.project.id }}">{{ 'dashboard.viewProject' | translate }}</a></td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </div>
-  } @else if (user()?.role === 'COMMITTEE_MEMBER') {
-    <div class="kpi-grid">
-      <article class="card"><strong>{{ myAssignments().length }}</strong><p>{{ 'dashboard.assignments' | translate }}</p></article>
-      <article class="card"><strong>{{ myAssignments().filter(a => a.status === 'PENDING').length }}</strong><p>{{ 'dashboard.pending' | translate }}</p></article>
-      <article class="card"><strong>{{ myAssignments().filter(a => a.status === 'ACCEPTED').length }}</strong><p>{{ 'dashboard.inReview' | translate }}</p></article>
-    </div>
-    <p><a class="btn" routerLink="/revisiones">{{ 'dashboard.goAssignedReviews' | translate }}</a></p>
-  } @else if (user()?.role === 'ADMINISTRATOR') {
-    <div class="kpi-grid">
-      <article class="card"><strong>{{ pendingClass() }}</strong><p>{{ 'dashboard.pendingClassification' | translate }}</p></article>
-      <article class="card"><strong>{{ secretaryBuckets().admissibility }}</strong><p>{{ 'dashboard.admissibility' | translate }}</p></article>
-      <article class="card"><strong>{{ secretaryBuckets().resolution }}</strong><p>{{ 'dashboard.resolutions' | translate }}</p></article>
-      <article class="card"><strong>{{ secretaryBuckets().expiring }}</strong><p>{{ 'dashboard.expiring' | translate }}</p></article>
-    </div>
-    <p class="actions">
-      <a class="btn" routerLink="/solicitudes">{{ 'dashboard.diseiApplications' | translate }}</a>
-      <a class="btn secondary" routerLink="/expedientes">{{ 'dashboard.cases' | translate }}</a>
-    </p>
-  } @else {
-    <div class="kpi-grid">
-      <article class="card"><strong>{{ secretaryBuckets().admissibility }}</strong><p>{{ 'dashboard.pendingAdmissibility' | translate }}</p></article>
-      <article class="card"><strong>{{ secretaryBuckets().review }}</strong><p>{{ 'dashboard.reviewsInProgress' | translate }}</p></article>
-      <article class="card"><strong>{{ secretaryBuckets().resolution }}</strong><p>{{ 'dashboard.pendingResolution' | translate }}</p></article>
-      <article class="card"><strong>{{ secretaryBuckets().expiring }}</strong><p>{{ 'dashboard.expiring' | translate }}</p></article>
-    </div>
-    <p><a class="btn" routerLink="/expedientes">{{ 'dashboard.openCaseInbox' | translate }}</a></p>
   }
 </section>

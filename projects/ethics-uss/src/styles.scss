@@ -17,6 +17,7 @@
   --eth-shadow: 0 10px 30px rgba(22, 50, 79, 0.06);
   --eth-font: "Source Sans 3", "Segoe UI", sans-serif;
   --eth-serif: "Source Serif 4", Georgia, serif;
+  --eth-heading-subsection: 1.25rem;
   --eth-sidebar: 16.5rem;
 }
 
@@ -39,6 +40,15 @@ h3 {
   font-family: var(--eth-serif);
   font-weight: 600;
   line-height: 1.25;
+}
+
+.subsection {
+  margin: 0 0 0.85rem;
+  font-family: var(--eth-serif);
+  font-size: var(--eth-heading-subsection);
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--eth-ink);
 }
 
 a {
@@ -254,9 +264,62 @@ button.btn:focus-visible,
 button.ghost:focus-visible,
 button.secondary:focus-visible,
 button.warning:focus-visible,
-button.danger:focus-visible {
+button.danger:focus-visible,
+button.ghost.icon:focus-visible {
   outline: none;
   box-shadow: 0 0 0 3px rgba(42, 122, 110, 0.28);
+}
+
+/* Convención de acciones en tablas y listados.
+   Consulta frecuente (ver, descargar, más): solo icono, 34 px.
+   Modificación de contenido (subir, agregar, crear): icono + texto, misma altura.
+   Decisión de workflow (enviar respuesta, validar resolución, devolver): texto completo.
+   Revisión, historial y resolución todavía usan texto y pueden adoptar esta convención después. */
+button.ghost.icon,
+button.ghost.labeled {
+  position: relative;
+  height: 2.125rem;
+}
+
+button.ghost.icon {
+  width: 2.125rem;
+  min-width: 2.125rem;
+  padding: 0;
+}
+
+button.ghost.labeled {
+  padding: 0 0.7rem;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+button.ghost.icon[data-tooltip]::after,
+button.ghost.labeled[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 0.35rem);
+  z-index: 6;
+  padding: 0.2rem 0.45rem;
+  border-radius: 6px;
+  background: var(--eth-primary);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+button.ghost.icon[data-tooltip]:hover::after,
+button.ghost.icon[data-tooltip]:focus::after,
+button.ghost.icon[data-tooltip]:focus-visible::after,
+button.ghost.labeled[data-tooltip]:hover::after,
+button.ghost.labeled[data-tooltip]:focus::after,
+button.ghost.labeled[data-tooltip]:focus-visible::after {
+  opacity: 1;
 }
 
 .btn.warning:focus-visible,
@@ -336,6 +399,11 @@ td {
   border-radius: 8px;
   background: #fff3d6;
   color: #6d5420;
+}
+
+.alert.info {
+  background: #dceaf6;
+  color: var(--eth-info);
 }
 
 .alert.danger {

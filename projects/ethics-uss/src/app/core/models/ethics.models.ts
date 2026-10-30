@@ -2,7 +2,7 @@ export type Role =
   | 'ADMINISTRATOR'
   | 'COMMITTEE_PRESIDENT'
   | 'EXECUTIVE_SECRETARY'
-  | 'COMMITTEE_MEMBER'
+  | 'REVIEWER'
   | 'RESEARCHER';
 
 export type EthicsCommittee = 'CEC' | 'CECUA' | 'BIOSEGURIDAD';
@@ -74,8 +74,29 @@ export interface User {
   id: string;
   displayName: string;
   email: string;
+  /** Rol principal del perfil demo. El selector muestra solo este. */
   role: Role;
+  /** Roles adicionales. El acceso usa cada rol solo dentro de su alcance. */
+  roles?: Role[];
+  /**
+   * Comités de composición institucional. No autorizan proyectos ni sesiones.
+   * El acceso de un revisor sale de ReviewerAssignment.
+   */
   committees: EthicsCommittee[];
+  /** Descripción de la persona. No es un roleId. */
+  externalReviewer?: boolean;
+  /** Institucional no exige purePersonId. Externo, en Ethics, solo es un revisor. */
+  personKind?: 'INSTITUTIONAL' | 'EXTERNAL';
+  ethicsAccess?: 'ACTIVE' | 'INACTIVE';
+  institution?: string;
+  positionTitle?: string;
+  /** Vinculación demo a pure_person. No se infiere por el dominio del correo. */
+  purePersonId?: number | null;
+  /** La identidad vino de la sesión. El selector demo no puede reemplazarla. */
+  boundToSession?: boolean;
+  hideRoleLabel?: boolean;
+  /** Capabilities devueltas por el backend para esta sesión. */
+  grantedCapabilities?: string[];
   specialty?: string;
   activeLoad?: number;
   availability?: 'ALTA' | 'MEDIA' | 'BAJA';
@@ -112,6 +133,17 @@ export interface EthicsSubmission {
   /** Respuestas canónicas por QuestionId. El payload plano se conserva como adapter. */
   answers?: Record<string, unknown>;
   payload: Record<string, unknown>;
+  /** Copia de la persona al envío formal. Un cambio posterior del perfil no la reescribe. */
+  personSnapshot?: {
+    capturedAt: string;
+    firstName: string | null;
+    lastName: string | null;
+    email: string | null;
+    campus: string | null;
+    faculty: string | null;
+    program: string | null;
+    position: string | null;
+  };
   classification: EthicsClassification;
   submittedAt?: string;
   createdAt: string;
@@ -125,13 +157,17 @@ export interface DocumentMetadata {
   name: string;
   kind: DocumentKind;
   requirementKey?: string;
-  /** Tipo documental (carta, acta, protocolo…). */
+  /** Tipo documental estable. El Plan de Gestión de Datos usa DATA_MANAGEMENT_PLAN. Un adjunto genérico lo deja vacío. */
   documentType?: string;
-  /** Comité al que pertenece el documento. Vacío en la carta transversal. */
+  /** Comité al que pertenece el documento. Vacío en documentos transversales de la solicitud. */
   committeeType?: EthicsCommittee;
   sizeLabel: string;
   uploadedAt: string;
+  /** Usuario que cargó esta versión. Las versiones anteriores conservan el suyo. */
+  uploadedBy?: string;
   version: number;
+  /** Ronda de observaciones a la que responde esta versión. Las anteriores no se reemplazan. */
+  responseCycle?: number;
   processKind?: ProcessKind;
   /** Marca interna. No es formato institucional. */
   templateId?: 'PROTOTYPE_PDF_TEMPLATE';
@@ -165,10 +201,14 @@ export interface ReviewerAssignment {
   slot: 1 | 2;
   status: AssignmentStatus;
   assignedAt: string;
+  /** Usuario que dejó al revisor en este slot. */
+  assignedBy?: string;
   decidedAt?: string;
   rejectReason?: string;
   conflictDeclared?: boolean;
   sessionId?: string;
+  /** Dejó de ser la asignación vigente del slot. El registro se conserva. */
+  supersededAt?: string;
 }
 
 export interface Review {
@@ -219,6 +259,8 @@ export interface ObservationResponse {
   text: string;
   documentIds: string[];
   answeredAt: string;
+  /** false mientras el investigador solo guardó borrador. Ausente = ya enviada. */
+  submitted?: boolean;
 }
 
 export interface CommitteeSession {

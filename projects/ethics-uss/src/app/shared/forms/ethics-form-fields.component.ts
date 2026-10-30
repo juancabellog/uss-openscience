@@ -1,14 +1,14 @@
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 import { FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { COMMITTEE_LABELS } from '../../mocks/catalogs';
 import { applyNoneExclusive } from '../../mocks/classification-rules.mock';
-import { FormAnswers, FormFileAnswer, FormOption, FormQuestion, asFile, asFiles, hasAnswer, isNotApplicable, selectedIds } from '../../core/forms';
+import { FormAnswers, FormFileAnswer, FormOption, FormQuestion, asFile, asFiles, asText, hasAnswer, isNotApplicable, questionVisible, selectedIds } from '../../core/forms';
 import { I18nService } from '../../core/i18n/i18n.service';
+import { IconComponent } from '../components/icon.component';
 import { I18N_IMPORTS } from '../i18n/i18n.imports';
 
 @Component({
   selector: 'eth-ethics-form-fields',
-  imports: [ReactiveFormsModule, ...I18N_IMPORTS],
+  imports: [ReactiveFormsModule, IconComponent, ...I18N_IMPORTS],
   templateUrl: './ethics-form-fields.component.html',
   styleUrl: './ethics-form-fields.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -22,7 +22,41 @@ export class EthicsFormFieldsComponent {
   readonly fileSelected = output<{ question: FormQuestion; file: File }>();
   readonly fileRemoved = output<{ question: FormQuestion; name: string }>();
   readonly preview = output<FormFileAnswer>();
-  readonly labels = COMMITTEE_LABELS;
+  readonly revision = input(0);
+  /** fieldKey de controles que se muestran, pero no se editan. El valor sigue en el formulario. */
+  readonly lockedFields = input<readonly string[]>([]);
+
+  locked(question: FormQuestion): boolean {
+    return this.lockedFields().includes(question.fieldKey);
+  }
+
+  controlValue(question: FormQuestion): string {
+    return asText(this.form()?.get(question.fieldKey)?.value);
+  }
+
+  lockedLabel(question: FormQuestion): string {
+    const value = this.controlValue(question);
+    if (!value.trim()) {
+      return this.i18n.translate('forms.pureUnavailable');
+    }
+    const option = question.options?.find((item) => item.id === value);
+    return option ? this.optionOf(option) : value;
+  }
+
+  visible(question: FormQuestion): boolean {
+    this.revision();
+    if (!question.displayWhen) {
+      return true;
+    }
+    const fromForm = this.form()?.get('irPosition')?.value;
+    const fromAnswers = this.answers()['NP-010'];
+    const position = typeof fromForm === 'string' && fromForm ? fromForm : typeof fromAnswers === 'string' ? fromAnswers : '';
+    return questionVisible(question.displayWhen, position);
+  }
+
+  linkLabel(question: FormQuestion): string {
+    return question.linkLabelKey ? this.i18n.translate(question.linkLabelKey) : '';
+  }
 
   labelOf(question: FormQuestion): string {
     return question.labelKey ? this.i18n.translate(question.labelKey) || question.label : question.label;
@@ -80,7 +114,7 @@ export class EthicsFormFieldsComponent {
       const option = question.options?.find((item) => item.id === value);
       return option ? this.optionOf(option) : value;
     }
-    return String(value);
+    return this.i18n.translate('common.noAnswer');
   }
 
   selectedOptions(question: FormQuestion): FormOption[] {
@@ -89,17 +123,7 @@ export class EthicsFormFieldsComponent {
   }
 
   groupedOptions(question: FormQuestion): Array<{ title?: string; items: FormOption[] }> {
-    const options = question.options ?? [];
-    if (!question.showAllOptionsReadonly) {
-      return [{ items: options }];
-    }
-    const order = ['CEC', 'CECUA', 'BIOSEGURIDAD', 'NONE'];
-    return order
-      .map((group) => ({
-        title: groupTitle(group),
-        items: options.filter((item) => item.group === group)
-      }))
-      .filter((group) => group.items.length);
+    return [{ items: question.options ?? [] }];
   }
 
   files(question: FormQuestion): FormFileAnswer[] {
@@ -123,11 +147,4 @@ export class EthicsFormFieldsComponent {
 
 function toggleValue(current: string[], optionId: string): string[] {
   return current.includes(optionId) ? current.filter((item) => item !== optionId) : [...current, optionId];
-}
-
-function groupTitle(group: string): string | undefined {
-  if (group === 'NONE') {
-    return 'forms.noDerivation';
-  }
-  return COMMITTEE_LABELS[group];
 }

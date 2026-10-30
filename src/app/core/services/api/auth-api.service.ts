@@ -44,8 +44,14 @@ export class AuthApiService {
     return this.http.get<ActivationPreviewDto>(`${this.base}/activate`, { params: { token }, withCredentials: true });
   }
 
-  activate(token: string, password: string): Observable<GenericMessageDto> {
-    return this.http.post<GenericMessageDto>(`${this.base}/activate`, { token, password }, { withCredentials: true });
+  activate(token: string, password: string, profile?: {
+    givenName?: string;
+    familyName?: string;
+    campus?: string;
+    faculty?: string;
+    positionTitle?: string;
+  }): Observable<GenericMessageDto> {
+    return this.http.post<GenericMessageDto>(`${this.base}/activate`, { token, password, ...profile }, { withCredentials: true });
   }
 
   previewReset(token: string): Observable<ActivationPreviewDto> {

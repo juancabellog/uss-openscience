@@ -1,3 +1,23 @@
+.readonly-value {
+  margin: 0;
+  background: var(--eth-bg);
+  color: var(--eth-ink);
+  border: 1px solid var(--eth-border);
+  border-radius: 8px;
+  padding: 0.65rem 0.75rem;
+}
+
+:host input[readonly] {
+  background: var(--eth-bg);
+  color: var(--eth-ink);
+  cursor: default;
+}
+
+:host input.ng-invalid.ng-touched,
+:host select.ng-invalid.ng-touched {
+  border-color: var(--eth-danger);
+}
+
 .q-num {
   display: inline-block;
   min-width: 1.4rem;
@@ -107,4 +127,83 @@
 .files li {
   justify-content: space-between;
   align-items: center;
+}
+
+.declaration-block {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 0.75rem;
+  align-items: start;
+  margin-bottom: 0.55rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--eth-border);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.declaration-block input {
+  width: auto;
+  margin-top: 0.25rem;
+}
+
+.declaration-copy {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.declaration-text {
+  cursor: pointer;
+}
+
+.declaration-link {
+  justify-self: start;
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  max-width: 100%;
+  font-size: inherit;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.declaration-link > eth-icon {
+  margin-top: 0.15rem;
+}
+
+.declaration-link-label {
+  min-width: 0;
+}
+
+.declaration-trailing {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: 0.35rem;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.declaration-format {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.05rem 0.35rem;
+  border-radius: 999px;
+  background: #eceae4;
+  color: var(--eth-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 0.02em;
+}
+
+.declaration-external {
+  width: 0.85rem;
+  height: 0.85rem;
+}
+
+.declaration-link:focus-visible {
+  outline: 2px solid var(--eth-primary);
+  outline-offset: 3px;
+  border-radius: 2px;
 }

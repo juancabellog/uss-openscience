@@ -28,7 +28,7 @@ const QUESTIONS: FormQuestion[] = [
       'CORFO',
       'FONDECYT Exploración',
       'FONDECYT Iniciación',
-      'FONDECYT Postdoctoral',
+      'FONDNECYT Postdoctoral',
       'FONDECYT Regular',
       'FONDEF IDeA I+D',
       'FONDEF IDeA I+T',
@@ -138,7 +138,7 @@ const QUESTIONS: FormQuestion[] = [
     type: 'text',
     label: 'Carrera, programa, otro',
     helperText: 'Si no aplica, indicar N/A.',
-    required: false
+    required: true
   },
   {
     id: 'NP-010',
@@ -168,8 +168,8 @@ const QUESTIONS: FormQuestion[] = [
     fieldKey: 'sponsorName',
     type: 'text',
     label: 'Nombre del patrocinante o tutor',
-    required: false,
-    notApplicableWhen: 'tutor-not-required'
+    required: true,
+    displayWhen: 'formative-ir'
   },
   {
     id: 'NP-012',
@@ -178,8 +178,8 @@ const QUESTIONS: FormQuestion[] = [
     fieldKey: 'sponsorLastName',
     type: 'text',
     label: 'Apellidos del patrocinante o tutor',
-    required: false,
-    notApplicableWhen: 'tutor-not-required'
+    required: true,
+    displayWhen: 'formative-ir'
   },
   {
     id: 'NP-013',
@@ -188,8 +188,8 @@ const QUESTIONS: FormQuestion[] = [
     fieldKey: 'sponsorEmail',
     type: 'email',
     label: 'Correo electrónico del patrocinante o tutor',
-    required: false,
-    notApplicableWhen: 'tutor-not-required'
+    required: true,
+    displayWhen: 'formative-ir'
   },
   {
     id: 'NP-014',
@@ -198,8 +198,8 @@ const QUESTIONS: FormQuestion[] = [
     fieldKey: 'sponsorCampus',
     type: 'select',
     label: 'Sede - Campus USS del patrocinante o tutor',
-    required: false,
-    notApplicableWhen: 'tutor-not-required',
+    required: true,
+    displayWhen: 'formative-ir',
     options: [
       'Santiago - Bellavista',
       'Santiago - Los Leones',
@@ -218,8 +218,8 @@ const QUESTIONS: FormQuestion[] = [
     fieldKey: 'sponsorFaculty',
     type: 'select',
     label: 'Facultad/Unidad patrocinante o tutor',
-    required: false,
-    notApplicableWhen: 'tutor-not-required',
+    required: true,
+    displayWhen: 'formative-ir',
     options: [
       'Arquitectura, Arte y Diseño',
       'Ciencias',
@@ -241,8 +241,8 @@ const QUESTIONS: FormQuestion[] = [
     fieldKey: 'sponsorPosition',
     type: 'select',
     label: 'Tipo de cargo patrocinante o tutor',
-    required: false,
-    notApplicableWhen: 'tutor-not-required',
+    required: true,
+    displayWhen: 'supervised-ir',
     options: [
       { id: 'Docente', label: 'Docente' },
       { id: 'Docente Investigador', label: 'Docente Investigador' },
@@ -257,6 +257,7 @@ const QUESTIONS: FormQuestion[] = [
     type: 'select',
     label: 'Esta propuesta',
     required: true,
+    displayWhen: 'supervised-ir',
     options: [
       'Es un proyecto original',
       'Se enmarca en un proyecto vigente de mi tutor o patrocinante, sin incorporar cambios',
@@ -271,7 +272,7 @@ const QUESTIONS: FormQuestion[] = [
     type: 'multiselect',
     label: 'Tipo de Actividad',
     helperText: 'Marque todas las opciones que corresponda.',
-    required: false,
+    required: true,
     multiple: true,
     options: [
       'Actividad de graduación de pregrado',
@@ -312,7 +313,7 @@ const QUESTIONS: FormQuestion[] = [
     type: 'text',
     label: 'Indique el lugar de ejecución en la USS',
     helperText: 'Dónde se obtendrán datos.',
-    required: false
+    required: true
   },
   {
     id: 'NP-021',
@@ -322,7 +323,7 @@ const QUESTIONS: FormQuestion[] = [
     type: 'text',
     label: 'Indique el lugar externo de ejecución, no USS',
     helperText: 'Dónde se obtendrán datos.',
-    required: false
+    required: true
   },
   {
     id: 'NP-022',
@@ -332,7 +333,7 @@ const QUESTIONS: FormQuestion[] = [
     type: 'multiselect',
     label: 'El proyecto será ejecutado por',
     helperText: 'Marque todas las opciones que corresponda.',
-    required: false,
+    required: true,
     multiple: true,
     options: [
       'Estudiantes de pregrado',
@@ -352,7 +353,7 @@ const QUESTIONS: FormQuestion[] = [
     type: 'multiselect',
     label: 'Producto(s) Esperado(s)',
     helperText: 'Marque todas las opciones que corresponda.',
-    required: false,
+    required: true,
     multiple: true,
     options: [
       'Envío/publicación en revista de especialidad',
@@ -378,7 +379,7 @@ const QUESTIONS: FormQuestion[] = [
     type: 'multiselect',
     label: 'La metodología de la propuesta incluye los siguientes Objetos/Sujetos de estudio',
     helperText: 'Marque todas las opciones que corresponda.',
-    required: false,
+    required: true,
     multiple: true,
     exclusiveOptionId: 'NONE',
     showAllOptionsReadonly: true,
@@ -538,7 +539,9 @@ const QUESTIONS: FormQuestion[] = [
     fieldKey: 'singapore',
     type: 'declaration',
     label: 'Declaro conocer y adscribir a la Declaración de Singapur sobre Integridad en la Investigación.',
-    required: true
+    required: true,
+    linkHref: '/declaracion-singapur.pdf',
+    linkLabelKey: 'forms.singaporePdf'
   }
 ];
 

@@ -4,9 +4,10 @@ export const DEMO_USERS: User[] = [
   { id: 'u-admin', displayName: 'Camila Herrera', email: 'camila.herrera@uss.cl', role: 'ADMINISTRATOR', committees: [] },
   { id: 'u-pres-cecua', displayName: 'Dra. Pilar Núñez', email: 'pilar.nunez@uss.cl', role: 'COMMITTEE_PRESIDENT', committees: ['CECUA'] },
   { id: 'u-sec-cecua', displayName: 'Rodrigo Pino', email: 'rodrigo.pino@uss.cl', role: 'EXECUTIVE_SECRETARY', committees: ['CECUA'] },
-  { id: 'u-rev-4', displayName: 'Dr. Ignacio Bravo', email: 'ignacio.bravo@uss.cl', role: 'COMMITTEE_MEMBER', committees: ['CECUA'], specialty: 'Medicina veterinaria', activeLoad: 2, availability: 'MEDIA' },
-  { id: 'u-rev-5', displayName: 'Dra. Sofía Lagos', email: 'sofia.lagos@uss.cl', role: 'COMMITTEE_MEMBER', committees: ['CECUA'], specialty: 'Fisiología animal', activeLoad: 2, availability: 'ALTA' },
-  { id: 'u-inv-1', displayName: 'Juan Pérez', email: 'juan.perez@uss.cl', role: 'RESEARCHER', committees: [] }
+  { id: 'u-rev-4', displayName: 'Dr. Ignacio Bravo', email: 'ignacio.bravo@uss.cl', role: 'REVIEWER', committees: ['CECUA'], specialty: 'Medicina veterinaria', activeLoad: 2, availability: 'MEDIA' },
+  { id: 'u-rev-5', displayName: 'Dra. Sofía Lagos', email: 'sofia.lagos@uss.cl', role: 'REVIEWER', committees: ['CECUA'], specialty: 'Fisiología animal', activeLoad: 2, availability: 'ALTA' },
+  { id: 'u-rev-ext', displayName: 'Dr. Alberto Soto', email: 'alberto.soto@externo.cl', role: 'REVIEWER', committees: [], externalReviewer: true, personKind: 'EXTERNAL', ethicsAccess: 'ACTIVE', institution: 'Universidad Austral', positionTitle: 'Docente' },
+  { id: 'u-inv-1', displayName: 'Juan Pérez', email: 'juan.perez@uss.cl', role: 'RESEARCHER', committees: [], personKind: 'INSTITUTIONAL', ethicsAccess: 'ACTIVE', purePersonId: 10 }
 ];
 
 export function createSeed(): StoreState {
@@ -250,11 +251,14 @@ export function createSeed(): StoreState {
         receivedAt: '2026-06-04T09:00:00',
         notifiedAt: '2026-06-12T11:00:00',
         sessionId: 'ses-2',
-        reviewerIds: ['u-rev-4', 'u-rev-5'],
+        reviewerIds: ['u-rev-4', 'u-rev-ext'],
         currentCycle: 2,
         packageFrozen: true
       },
-      // DEMO/MOCK: expediente ficticio de admisibilidad del mismo comité CECUA, para que la secretaría demo pueda recorrerlo.
+      // DEMO/MOCK: mismo proyecto y mismo CECUA que case-2. No es un segundo comité.
+      // Se creó solo para recorrer la pantalla de admisibilidad. La relación visible
+      // sigue siendo CECUA-2026-004 (evaluación en curso). Este registro se conserva
+      // y se muestra dentro de ese workspace; /expedientes/case-adm sigue abriéndolo.
       {
         id: 'case-adm',
         code: 'CECUA-2026-014',
@@ -278,7 +282,7 @@ export function createSeed(): StoreState {
         status: 'PENDING_PRESIDENT_VALIDATION',
         receivedAt: '2026-08-01T09:00:00',
         notifiedAt: '2026-08-02T09:00:00',
-        reviewerIds: ['u-rev-4', 'u-rev-5'],
+        reviewerIds: ['u-rev-5'],
         currentCycle: 1,
         packageFrozen: true,
         processKind: 'INITIAL',
@@ -328,14 +332,18 @@ export function createSeed(): StoreState {
       { id: 'doc-bio-2', ownerType: 'CASE', ownerId: 'case-1-bio', name: 'Resumen bioseguridad.pdf', kind: 'REQUIRED', requirementKey: 'bio-summary', sizeLabel: '0.3 MB', uploadedAt: '2026-03-18T10:00:00', version: 1 },
       { id: 'doc-bio-3', ownerType: 'CASE', ownerId: 'case-1-bio', name: 'Protocolo bioseguridad.pdf', kind: 'REQUIRED', requirementKey: 'bio-biosafety', sizeLabel: '1.1 MB', uploadedAt: '2026-03-18T10:00:00', version: 1 },
       { id: 'doc-2', ownerType: 'CASE', ownerId: 'case-2', name: 'Protocolo animal v2.pdf', kind: 'REQUIRED', requirementKey: 'cecua-animal-protocol', sizeLabel: '3.4 MB', uploadedAt: '2026-06-10T10:00:00', version: 2 },
+      { id: 'doc-pgd-v1', ownerType: 'SUBMISSION', ownerId: 'sub-1', name: 'anexo_a.pdf', kind: 'SUPPORT', requirementKey: 'DATA_MANAGEMENT_PLAN', documentType: 'DATA_MANAGEMENT_PLAN', sizeLabel: '0.4 MB', uploadedAt: '2026-03-02T10:00:00', uploadedBy: 'u-inv-1', version: 1 },
+      { id: 'doc-pgd-v2', ownerType: 'SUBMISSION', ownerId: 'sub-1', name: 'documento_final_2026.pdf', kind: 'SUPPORT', requirementKey: 'DATA_MANAGEMENT_PLAN', documentType: 'DATA_MANAGEMENT_PLAN', sizeLabel: '0.5 MB', uploadedAt: '2026-03-12T10:15:00', uploadedBy: 'u-inv-1', version: 2 },
+      { id: 'doc-named-like-pgd', ownerType: 'SUBMISSION', ownerId: 'sub-2', name: 'Plan de Gestion de Datos.pdf', kind: 'SUPPORT', requirementKey: 'other-support', sizeLabel: '0.2 MB', uploadedAt: '2026-06-02T12:00:00', uploadedBy: 'u-inv-1', version: 1 },
       { id: 'doc-val-letter', ownerType: 'SUBMISSION', ownerId: 'sub-5', name: 'Carta de solicitud de validacion.pdf', kind: 'REQUIRED', requirementKey: 'validation-letter', sizeLabel: '0.4 MB', uploadedAt: '2026-09-04T15:00:00', version: 1 },
       { id: 'doc-val-protocol', ownerType: 'CASE', ownerId: 'case-5', name: 'Protocolo validacion.pdf', kind: 'REQUIRED', requirementKey: 'cec-protocol', sizeLabel: '2.4 MB', uploadedAt: '2026-09-04T15:00:00', version: 1 }
     ],
     assignments: [
       { id: 'asg-1a', caseId: 'case-1-bio', reviewerId: 'u-rev-4', slot: 1, status: 'COMPLETED', assignedAt: '2026-09-02T09:00:00', decidedAt: '2026-09-03T08:00:00', sessionId: 'ses-3' },
       { id: 'asg-1b', caseId: 'case-1-bio', reviewerId: 'u-rev-5', slot: 2, status: 'COMPLETED', assignedAt: '2026-09-02T09:00:00', decidedAt: '2026-09-03T09:10:00', sessionId: 'ses-3' },
-      { id: 'asg-2a', caseId: 'case-2', reviewerId: 'u-rev-4', slot: 1, status: 'COMPLETED', assignedAt: '2026-06-14T09:00:00', decidedAt: '2026-06-15T09:00:00', sessionId: 'ses-2' },
-      { id: 'asg-2b', caseId: 'case-2', reviewerId: 'u-rev-5', slot: 2, status: 'COMPLETED', assignedAt: '2026-06-14T09:00:00', decidedAt: '2026-06-15T10:00:00', sessionId: 'ses-2' }
+      { id: 'asg-2a', caseId: 'case-2', reviewerId: 'u-rev-4', slot: 1, status: 'COMPLETED', assignedAt: '2026-06-14T09:00:00', decidedAt: '2026-06-15T09:00:00', assignedBy: 'u-sec-cecua', sessionId: 'ses-2' },
+      { id: 'asg-2b', caseId: 'case-2', reviewerId: 'u-rev-5', slot: 2, status: 'COMPLETED', assignedAt: '2026-06-14T09:00:00', decidedAt: '2026-06-15T10:00:00', assignedBy: 'u-sec-cecua', sessionId: 'ses-2' },
+      { id: 'asg-2ext', caseId: 'case-2', reviewerId: 'u-rev-ext', slot: 2, status: 'ACCEPTED', assignedAt: '2026-10-16T09:00:00', decidedAt: '2026-10-16T11:00:00', assignedBy: 'u-sec-cecua', sessionId: 'ses-2' }
     ],
     reviews: [
       {

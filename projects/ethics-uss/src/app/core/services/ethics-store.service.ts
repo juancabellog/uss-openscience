@@ -2,7 +2,7 @@ import { Injectable, signal } from '@angular/core';
 import { StoreState } from '../models/ethics.models';
 import { createSeed } from '../../mocks/seed';
 
-const KEY = 'ethics-uss-store-v6';
+const KEY = 'ethics-uss-store-v11';
 
 @Injectable({ providedIn: 'root' })
 export class EthicsStore {

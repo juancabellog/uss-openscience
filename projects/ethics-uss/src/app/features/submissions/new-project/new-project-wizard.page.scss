@@ -1,0 +1,81 @@
+.wizard-steps {
+  margin-bottom: 1rem;
+}
+
+.wizard-steps ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wizard-steps li {
+  display: flex;
+  max-width: 100%;
+}
+
+button.wizard-step {
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
+  max-width: 100%;
+  margin: 0;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: #eceae4;
+  color: var(--eth-muted);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 400;
+  line-height: 1.35;
+  text-align: left;
+  white-space: normal;
+  appearance: none;
+}
+
+button.wizard-step.wizard-step--available,
+button.wizard-step.wizard-step--completed {
+  border-color: var(--eth-primary);
+  background: var(--eth-surface);
+  color: var(--eth-ink);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button.wizard-step.wizard-step--available:hover,
+button.wizard-step.wizard-step--completed:hover {
+  background: var(--eth-bg);
+  border-color: var(--eth-primary-soft);
+  cursor: pointer;
+}
+
+button.wizard-step.wizard-step--current {
+  border-color: var(--eth-accent);
+  background: var(--eth-accent-soft);
+  color: var(--eth-accent);
+  font-weight: 700;
+  cursor: default;
+}
+
+button.wizard-step.wizard-step--locked,
+button.wizard-step.wizard-step--current {
+  cursor: default;
+}
+
+button.wizard-step:focus-visible {
+  outline: 2px solid var(--eth-primary);
+  outline-offset: 2px;
+}
+
+@media (max-width: 720px) {
+  .wizard-steps ol {
+    flex-wrap: wrap;
+  }
+
+  button.wizard-step {
+    font-size: 0.85rem;
+  }
+}

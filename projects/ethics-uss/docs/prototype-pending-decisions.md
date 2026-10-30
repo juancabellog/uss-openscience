@@ -16,9 +16,9 @@ Pendiente: confirmar si una de las dos filas debiera ser «Bases de datos no pú
 
 ## 2. FONDECYT / FONDNECYT Postdoctoral
 
-En Validación de Proyecto el archivo fuente escribe «FONDNECYT Postdoctoral».
+La hoja «Reglas Forms Nuevo Proyecto» escribe «FONDNECYT Postdoctoral».
 
-**La UI muestra «FONDECYT Postdoctoral»**, reutilizando el catálogo de Nuevo Proyecto.
+**Nuevo Proyecto conserva esa grafía** como id y etiqueta. No se corrigió a «FONDECYT».
 
 Pendiente: confirmar que el typo del documento fuente no corresponde a un instrumento distinto.
 
@@ -41,20 +41,22 @@ Pendiente: confirmar textos oficiales de sedes y nombres de comités.
 
 ## 5. Obligatoriedad de campos
 
-El prototipo marca con * un subconjunto (título, datos IR, declaraciones, acta/protocolo en validación, etc.).
+Las 26 preguntas de Nuevo Proyecto quedan obligatorias cuando están visibles. P11–P17 solo se exigen si su condición de despliegue se cumple.
 
-Pendiente: confirmar la obligatoriedad definitiva de cada una de las 26 + 19 preguntas, incluyendo patrocinante, lugares de ejecución, tipo de actividad y productos.
+Pendiente: confirmar la obligatoriedad definitiva de las 19 preguntas de Validación de Proyecto.
 
 ## 6. Patrocinante o tutor
 
-La visibilidad destacada usa `PROTOTYPE_RULE` en `form-rules.ts`:
+`form-rules.ts` separa dos condiciones, como la hoja del Excel:
 
-- se destaca si el cargo del IR es estudiante, postdoctorante, asistente o personal técnico;
-- en la vista DISEI las preguntas 11-16 siempre existen;
-- si el cargo no sugiere tutor y no hay respuesta, se muestra «No aplica»;
-- no es una regla institucional definitiva.
+- P11–P15: estudiante de pregrado, magíster, doctorado o postdoctorante;
+- P16 y P17: esa misma lista, más asistente de investigación y personal técnico.
 
-Pendiente: confirmar cuándo el tutor es obligatorio, opcional o no aplica.
+La condición del Excel escribe «Estudiante de magíster», «Asistente de investigación» y «Personal técnico». El catálogo de P10 guarda «Estudiante de magister», «Asistente de Investigación» y «Personal Técnico». La visibilidad usa el catálogo ya almacenado. También se reportan, sin corregir, «Asistente  de Ivestigación» e «investigador» en minúscula en la celda de opciones.
+
+No hay buscador PURE para el patrocinante. Sigue siendo ingreso manual.
+
+Pendiente: confirmar los textos oficiales de P10 y si el tutor debe buscarse en PURE.
 
 ## 7. Clasificación de la pregunta 24
 
@@ -106,7 +108,7 @@ El documento indica eliminar el indicador «Pendientes» del miembro de comité 
 
 ### I-01 — Pendiente de aclaración
 
-La pregunta institucional sobre la regla que muestra «Patrocinante o tutor» sigue abierta. Se retiró de la interfaz el texto técnico `PROTOTYPE_RULE`. La visibilidad de la sección sigue la lista de I-02 (estudiante de pregrado, magíster, doctorado y postdoctorante).
+La pregunta institucional sobre el patrocinante sigue abierta en los textos de P10. La visibilidad ya no es una sola lista: P11–P15 usan la condición formativa y P16–P17 la condición más amplia.
 
 ### I-14 — Formato Documentos Tipo descargable — Pendiente de aclaración
 
@@ -120,6 +122,33 @@ Los formularios oficiales de revisión por comité no fueron entregados. Se cons
 
 El PDF oficial de observaciones, distinto por comité, no fue entregado. La vista previa usa la plantilla interna `PROTOTYPE_PDF_TEMPLATE` y un aviso de que no es el formato oficial.
 
+## 12. Reasignación en etapa avanzada
+
+Majo confirmó dos capabilities distintas.
+
+`REASSIGN_REVIEWER` es la reasignación ordinaria, mientras la revisión sigue en su etapa operativa.
+
+`REASSIGN_REVIEWER_ADVANCED_STAGE` es exclusiva de Presidencia. Se usa cuando la asignación ya está `COMPLETED`, cuando esa revisión ya fue enviada, o cuando el expediente está en observaciones, respuesta del investigador, preparación de resolución o validación de presidencia. Administración, secretaría, revisor e investigador no la tienen.
+
+La pantalla sigue teniendo una sola acción, «Cambiar revisor». Si la etapa es avanzada y la persona tiene la capability, se muestra el aviso de que las actuaciones anteriores se conservan. El motivo sigue siendo obligatorio. La asignación anterior no se borra ni cambia de revisor: queda con `supersededAt`. La nueva ocupa el mismo slot y la misma ronda. Un expediente cerrado no se reabre.
+
+## 13. Rol Miembro de Comité
+
+`COMMITTEE_MEMBER` fue eliminado por definición funcional. La evaluación de proyectos se realiza mediante `REVIEWER`, asignado contextualmente mediante `ReviewerAssignment`. No se mantiene un perfil «Miembro + Revisor».
+
+## 14. Precarga institucional
+
+`GET /api/v1/ethics/me/profile` devuelve nombre, apellidos y correo del usuario autenticado y, si PURE ya tiene la persona por correo, `first_name`, `last_name`, `email` y `cargo`. Sede, facultad y programa no están en `pure_person` y quedan vacíos. Angular no consulta PURE.
+
+Si la persona del prototipo tiene `purePersonId`, el bloque de identidad del nuevo proyecto se precarga y queda en solo lectura, también cuando un dato viene vacío. Se muestra «No disponible». Una persona institucional sin ficha PURE conserva datos locales editables. Un revisor externo no abre un proyecto como investigador. El patrocinante y el tutor siguen en texto libre.
+
 ### I-17 / I-18 — Pendiente de insumo
 
 No hay nomenclatura institucional de archivos ni de resoluciones de enmienda y seguimiento. El prototipo usa solo los códigos internos `AMENDMENT`, `FOLLOW_UP` y `CLOSURE_FOLLOW_UP`, sin presentar una nomenclatura inventada.
+
+## 15. Plan de Gestión de Datos
+
+El plan se identifica con el tipo documental `DATA_MANAGEMENT_PLAN`, no con el nombre del archivo. Es transversal a la solicitud y puede tener varias versiones. El modelo está en `docs/ethics-documents.md`.
+
+Pendiente: definir con DISEI/Majo/Andrea si el Plan de Gestión de Datos es obligatorio y bajo qué condiciones. `SUBMIT_REQUEST` no se bloquea si falta.
+

@@ -271,6 +271,18 @@ public class AccessRepository extends JdbcRepository {
         }
     }
 
+    public void updatePreferredLanguage(long id, String preferredLanguage) {
+        String sql = "UPDATE " + qualified(USER) + " SET preferred_language = ? WHERE id = ?";
+        try (Connection connection = connection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, preferredLanguage);
+            statement.setLong(2, id);
+            statement.executeUpdate();
+        } catch (SQLException ex) {
+            throw new DatabaseException("Failed to update preferred language", ex);
+        }
+    }
+
     public void updateUser(long id, String firstName, String lastName, String preferredLanguage) {
         String sql = "UPDATE " + qualified(USER) + " SET first_name = ?, last_name = ?, preferred_language = ? WHERE id = ?";
         try (Connection connection = connection();
@@ -547,6 +559,32 @@ public class AccessRepository extends JdbcRepository {
             }
         } catch (SQLException ex) {
             throw new DatabaseException("Failed to update role permissions", ex);
+        }
+    }
+
+    public TokenRecord latestToken(long userId, String purpose) {
+        String sql = "SELECT id, user_id, purpose, expires_at, used_at FROM " + qualified(TOKEN)
+                + " WHERE user_id = ? AND purpose = ? ORDER BY id DESC LIMIT 1";
+        try (Connection connection = connection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, userId);
+            statement.setString(2, purpose);
+            try (ResultSet rs = statement.executeQuery()) {
+                if (!rs.next()) {
+                    return null;
+                }
+                TokenRecord token = new TokenRecord();
+                token.id = rs.getLong("id");
+                token.userId = rs.getLong("user_id");
+                token.purpose = rs.getString("purpose");
+                Timestamp expires = rs.getTimestamp("expires_at");
+                token.expiresAt = expires == null ? null : expires.toInstant().atOffset(java.time.ZoneOffset.UTC);
+                Timestamp used = rs.getTimestamp("used_at");
+                token.usedAt = used == null ? null : used.toInstant().atOffset(java.time.ZoneOffset.UTC);
+                return token;
+            }
+        } catch (SQLException ex) {
+            throw new DatabaseException("Failed to read the latest account token", ex);
         }
     }
 

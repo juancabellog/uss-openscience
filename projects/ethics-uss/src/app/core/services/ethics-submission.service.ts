@@ -1,7 +1,10 @@
 import { Injectable } from '@angular/core';
-import { formForType, payloadToAnswers } from '../forms/form-answers';
+import { formForType, normalizeTextPayload, payloadToAnswers, asTextOr } from '../forms/form-answers';
+import { capturePersonSnapshot } from '../forms/person-snapshot';
 import { ClassificationCode, EthicsSubmission, EthicsSubmissionType, Project } from '../models/ethics.models';
 import { DemoAuthService } from '../auth/demo-auth.service';
+import { PermissionService } from './permission.service';
+import { hasScope } from '../workflow/role-capabilities';
 import { AuditService } from './audit.service';
 import { EthicsClassificationService } from './ethics-classification.service';
 import { EthicsStore } from './ethics-store.service';
@@ -15,7 +18,8 @@ export class EthicsSubmissionService {
     private readonly auth: DemoAuthService,
     private readonly audit: AuditService,
     private readonly notifications: NotificationService,
-    private readonly classification: EthicsClassificationService
+    private readonly classification: EthicsClassificationService,
+    private readonly permissions: PermissionService
   ) {}
 
   get(id: string): EthicsSubmission | undefined {
@@ -32,13 +36,19 @@ export class EthicsSubmissionService {
 
   saveDraft(type: EthicsSubmissionType, payload: Record<string, unknown>, existingId?: string): EthicsSubmission {
     const user = this.auth.currentUser();
-    const title = String(payload['title'] ?? 'Borrador sin título');
+    this.assertInstitutionalResearcher(user?.id);
+    const title = asTextOr(payload['title'], 'Borrador sin título');
     return this.upsert(type, payload, existingId, 'DRAFT', title, user?.id ?? 'u-inv-1', false);
   }
 
   submit(type: EthicsSubmissionType, payload: Record<string, unknown>, existingId?: string): EthicsSubmission {
     const user = this.auth.currentUser();
-    const title = String(payload['title'] ?? 'Solicitud sin título');
+    this.assertInstitutionalResearcher(user?.id);
+    const existing = existingId ? this.get(existingId) : undefined;
+    if (!this.permissions.can(user, 'SUBMIT_REQUEST', { projectId: existing?.projectId })) {
+      throw new Error('La solicitud no puede enviarse en este contexto');
+    }
+    const title = asTextOr(payload['title'], 'Solicitud sin título');
     const submission = this.upsert(type, payload, existingId, 'SUBMITTED', title, user?.id ?? 'u-inv-1', true);
     this.audit.record({
       action: 'SUBMIT_REQUEST',
@@ -48,7 +58,7 @@ export class EthicsSubmissionService {
       projectId: submission.projectId
     });
     this.store.snapshot().users
-      .filter((item) => item.role === 'ADMINISTRATOR')
+      .filter((item) => hasScope(item, 'GLOBAL'))
       .forEach((admin) => this.notifications.notify(admin.id, {
         type: 'SUBMISSION_RECEIVED',
         title: 'Solicitud recibida',
@@ -105,6 +115,13 @@ export class EthicsSubmissionService {
     return this.get(submissionId)!;
   }
 
+  private assertInstitutionalResearcher(userId: string | undefined): void {
+    const user = this.store.snapshot().users.find((item) => item.id === userId);
+    if (user?.personKind === 'EXTERNAL' || user?.externalReviewer) {
+      throw new Error('EXTERNAL_RESEARCHER_DENIED');
+    }
+  }
+
   private upsert(
     type: EthicsSubmissionType,
     payload: Record<string, unknown>,
@@ -114,9 +131,11 @@ export class EthicsSubmissionService {
     researcherId: string,
     submitted: boolean
   ): EthicsSubmission {
+    const form = formForType(type);
+    const stored = normalizeTextPayload(form, payload);
     const automatic = type === 'NEW_PROJECT'
-      ? this.classification.suggest((payload['studyObjects'] as string[]) ?? [])
-      : ((payload['committees'] as ClassificationCode[]) ?? []);
+      ? this.classification.suggest((stored['studyObjects'] as string[]) ?? [])
+      : ((stored['committees'] as ClassificationCode[]) ?? []);
     const existing = existingId ? this.get(existingId) : undefined;
     const projectId = existing?.projectId ?? uid('prj');
     const submissionId = existing?.id ?? uid('sub');
@@ -126,23 +145,23 @@ export class EthicsSubmissionService {
         id: projectId,
         code: `ETI-2026-${String(state.projects.length + 1).padStart(3, '0')}`,
         title,
-        fundingSource: String(payload['fundingSource'] ?? 'Otros'),
-        fundingStatus: (payload['fundingStatus'] as Project['fundingStatus']) ?? undefined,
-        fundingCode: payload['fundingCode'] ? String(payload['fundingCode']) : undefined,
+        fundingSource: asTextOr(payload['fundingSource'], 'Otros'),
+        fundingStatus: (stored['fundingStatus'] as Project['fundingStatus']) ?? undefined,
+        fundingCode: typeof stored['fundingCode'] === 'string' && stored['fundingCode'] ? stored['fundingCode'] : undefined,
         researcherId,
         type,
         createdAt: stamp,
         updatedAt: stamp
       };
-      const form = formForType(type);
       const submission: EthicsSubmission = {
         id: submissionId,
         projectId,
         type,
         status,
         formVersion: form.version,
-        answers: payloadToAnswers(form, payload),
-        payload,
+        answers: payloadToAnswers(form, stored),
+        payload: stored,
+        personSnapshot: submitted ? capturePersonSnapshot(stored, stamp) : existing?.personSnapshot,
         classification: {
           automatic,
           validated: existing?.classification.validated ?? null
@@ -154,7 +173,7 @@ export class EthicsSubmissionService {
       return {
         ...state,
         projects: [
-          { ...project, title, fundingSource: String(payload['fundingSource'] ?? project.fundingSource), updatedAt: stamp },
+          { ...project, title, fundingSource: asTextOr(payload['fundingSource'], project.fundingSource), updatedAt: stamp },
           ...state.projects.filter((item) => item.id !== projectId)
         ],
         submissions: [submission, ...state.submissions.filter((item) => item.id !== submissionId)]

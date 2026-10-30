@@ -10,6 +10,7 @@ import cl.uss.ca.api.dto.PasswordSetRequestDto;
 import cl.uss.ca.api.dto.RegisterRequestDto;
 import cl.uss.ca.api.dto.RegisterResultDto;
 import cl.uss.ca.api.filter.AuthFilter;
+import cl.uss.ca.ethics.directory.EthicsOnboardingService;
 import cl.uss.ca.security.CurrentUserService;
 import cl.uss.ca.service.AuthService;
 import jakarta.enterprise.context.RequestScoped;
@@ -35,6 +36,9 @@ public class AuthResource {
 
     @Inject
     AuthService authService;
+
+    @Inject
+    EthicsOnboardingService ethicsOnboarding;
 
     @Inject
     CurrentUserService currentUserService;
@@ -81,6 +85,12 @@ public class AuthResource {
     }
 
     @POST
+    @Path("/ethics-start")
+    public GenericMessageDto ethicsStart(EmailRequestDto body) {
+        return ethicsOnboarding.publicStart(body == null ? null : body.email, body == null ? null : body.locale);
+    }
+
+    @POST
     @Path("/register")
     public RegisterResultDto register(RegisterRequestDto body, @Context UriInfo uriInfo) {
         return authService.register(body, clientKey(uriInfo));
@@ -89,7 +99,11 @@ public class AuthResource {
     @POST
     @Path("/forgot-password")
     public GenericMessageDto forgot(EmailRequestDto body, @Context UriInfo uriInfo) {
-        return authService.forgotPassword(body == null ? null : body.email, clientKey(uriInfo));
+        return authService.forgotPassword(
+                body == null ? null : body.email,
+                clientKey(uriInfo),
+                body == null ? null : body.locale
+        );
     }
 
     @GET
@@ -113,7 +127,15 @@ public class AuthResource {
     @POST
     @Path("/activate")
     public GenericMessageDto activate(PasswordSetRequestDto body) {
-        authService.activate(body == null ? null : body.token, body == null ? null : body.password);
+        authService.activate(
+                body == null ? null : body.token,
+                body == null ? null : body.password,
+                body == null ? null : body.givenName,
+                body == null ? null : body.familyName,
+                body == null ? null : body.campus,
+                body == null ? null : body.faculty,
+                body == null ? null : body.positionTitle
+        );
         return GenericMessageDto.of("AUTH_ACTIVATED", "Su cuenta fue activada correctamente.");
     }
 

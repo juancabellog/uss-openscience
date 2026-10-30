@@ -1,0 +1,93 @@
+# DEMO ONLY - fixture del prototipo ethics-uss.
+# No es la fuente de autorización. EthicsAuthorizationConfig no lo carga.
+# El selector de usuarios era una herramienta del prototipo inicial.
+# Las pruebas funcionales usan cuentas reales de OpenScience y asignaciones reales.
+# El modo demo solo puede habilitarse con ethics.demo.enabled en desarrollo
+# y nunca constituye un mecanismo de autorización. En producción permanece apagado.
+#
+# Fuente funcional: permissions-V2.yml + Matriz_funciones_roles_Etica_Proyectos_V3.xlsx.
+# COMMITTEE_MEMBER fue eliminado del modelo por definicion de Andrea/Majo.
+#
+# En produccion, las asignaciones estructurales deben provenir de base de datos
+# y administrarse mediante la funcionalidad de gestion de roles/asignaciones.
+# Las asignaciones REVIEWER deben integrarse con ReviewerAssignment como fuente
+# de verdad del proceso, evitando duplicar relaciones cuando esa persistencia exista.
+#
+# Este archivo define temporalmente quien tiene un rol, en que alcance y con que estado.
+# No contiene capabilities: estas provienen de permissions-V4.yml.
+#
+# Camila (u-admin) sigue siendo la administradora del prototipo.
+# juan.cabello@uss.cl no se agrega aqui: es la cuenta real de OpenScience
+# y el bootstrap ethics.bootstrap.adminEmails le asigna ADMINISTRATOR en Ethics.
+# No se duplica un perfil demo con el mismo correo.
+
+version: 2
+
+assignments:
+
+  - id: demo-assignment-camila-admin
+    userKey: u-admin
+    roleId: ADMINISTRATOR
+    scopeType: GLOBAL
+    scopeId: "*"
+    status: ACTIVE
+    validFrom: null
+    validUntil: null
+
+  - id: demo-assignment-pilar-president-cecua
+    userKey: u-pres-cecua
+    roleId: COMMITTEE_PRESIDENT
+    scopeType: COMMITTEE
+    scopeId: CECUA
+    status: ACTIVE
+    validFrom: null
+    validUntil: null
+
+  - id: demo-assignment-rodrigo-secretary-cecua
+    userKey: u-sec-cecua
+    roleId: EXECUTIVE_SECRETARY
+    scopeType: COMMITTEE
+    scopeId: CECUA
+    status: ACTIVE
+    validFrom: null
+    validUntil: null
+
+  # Ignacio deja de tener COMMITTEE_MEMBER. Solo conserva el rol REVIEWER
+  # en el contexto de procesos donde exista una asignacion de revision valida.
+  - id: demo-assignment-ignacio-reviewer-cecua-2026-004-r1
+    userKey: u-rev-4
+    roleId: REVIEWER
+    scopeType: PROCESS
+    scopeId: CECUA-2026-004:R1
+    status: ACTIVE
+    validFrom: null
+    validUntil: null
+
+  # Alberto continua como reviewer externo; "externo" es metadata del usuario,
+  # no un rol de autorizacion distinto.
+  - id: demo-assignment-alberto-reviewer-cecua-2026-004-r1
+    userKey: u-rev-ext
+    roleId: REVIEWER
+    scopeType: PROCESS
+    scopeId: CECUA-2026-004:R1
+    status: ACTIVE
+    validFrom: null
+    validUntil: null
+
+  # Juan se mantiene durante la transicion. Si Project.researcherId ya es la
+  # fuente autoritativa de ownership, Cursor debe evitar duplicar esta relacion.
+  - id: demo-assignment-juan-researcher-project
+    userKey: u-inv-1
+    roleId: RESEARCHER
+    scopeType: PROJECT
+    scopeId: prj-2
+    status: ACTIVE
+    validFrom: null
+    validUntil: null
+
+# Sofia (u-rev-5) NO recibe una asignacion artificial en este archivo.
+# Su antiguo COMMITTEE_MEMBER fue eliminado. Cursor debe:
+# - mantenerla como perfil demo REVIEWER solo si existe ReviewerAssignment real
+#   que justifique ese contexto; o
+# - retirarla del selector de perfiles activos si no existe tal asignacion.
+# No inventar una asignacion solamente para conservar el demo anterior.

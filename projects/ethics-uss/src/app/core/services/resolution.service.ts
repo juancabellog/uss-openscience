@@ -4,6 +4,7 @@ import { AuditService } from './audit.service';
 import { CommitteeCaseService } from './committee-case.service';
 import { EthicsStore } from './ethics-store.service';
 import { NotificationService } from './notification.service';
+import { holds, hasScope } from '../workflow/role-capabilities';
 import { addYears, correlative, nowIso, uid } from './ids';
 
 @Injectable({ providedIn: 'root' })
@@ -149,7 +150,7 @@ export class ResolutionService {
       projectId: current.projectId
     });
     this.store.snapshot().users
-      .filter((user) => user.role === 'EXECUTIVE_SECRETARY' && user.committees.includes(current.committee))
+      .filter((user) => hasScope(user, 'COMMITTEE') && holds(user, 'PREPARE_RESOLUTION') && !holds(user, 'VALIDATE_RESOLUTION') && user.committees.includes(current.committee))
       .forEach((user) => this.notifications.notify(user.id, {
         type: 'RESOLUTION_RETURNED',
         title: 'Resolución devuelta',

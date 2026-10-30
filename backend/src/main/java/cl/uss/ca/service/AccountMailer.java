@@ -1,6 +1,9 @@
 package cl.uss.ca.service;
 
 import cl.uss.ca.auth.ActivationOrigin;
+import cl.uss.ca.events.EventLanguage;
+import cl.uss.ca.mail.AccountMailCatalog;
+import cl.uss.ca.mail.MailLocale;
 import cl.uss.ca.mail.MailMessage;
 import cl.uss.ca.mail.MailService;
 import cl.uss.ca.repository.AccessUserRecord;
@@ -39,90 +42,43 @@ public class AccountMailer {
             OffsetDateTime expiresAt,
             ActivationOrigin origin
     ) {
-        String url = publicBase() + "/auth/activate-account?token=" + rawToken;
-        String name = displayName(user);
+        String language = MailLocale.resolve(user == null ? null : user.preferredLanguage, null);
+        String url = publicBase() + "/auth/activate-account?token=" + rawToken + "&lang=" + language;
         String until = expiresAt == null ? "" : WHEN.format(expiresAt);
-        String intro = activationIntro(origin);
-        String ignore = activationIgnore(origin);
-        String text = """
-                Estimado/a %s:
+        AccountMailCatalog.MailContent content = AccountMailCatalog.activation(
+                language,
+                origin,
+                displayName(user),
+                url,
+                until
+        );
+        mailService.send(MailMessage.of(user.email, content.subject(), content.text(), content.html()));
+    }
 
-                %s
+    public void sendEthicsWelcome(String email, String name) {
+        sendEthicsWelcome(email, name, null);
+    }
 
-                Para confirmar su correo y definir su contraseña, ingrese al siguiente enlace:
-                %s
-
-                Este enlace estará disponible hasta %s.
-
-                %s
-
-                Saludos cordiales,
-                OPENSCIENCE-USS
-                Universidad San Sebastián
-                """.formatted(name, intro, url, until, ignore);
-        String html = """
-                <p>Estimado/a %s:</p>
-                <p>%s</p>
-                <p><a href="%s">Activar cuenta</a></p>
-                <p>Este enlace estará disponible hasta %s.</p>
-                <p>%s</p>
-                <p>Saludos cordiales,<br>OPENSCIENCE-USS<br>Universidad San Sebastián</p>
-                """.formatted(escape(name), escape(intro), escape(url), escape(until), escape(ignore));
-        mailService.send(MailMessage.of(
-                user.email,
-                "Active su cuenta en OPENSCIENCE-USS",
-                text,
-                html
-        ));
+    public void sendEthicsWelcome(String email, String name, String preferredLanguage) {
+        String language = MailLocale.resolve(preferredLanguage, null);
+        AccountMailCatalog.MailContent content = AccountMailCatalog.welcome(language, name == null ? "" : name.trim());
+        mailService.send(MailMessage.of(email, content.subject(), content.text(), content.html()));
     }
 
     public static String activationIntro(ActivationOrigin origin) {
-        if (origin == ActivationOrigin.SELF_REGISTRATION) {
-            return "Se recibió una solicitud para crear su cuenta en OPENSCIENCE-USS.";
-        }
-        return "Se ha creado una cuenta para usted en la plataforma OPENSCIENCE-USS, "
-                + "correspondiente al proyecto InES Ciencia Abierta de la Universidad San Sebastián.";
+        return AccountMailCatalog.activationIntro(EventLanguage.ES, origin);
     }
 
     public static String activationIgnore(ActivationOrigin origin) {
-        if (origin == ActivationOrigin.SELF_REGISTRATION) {
-            return "Si usted no realizó esta solicitud, puede ignorar este mensaje.";
-        }
-        return "Si usted no esperaba esta invitación, puede ignorar este mensaje.";
+        return AccountMailCatalog.activationIgnore(EventLanguage.ES, origin);
     }
 
     public void sendReset(AccessUserRecord user, String rawToken, OffsetDateTime expiresAt) {
-        String url = publicBase() + "/auth/reset-password?token=" + rawToken;
-        String name = displayName(user);
+        String language = MailLocale.resolve(user == null ? null : user.preferredLanguage, null);
+        String url = publicBase() + "/auth/reset-password?token=" + rawToken + "&lang=" + language;
         String until = expiresAt == null ? "" : WHEN.format(expiresAt);
-        String text = """
-                Estimado/a %s:
-
-                Se recibió una solicitud para restablecer la contraseña de su cuenta OPENSCIENCE-USS.
-
-                Enlace: %s
-
-                El enlace expira el %s.
-
-                Si usted no realizó esta solicitud, puede ignorar el mensaje.
-
-                Saludos cordiales,
-                OPENSCIENCE-USS
-                """.formatted(name, url, until);
-        String html = """
-                <p>Estimado/a %s:</p>
-                <p>Se recibió una solicitud para restablecer la contraseña de su cuenta.</p>
-                <p><a href="%s">Restablecer contraseña</a></p>
-                <p>El enlace expira el %s.</p>
-                <p>Si usted no realizó esta solicitud, puede ignorar el mensaje.</p>
-                <p>OPENSCIENCE-USS</p>
-                """.formatted(escape(name), escape(url), escape(until));
-        mailService.send(MailMessage.of(
-                user.email,
-                "Restablecimiento de contraseña OPENSCIENCE-USS",
-                text,
-                html
-        ));
+        AccountMailCatalog.MailContent content = AccountMailCatalog.reset(language, displayName(user), url, until);
+        mailService.send(MailMessage.of(user.email, content.subject(), content.text(), content.html()));
     }
 
     private String publicBase() {
@@ -146,10 +102,4 @@ public class AccountMailer {
         return name.isEmpty() ? user.email : name;
     }
 
-    private static String escape(String value) {
-        if (value == null) {
-            return "";
-        }
-        return value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
-    }
 }

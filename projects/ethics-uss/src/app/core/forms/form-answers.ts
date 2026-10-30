@@ -1,18 +1,25 @@
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { EthicsSubmission, EthicsSubmissionType } from '../models/ethics.models';
 import { NEW_PROJECT_FORM } from './new-project-form.definition';
-import { requiresTutor } from './form-rules';
+import { questionVisible, requiresTutor } from './form-rules';
 import { VALIDATION_FORM } from './validation-project-form.definition';
 import { FormAnswerValue, FormAnswers, FormDefinition, FormFileAnswer, FormQuestion } from './form.types';
+import { asText, asTextOr, isTextualType, normalizeTextFields } from './text-value';
+
+export { asText, asTextOr };
 
 export function formForType(type: EthicsSubmissionType): FormDefinition {
   return type === 'VALIDATION' ? VALIDATION_FORM : NEW_PROJECT_FORM;
 }
 
+export function normalizeTextPayload(form: FormDefinition, payload: Record<string, unknown>): Record<string, unknown> {
+  return normalizeTextFields(form.questions, payload);
+}
+
 export function payloadToAnswers(form: FormDefinition, payload: Record<string, unknown> = {}): FormAnswers {
   const answers: FormAnswers = {};
   for (const question of form.questions) {
-    answers[question.id] = normalizeValue(payload[question.fieldKey]);
+    answers[question.id] = normalizeValue(question, payload[question.fieldKey]);
   }
   return answers;
 }
@@ -31,8 +38,12 @@ export function answersToPayload(form: FormDefinition, answers: FormAnswers): Re
  */
 export function resolveAnswers(submission: EthicsSubmission): FormAnswers {
   const form = formForType(submission.type);
-  const fromPayload = payloadToAnswers(form, submission.payload);
-  return { ...fromPayload, ...(submission.answers as FormAnswers | undefined) };
+  const merged = { ...payloadToAnswers(form, submission.payload), ...(submission.answers as FormAnswers | undefined) };
+  const answers: FormAnswers = {};
+  for (const question of form.questions) {
+    answers[question.id] = normalizeValue(question, merged[question.id]);
+  }
+  return answers;
 }
 
 export function hasAnswer(value: FormAnswerValue | undefined): boolean {
@@ -52,6 +63,10 @@ export function hasAnswer(value: FormAnswerValue | undefined): boolean {
 }
 
 export function isNotApplicable(question: FormQuestion, answers: FormAnswers): boolean {
+  if (question.displayWhen) {
+    const position = answers['NP-010'];
+    return !questionVisible(question.displayWhen, typeof position === 'string' ? position : '');
+  }
   if (question.notApplicableWhen !== 'tutor-not-required') {
     return false;
   }
@@ -87,7 +102,8 @@ export function buildFormGroup(form: FormDefinition): FormGroup {
   const controls: Record<string, FormControl<FormAnswerValue>> = {};
   for (const question of form.questions) {
     const validators = [];
-    if (question.required && (question.type === 'text' || question.type === 'email' || question.type === 'select' || question.type === 'date')) {
+    const alwaysVisible = !question.displayWhen;
+    if (alwaysVisible && question.required && (question.type === 'text' || question.type === 'email' || question.type === 'select' || question.type === 'date')) {
       validators.push(Validators.required);
     }
     if (question.type === 'email') {
@@ -101,11 +117,18 @@ export function buildFormGroup(form: FormDefinition): FormGroup {
   return new FormGroup(controls);
 }
 
-function normalizeValue(value: unknown): FormAnswerValue {
-  if (value === null || value === undefined) {
-    return null;
+function isTextual(question: FormQuestion): boolean {
+  return isTextualType(question.type);
+}
+
+function normalizeValue(question: FormQuestion, value: unknown): FormAnswerValue {
+  if (isTextual(question)) {
+    return asText(value);
   }
-  if (typeof value === 'string' || typeof value === 'boolean') {
+  if (value === null || value === undefined) {
+    return question.type === 'declaration' ? false : defaultValue(question);
+  }
+  if (typeof value === 'boolean') {
     return value;
   }
   if (Array.isArray(value)) {
@@ -114,13 +137,10 @@ function normalizeValue(value: unknown): FormAnswerValue {
   if (typeof value === 'object' && value && 'name' in value) {
     return value as FormFileAnswer;
   }
-  return null;
+  return defaultValue(question);
 }
 
 function defaultValue(question: FormQuestion): FormAnswerValue {
-  if (question.fieldKey === 'program') {
-    return 'N/A';
-  }
   if (question.type === 'multiselect' || question.type === 'file-list') {
     return [];
   }

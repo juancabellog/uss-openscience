@@ -1,63 +1,69 @@
 <section class="panel">
   <h1>{{ definition.titleKey | translate }}</h1>
-  <div class="steps">
-    @for (section of definition.sections; track section.id; let i = $index) {
-      <span [class.on]="step() === i + 1">{{ i + 1 }}. {{ section.titleKey | translate }}</span>
-    }
-  </div>
+  <nav class="wizard-steps" [attr.aria-label]="'submission.new.steps' | translate">
+    <ol>
+      @for (section of definition.sections; track section.id; let i = $index) {
+        <li>
+          <button
+            type="button"
+            class="wizard-step"
+            [class.wizard-step--current]="stepStates()[i] === 'current'"
+            [class.wizard-step--available]="stepStates()[i] === 'available' && i + 1 > step()"
+            [class.wizard-step--completed]="stepStates()[i] === 'available' && i + 1 < step()"
+            [class.wizard-step--locked]="stepStates()[i] === 'locked'"
+            [attr.aria-current]="stepStates()[i] === 'current' ? 'step' : null"
+            [attr.aria-disabled]="stepStates()[i] === 'locked' ? true : null"
+            (click)="navigateToStep(i + 1)"
+          >
+            {{ i + 1 }}. {{ section.titleKey | translate }}
+          </button>
+        </li>
+      }
+    </ol>
+  </nav>
   <form [formGroup]="form">
     @if (step() === 1) {
       <h2>A. {{ 'forms.newProject.sections.A' | translate }}</h2>
-      <eth-ethics-form-fields [questions]="questions('A')" [form]="form" mode="edit" />
+      <eth-ethics-form-fields [questions]="questions('A')" [form]="form" [revision]="formTick()" mode="edit" />
     }
     @if (step() === 2) {
       <h2>B. {{ 'forms.newProject.sections.B' | translate }}</h2>
-      <eth-ethics-form-fields [questions]="questions('B')" [form]="form" mode="edit" />
+      @if (identityLocked()) {
+        <p class="hint">{{ 'forms.pureInstitutional' | translate }}</p>
+      }
+      <eth-ethics-form-fields [questions]="questions('B')" [form]="form" [revision]="formTick()" [lockedFields]="identityLocked() ? pureIdentityFields : []" mode="edit" />
     }
     @if (step() === 3) {
       <h2>C. {{ 'forms.newProject.sections.C' | translate }}</h2>
       @if (showTutor()) {
         <p class="alert">{{ 'submission.new.tutorHighlight' | translate }}</p>
+      } @else if (showSponsorRole()) {
+        <p class="alert">{{ 'submission.new.sponsorRole' | translate }}</p>
       } @else {
         <p class="muted">{{ 'submission.new.tutorOptional' | translate }}</p>
       }
-      <eth-ethics-form-fields [questions]="questions('C')" [form]="form" mode="edit" />
+      <eth-ethics-form-fields [questions]="questions('C')" [form]="form" [revision]="formTick()" mode="edit" />
     }
     @if (step() === 4) {
       <h2>D. {{ 'forms.newProject.sections.D' | translate }}</h2>
-      <eth-ethics-form-fields [questions]="questions('D')" [form]="form" mode="edit" />
+      <eth-ethics-form-fields [questions]="questions('D')" [form]="form" [revision]="formTick()" mode="edit" />
     }
     @if (step() === 5) {
       <h2>E. {{ 'forms.newProject.sections.E' | translate }}</h2>
-      <eth-ethics-form-fields [questions]="questions('E')" [form]="form" mode="edit" />
+      <eth-ethics-form-fields [questions]="questions('E')" [form]="form" [revision]="formTick()" mode="edit" />
     }
     @if (step() === 6) {
       <h2>F. {{ 'forms.newProject.sections.F' | translate }}</h2>
-      <eth-ethics-form-fields [questions]="questions('F')" [form]="form" mode="edit" />
-      <article class="card">
-        <h3>{{ 'submission.new.preliminary' | translate }}</h3>
-        @if (!suggested().length) {
-          <p class="muted">{{ 'submission.new.selectForSuggestion' | translate }}</p>
-        } @else {
-          <p>{{ 'submission.new.mayRequire' | translate }}</p>
-          @for (code of suggested(); track code) {
-            <p>✓ {{ committeeLabels[code] | translate }}</p>
-          }
-        }
-        <p class="alert">{{ 'submission.new.preliminaryNote' | translate }}</p>
-      </article>
+      <eth-ethics-form-fields [questions]="questions('F')" [form]="form" [revision]="formTick()" mode="edit" />
     }
     @if (step() === 7) {
       <h2>G. {{ 'forms.newProject.sections.G' | translate }}</h2>
-      <p><strong>{{ form.controls['title'].value || ('common.noTitle' | translate) }}</strong></p>
-      <p class="muted">{{ form.controls['fundingSource'].value }} · {{ form.controls['irName'].value }} {{ form.controls['irLastName'].value }}</p>
-      <p>{{ 'submission.new.suggested' | translate }}
-        @for (code of suggested(); track code) { {{ committeeLabels[code] | translate }} }
-      </p>
-      <eth-ethics-form-fields [questions]="questions('G')" [form]="form" mode="edit" />
+      <p><strong>{{ text('title') || ('common.noTitle' | translate) }}</strong></p>
+      <p class="muted">{{ text('fundingSource') }} · {{ text('irName') }} {{ text('irLastName') }}</p>
+      <eth-ethics-form-fields [questions]="questions('G')" [form]="form" [revision]="formTick()" mode="edit" />
     }
   </form>
-  @if (message(); as text) { <p class="alert">{{ text }}</p> }
+  @if (message(); as text) { <p class="alert" role="alert">{{ text }}</p> }
   <div class="actions">
     @if (step() > 1) { <button type="button" class="ghost" (click)="back()">{{ 'common.back' | translate }}</button> }
     @if (step() < 7) { <button type="button" class="btn" (click)="next()">{{ 'common.continue' | translate }}</button> }

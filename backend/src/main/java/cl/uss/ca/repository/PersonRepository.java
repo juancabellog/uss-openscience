@@ -2,6 +2,7 @@ package cl.uss.ca.repository;
 
 import cl.uss.ca.api.dto.IdentifierDto;
 import cl.uss.ca.api.dto.PersonDetailDto;
+import cl.uss.ca.api.dto.PurePersonIdentity;
 import cl.uss.ca.api.dto.PersonFiltersDto;
 import cl.uss.ca.api.dto.PersonScopusIdentifierDto;
 import cl.uss.ca.api.dto.PersonScopusIdentifiersDto;
@@ -376,6 +377,40 @@ public class PersonRepository extends JdbcRepository {
 
     private static PersonQuery defaultStatsQuery() {
         return new PersonQuery(null, null, Population.ALL, null, null, null, null, Boolean.TRUE, "name", "asc", 0, -1);
+    }
+
+    /**
+     * Identidad institucional ya almacenada desde PURE. No inventa sede, facultad ni programa.
+     */
+    public PurePersonIdentity findIdentityByEmail(String email) {
+        if (email == null || email.isBlank() || !tableExists("pure_person")) {
+            return null;
+        }
+        String sql = """
+                SELECT id, first_name, last_name, email, cargo
+                FROM """ + " " + qualified("pure_person") + """
+                 WHERE LOWER(email) = LOWER(?)
+                 LIMIT 1
+                """;
+        try (Connection connection = connection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, email.trim());
+            try (ResultSet rs = statement.executeQuery()) {
+                if (!rs.next()) {
+                    return null;
+                }
+                PurePersonIdentity identity = new PurePersonIdentity();
+                identity.firstName = rs.getString("first_name");
+                identity.lastName = rs.getString("last_name");
+                identity.email = rs.getString("email");
+                identity.position = rs.getString("cargo");
+                long id = rs.getLong("id");
+                identity.id = rs.wasNull() ? null : id;
+                return identity;
+            }
+        } catch (SQLException ex) {
+            throw new DatabaseException("Failed to load institutional profile", ex);
+        }
     }
 
     private boolean personExists(long personId) {

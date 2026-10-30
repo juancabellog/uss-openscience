@@ -1,9 +1,46 @@
 <aside class="sidebar">
   <p class="brand">{{ 'brand.name' | translate }}</p>
   <p class="brand-sub">{{ 'brand.university' | translate }}</p>
-  <nav>
-    @for (item of nav(); track item.path) {
-      <a [routerLink]="item.path" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: item.path === '/' }">{{ item.labelKey | translate }}</a>
+  <nav [attr.aria-label]="'navigation.menu' | translate">
+    @for (section of nav(); track section.id) {
+      <section class="sidebar-section">
+        @if (section.collapsible) {
+          <h2 class="sidebar-section-header">
+            <button
+              type="button"
+              class="sidebar-section-toggle"
+              [id]="'nav-' + section.id"
+              [attr.aria-expanded]="sectionOpen(section.id)"
+              [attr.aria-controls]="'nav-panel-' + section.id"
+              [attr.aria-label]="sectionToggleLabel(section)"
+              (click)="toggleSection(section.id)"
+            >
+              <eth-icon name="chevron" class="sidebar-section-chevron" [class.is-collapsed]="!sectionOpen(section.id)" />
+              <span>{{ section.labelKey | translate }}</span>
+            </button>
+          </h2>
+        }
+        <ul class="sidebar-section-items" [id]="section.collapsible ? 'nav-panel-' + section.id : null" [class.is-collapsed]="section.collapsible && !sectionOpen(section.id)" [hidden]="section.collapsible && !sectionOpen(section.id)" [attr.aria-labelledby]="section.collapsible ? 'nav-' + section.id : null">
+          @for (item of section.items; track item.path) {
+            <li>
+              <a
+                class="sidebar-item"
+                [class.sidebar-item--root]="!section.collapsible"
+                [routerLink]="item.path"
+                routerLinkActive="sidebar-item--active"
+                [routerLinkActiveOptions]="{ exact: item.path === '/' }"
+                ariaCurrent="page"
+                [class.nav-action]="item.action"
+              >
+                @if (item.action) {
+                  <span class="nav-plus" aria-hidden="true">+</span>
+                }
+                {{ item.labelKey | translate }}
+              </a>
+            </li>
+          }
+        </ul>
+      </section>
     }
   </nav>
 </aside>
@@ -12,11 +49,19 @@
     <div class="identity">
       <p class="crumb">{{ 'brand.crumb' | translate }}</p>
       <strong>{{ user()?.displayName }}</strong>
-      <span class="muted"> {{ roleLabelKey() | translate }}</span>
-      @if (committees().length === 1) {
-        <span class="muted"> · {{ committeeKey(committees()[0]) | translate }}</span>
+      @if (user()?.email) {
+        <span class="muted"> {{ user()?.email }}</span>
       }
-      @if (committees().length > 1) {
+      @if (roleLabelKey()) {
+        <span class="muted"> {{ roleLabelKey() | translate }}</span>
+      }
+      @if (user(); as person) {
+        @if (showCommittee(person) && committees().length === 1) {
+          <span class="muted"> · {{ committeeKey(committees()[0]) | translate }}</span>
+        }
+      }
+      @if (user(); as person) {
+        @if (showCommittee(person) && committees().length > 1) {
         <label class="role-switch">
           <span class="sr-only">{{ 'shell.activeCommittee' | translate }}</span>
           <select [ngModel]="activeCommittee()" (ngModelChange)="setCommittee($event)">
@@ -25,40 +70,32 @@
             }
           </select>
         </label>
+        }
       }
     </div>
     <div class="tools">
       <eth-language-switcher />
       <div class="tools-actions">
-        <button type="button" class="ghost tools-notify" [attr.aria-label]="'navigation.notifications' | translate" (click)="toggleNotes()">
+        <a class="ghost tools-notify" routerLink="/notificaciones" [attr.aria-label]="'navigation.notifications' | translate">
           <span>{{ 'navigation.notifications' | translate }}</span>
           @if (unread()) {
             <span class="dot">{{ unread() }}</span>
           }
-        </button>
-        <label class="role-switch">
-          <span class="sr-only">{{ 'common.switchProfile' | translate }}</span>
-          <select [ngModel]="user()?.id" (ngModelChange)="assume($event)" [attr.aria-label]="'common.switchProfile' | translate">
-            @for (item of users; track item.id) {
-              <option [value]="item.id">{{ item.displayName }} · {{ roleKey(item.role) | translate }}@if (item.role === 'COMMITTEE_PRESIDENT' || item.role === 'EXECUTIVE_SECRETARY') { · {{ committeeKey(item.committees[0]) | translate }} }</option>
-            }
-          </select>
-        </label>
+        </a>
+        @if (demoSelector) {
+          <label class="role-switch">
+            <span class="sr-only">{{ 'common.switchProfile' | translate }}</span>
+            <select [ngModel]="user()?.id" (ngModelChange)="assume($event)" [attr.aria-label]="'common.switchProfile' | translate">
+              @for (item of users(); track item.id) {
+                <option [value]="item.id">{{ item.displayName }} · {{ roleKey(item) | translate }}@if (showCommittee(item)) { · {{ committeeKey(item.committees[0]) | translate }} }</option>
+              }
+            </select>
+          </label>
+        }
         <button type="button" class="ghost" (click)="logout()">{{ 'common.logout' | translate }}</button>
       </div>
     </div>
   </header>
-  @if (openNotes()) {
-    <div class="notes">
-      <h2>{{ 'notifications.title' | translate }}</h2>
-      @for (note of notes(); track note.item.id) {
-        <button type="button" class="note" (click)="openNote(note.item.id, note.item.link)">
-          <strong>{{ note.text.title }}</strong>
-          <span>{{ note.text.body }}</span>
-        </button>
-      }
-    </div>
-  }
   <main class="content">
     <router-outlet />
   </main>

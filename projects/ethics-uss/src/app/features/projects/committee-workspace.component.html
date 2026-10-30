@@ -1,0 +1,634 @@
+@if (denied()) {
+  <p class="alert">{{ 'cases.restricted' | translate }}</p>
+} @else if (item(); as item) {
+  @if (visibility(); as access) {
+    <header class="committee-head">
+      <div class="title-row">
+        <h2>{{ committees[item.committee] | translate }}</h2>
+        <eth-status-chip [value]="item.status" [labelKey]="operationalKey()" [tone]="operationalKey() ? 'warning' : undefined" />
+      </div>
+      <p class="facts">
+        <span><span class="sr-only">{{ 'cases.committeeCode' | translate }}</span><strong>{{ item.code }}</strong></span>
+        <span><span class="sr-only">{{ 'projects.committeeIntake' | translate }}</span>{{ 'projects.intakeColumn' | translate }} {{ item.receivedAt | localeDate }}</span>
+        @if (item.approvalExpiresAt) {
+          <span>{{ 'projects.expiresShort' | translate }} {{ item.approvalExpiresAt | localeDate }}</span>
+        }
+        @if (operationalKey() && item.approvalExpiresAt) {
+          <span>{{ 'projects.approvalValidUntil' | translate: { date: (item.approvalExpiresAt | localeDate) } }}</span>
+        }
+        @if (expiry(); as exp) {
+          <span class="validity">
+            <span aria-hidden="true">●</span>
+            {{ i18n.catalog('semaphore', exp.semaphore) }}
+            · {{ 'projects.daysCount' | translate: { days: exp.daysLeft } }}
+          </span>
+        }
+      </p>
+        @if (expiry()?.semaphore === 'VENCIDO') {
+          <p class="alert danger">{{ 'projects.expiredAlert' | translate }}</p>
+        }
+        @if (access.assignedNote) {
+          <p class="assigned-note">{{ 'reviewers.assignedAsReviewer' | translate }}</p>
+        }
+        @if (!access.reviewerOnly && historyItems()[0]; as latest) {
+        <p class="last-activity">
+          <span>{{ 'projects.lastActivity' | translate }}: {{ latest.date | localeDate }} · {{ i18n.auditAction(latest.action, latest.fallback) }}</span>
+          <a [href]="'#' + sid('history')" (click)="goTo(sid('history'), $event)">{{ 'projects.viewHistory' | translate }}</a>
+        </p>
+      }
+    </header>
+
+    <nav class="section-nav" [attr.aria-label]="'projects.committeeSections' | translate">
+      <div class="section-nav__track">
+        @for (section of sectionNav(); track section.id) {
+          <a
+            [href]="'#' + section.id"
+            [attr.aria-current]="activeSection() === section.id ? 'location' : null"
+            (click)="goTo(section.id, $event)"
+          >{{ section.key | translate }}</a>
+        }
+      </div>
+    </nav>
+
+    <div class="workspace">
+        @if (access.admissibility) {
+          <section class="block anchor" [id]="sid('admissibility')" tabindex="-1">
+            <h2>{{ 'cases.admissibility' | translate }}</h2>
+            <p class="hint">{{ 'cases.admissibilityHint' | translate }}</p>
+            <div class="actions">
+              <button type="button" class="btn" (click)="admit(true)">{{ 'cases.completeFile' | translate }}</button>
+              <button type="button" class="btn warning" (click)="askReturn()">{{ 'cases.returnToFix' | translate }}</button>
+            </div>
+          </section>
+        }
+
+        @if (access.reviewDesk) {
+          <section class="block anchor" [id]="sid('review')" tabindex="-1">
+            <h2>{{ 'projects.reviewSection' | translate }}</h2>
+            <div class="review-status">
+              <h3 class="subsection">{{ 'reviewers.reviewStatus' | translate }}</h3>
+              <eth-status-chip [value]="item.status" [labelKey]="operationalKey()" [tone]="operationalKey() ? 'warning' : undefined" />
+            </div>
+            @if (rejectedSlots() === 1) {
+              <p class="hint" role="status">{{ 'reviewers.needsReassignment' | translate }}</p>
+            } @else if (rejectedSlots() > 1) {
+              <p class="hint" role="status">{{ 'reviewers.needsReassignmentMany' | translate: { count: rejectedSlots() } }}</p>
+            }
+            @if (reassignNotice()) {
+              <p class="alert info" id="reassign-notice" role="status" tabindex="-1">{{ reassignNotice() }}</p>
+            }
+            @if (hasAssignedReviewers()) {
+              <h3 class="subsection">{{ 'reviewers.assignedHeading' | translate }}</h3>
+              <ul class="reviewer-roster">
+                @for (slot of slotRows(); track slot.slot) {
+                  @if (slot.assignment) {
+                    <li class="reviewer-slot">
+                      <div class="reviewer-identity">
+                        <p class="slot-label">{{ (slot.slot === 1 ? 'cases.reviewer1' : 'cases.reviewer2') | translate }}</p>
+                        <p class="reviewer-name">{{ slot.name }}</p>
+                        <p class="reviewer-kind">{{ slot.detail }}</p>
+                      </div>
+                      <div class="reviewer-side">
+                        @if (slot.statusKey) {
+                          <eth-status-chip [value]="slot.assignment.status" [labelKey]="slot.statusKey" />
+                        }
+                        @if (slot.canChange) {
+                          <button
+                            type="button"
+                            class="ghost"
+                            [id]="'reassign-toggle-' + slot.slot"
+                            [attr.aria-expanded]="reassigning() === slot.slot"
+                            [attr.aria-controls]="'reassign-' + slot.slot"
+                            [attr.aria-label]="(slot.replacement ? 'reviewers.replaceNamed' : 'reviewers.changeNamed') | translate: { name: slot.name }"
+                            (click)="startReassignment(slot.slot)"
+                          >{{ (slot.replacement ? 'reviewers.assignReplacement' : 'reviewers.change') | translate }}</button>
+                        } @else if (access.canReassign && slot.closed) {
+                          <p class="closed-note">
+                            <span>{{ 'reviewers.assignmentClosed' | translate }}</span>
+                            <span>{{ 'reviewers.roundCompleted' | translate }}</span>
+                          </p>
+                        }
+                      </div>
+                      @if (slot.canChange && reassigning() === slot.slot) {
+                        <form class="reviewer-replace" [id]="'reassign-' + slot.slot" (submit)="$event.preventDefault(); confirmReassignment(slot.slot)">
+                          <h4>{{ slot.replacement ? ('reviewers.assignReplacement' | translate) : ('reviewers.change' | translate) }}</h4>
+                          @if (slot.advanced) {
+                            <p class="hint" role="note">{{ 'reviewers.advancedWarning' | translate }}</p>
+                          }
+                          <p class="replace-current">
+                            <span>{{ 'reviewers.current' | translate }}</span>
+                            {{ slot.name }}
+                          </p>
+                          <eth-reviewer-combobox
+                            [label]="'reviewers.newReviewer' | translate"
+                            [listId]="'reassign-slot-' + slot.slot"
+                            [options]="replacementOptions()"
+                            [value]="reassignCandidate()"
+                            (valueChange)="selectReplacement($event)"
+                          />
+                          <label class="field" [attr.for]="'reason-' + slot.slot">
+                            <span class="label-caption" [id]="'reason-label-' + slot.slot">
+                              {{ 'reviewers.changeReason' | translate }}
+                              <span class="req" aria-hidden="true">*</span>
+                            </span>
+                            <textarea
+                              [id]="'reason-' + slot.slot"
+                              rows="3"
+                              required
+                              [attr.aria-labelledby]="'reason-label-' + slot.slot"
+                              [attr.aria-describedby]="reasonDescribedBy(slot.slot)"
+                              [attr.aria-invalid]="reassignError() === 'invalid' ? true : null"
+                              [value]="reassignReason()"
+                              (input)="reassignReason.set($any($event.target).value)"
+                            ></textarea>
+                            <span class="hint" [id]="'reason-help-' + slot.slot">{{ 'reviewers.changeReasonHelp' | translate }}</span>
+                            @if (reassignError() === 'invalid') {
+                              <span class="field-error" [id]="'reason-error-' + slot.slot">{{ 'reviewers.changeReasonHelp' | translate }}</span>
+                            }
+                          </label>
+                          @if (reassignError() === 'duplicate') {
+                            <p class="field-error" role="alert">{{ 'reviewers.alreadyAssigned' | translate }}</p>
+                          } @else if (reassignError() === 'same') {
+                            <p class="field-error" role="alert">{{ 'reviewers.sameReviewer' | translate }}</p>
+                          } @else if (reassignError() === 'closed' || reassignError() === 'forbidden') {
+                            <p class="field-error" role="alert">{{ 'reviewers.reassignUnavailable' | translate }}</p>
+                          }
+                          <div class="actions">
+                            <button type="button" class="ghost" (click)="cancelReassignment(slot.slot)">{{ 'common.cancel' | translate }}</button>
+                            <button type="submit" class="btn" [disabled]="!reassignCandidate() || !reassignReason().trim()">{{ 'reviewers.confirmChange' | translate }}</button>
+                          </div>
+                        </form>
+                      }
+                    </li>
+                  }
+                }
+              </ul>
+            }
+            @if (showAssignForm()) {
+              @if (canManageUsers()) {
+                <p><a routerLink="/usuarios" [queryParams]="{ crear: 'externo' }">{{ 'users.createExternalLink' | translate }}</a></p>
+              }
+              <div class="grid-2">
+                <eth-reviewer-combobox
+                  [label]="'cases.reviewer1' | translate"
+                  listId="reviewer-slot-1"
+                  [options]="optionsFor(1)"
+                  [value]="rev1()"
+                  (valueChange)="rev1.set($event)"
+                />
+                <eth-reviewer-combobox
+                  [label]="'cases.reviewer2' | translate"
+                  listId="reviewer-slot-2"
+                  [options]="optionsFor(2)"
+                  [value]="rev2()"
+                  (valueChange)="rev2.set($event)"
+                />
+              </div>
+              <div class="actions">
+                <button type="button" class="btn" [disabled]="!rev1() || !rev2() || rev1() === rev2()" (click)="assign()">{{ 'reviewers.assign' | translate }}</button>
+              </div>
+            }
+            @if (access.assignment) {
+            <label class="field">
+              <span class="label-caption">{{ 'cases.existingSession' | translate }}</span>
+              <select [value]="sessionId()" (change)="sessionId.set($any($event.target).value)">
+                <option value="">{{ 'cases.unassigned' | translate }}</option>
+                @for (session of sessionOptions(); track session.id) {
+                  <option [value]="session.id">{{ session.date }} {{ session.time }}</option>
+                }
+              </select>
+            </label>
+            <div class="grid-2">
+              <label class="field">
+                <span class="label-caption">{{ 'cases.newExtraordinary' | translate }}</span>
+                <input type="date" [value]="extraDate()" (input)="extraDate.set($any($event.target).value)" />
+              </label>
+              <label class="field">
+                <span class="label-caption">{{ 'cases.time' | translate }}</span>
+                <input type="time" [value]="extraTime()" (input)="extraTime.set($any($event.target).value)" />
+              </label>
+            </div>
+            <div class="actions">
+              <button type="button" class="ghost" (click)="createExtra()">{{ 'cases.createExtraordinary' | translate }}</button>
+            </div>
+            }
+          </section>
+        } @else if (access.assignment) {
+          <section class="block anchor" [id]="sid('assignment')" tabindex="-1">
+            <h2>{{ 'cases.assignReviewers' | translate }}</h2>
+            <p class="hint">{{ 'cases.assignHint' | translate }}</p>
+          </section>
+        }
+
+        <section class="block anchor" [id]="sid('documents')" tabindex="-1">
+          <div class="section-head">
+            <h2>{{ 'projects.documentSection' | translate }}</h2>
+            @if (completion().total) {
+              <p class="doc-progress">{{ 'projects.requiredDocumentsComplete' | translate: { done: completion().done, total: completion().total } }}</p>
+            }
+            @if (!item.packageFrozen && completion().done === completion().total && completion().total > 0) {
+              <button type="button" class="btn" (click)="confirmNotify.set(true)">{{ 'projects.notifyCommittee' | translate }}</button>
+            }
+          </div>
+          <eth-committee-documents [caseId]="item.id" [projectId]="item.projectId" />
+          @if (committeeSubmissionDocs().length) {
+            <eth-committee-documents [source]="committeeSubmissionDocs()" />
+          }
+          @if (responseOpen()) {
+            <p class="alert info">{{ 'projects.researcherResponseOpen' | translate }}</p>
+          } @else if (responseSent()) {
+            <p class="alert">{{ 'projects.responseSent' | translate }}</p>
+          } @else if (item.packageFrozen) {
+            <p class="alert">{{ 'projects.packageClosed' | translate }}</p>
+          }
+        </section>
+
+        @if (access.reviewerOnly && access.ownReview) {
+          <section class="block anchor" [id]="sid('my-review')" tabindex="-1">
+            <h2>{{ 'projects.myReview' | translate }}</h2>
+            @for (review of currentReviews(); track review.id; let i = $index) {
+              <article class="card">
+                <h3>{{ reviewLabel(review, i) }}</h3>
+                <eth-privacy-badge level="COMMITTEE_ONLY" />
+                @for (entry of review.criteria | keyvalue; track entry.key) {
+                  <p><strong>{{ ('reviews.criteria.' + entry.key) | translate }}</strong>: {{ entry.value }}</p>
+                }
+              </article>
+            }
+            @if (ownAssignment(); as assignment) {
+              <p><a [routerLink]="['/revisiones', assignment.id]">{{ 'projects.openReview' | translate }}</a></p>
+            }
+          </section>
+        }
+
+        @if (!access.reviewerOnly) {
+        <section class="block anchor" [id]="sid('observations')" tabindex="-1">
+          <h2>{{ 'projects.observations' | translate }}</h2>
+          @if (access.internalReviews) {
+            <div [id]="sid('reviews')" class="anchor" tabindex="-1">
+            @if (item.status === 'AWAITING_RESEARCHER') {
+              <p class="alert">{{ 'cases.waitingResearcher' | translate }}</p>
+            } @else {
+              <p class="muted">{{ 'cases.roundLabel' | translate: { n: item.currentCycle } }}</p>
+              <div class="grid-2">
+                @for (slot of reviewSlots(); track slot.slot) {
+                  <article class="card">
+                    <div class="section-head">
+                      <h3>{{ 'cases.reviewerN' | translate: { n: slot.slot } }}</h3>
+                      <eth-privacy-badge level="COMMITTEE_ONLY" />
+                    </div>
+                    @if (slot.name) {
+                      <p>{{ slot.name }}</p>
+                    }
+                    @if (slot.review) {
+                      <p class="record-meta">{{ 'cases.reviewSubmittedAt' | translate: { date: displayDate(slot.submittedAt) } }}</p>
+                      @for (entry of slot.review.criteria | keyvalue; track entry.key) {
+                        <p><strong>{{ ('reviews.criteria.' + entry.key) | translate }}</strong>: {{ entry.value }}</p>
+                      }
+                    } @else {
+                      <p class="hint">{{ 'cases.reviewPending' | translate }}</p>
+                      @if (slot.statusKey) {
+                        <p class="record-meta">{{ slot.statusKey | translate }}</p>
+                      }
+                    }
+                  </article>
+                }
+              </div>
+              @if (access.canViewSavedConsolidation || access.canEditConsolidation) {
+                <h3>{{ 'cases.consolidatedObservation' | translate }}</h3>
+                <label class="field">
+                  <span class="label-caption">{{ 'reviews.methodology' | translate }}</span>
+                  <textarea [readonly]="!access.canEditConsolidation" [value]="methodology()" (input)="methodology.set($any($event.target).value); draftSaved.set(false)"></textarea>
+                </label>
+                <label class="field">
+                  <span class="label-caption">{{ 'reviews.criteria.observaciones' | translate }}</span>
+                  <textarea [readonly]="!access.canEditConsolidation" [value]="text()" (input)="text.set($any($event.target).value); draftSaved.set(false)"></textarea>
+                </label>
+                <label class="field">
+                  <span class="label-caption">{{ 'reviews.risks' | translate }}</span>
+                  <textarea [readonly]="!access.canEditConsolidation" [value]="risks()" (input)="risks.set($any($event.target).value); draftSaved.set(false)"></textarea>
+                </label>
+                <div class="actions">
+                  @if (access.consolidate) {
+                    <button type="button" class="ghost" (click)="consolidate()">{{ 'cases.consolidate' | translate }}</button>
+                  }
+                  @if (access.canSaveConsolidation) {
+                    <button type="button" class="secondary" (click)="saveConsolidation()">{{ 'cases.saveDraft' | translate }}</button>
+                  }
+                  <button type="button" class="ghost" (click)="previewObservation()">{{ 'cases.previewPdf' | translate }}</button>
+                  @if (access.canPublish && reviewsReady()) {
+                    <button type="button" class="btn" (click)="askPublish()">{{ 'cases.publishObservations' | translate }}</button>
+                  }
+                </div>
+                @if (draftSaved()) {
+                  <p class="hint">{{ 'cases.draftSaved' | translate }}</p>
+                }
+                @if (!reviewsReady()) {
+                  <p class="hint">{{ 'cases.waitingReviews' | translate }}</p>
+                }
+              }
+            }
+            </div>
+          }
+
+          @if (access.ownReview) {
+            <div [id]="sid('my-review')" class="anchor" tabindex="-1">
+            <h3>{{ 'projects.myReview' | translate }}</h3>
+            @for (review of currentReviews(); track review.id; let i = $index) {
+              <article class="card">
+                <h3>{{ reviewLabel(review, i) }}</h3>
+                <eth-privacy-badge level="COMMITTEE_ONLY" />
+                @for (entry of review.criteria | keyvalue; track entry.key) {
+                  <p><strong>{{ ('reviews.criteria.' + entry.key) | translate }}</strong>: {{ entry.value }}</p>
+                }
+              </article>
+            }
+            @if (ownAssignment(); as assignment) {
+              <p><a [routerLink]="['/revisiones', assignment.id]">{{ 'projects.openReview' | translate }}</a></p>
+            }
+            </div>
+          }
+
+          @if (access.answerObservations) {
+            @if (!publishedObservations().length) {
+              <p class="hint">{{ 'projects.noObservations' | translate }}</p>
+            } @else {
+              <ul class="rounds">
+              @for (observation of publishedObservations(); track observation.id) {
+                <li class="round">
+                  <div class="record-head">
+                    <div>
+                      <h3>{{ 'projects.roundN' | translate: { n: observation.cycleNumber } }}</h3>
+                      @if (cycleDate(observation.cycleNumber)) {
+                        <p class="record-meta">{{ cycleDate(observation.cycleNumber) }}</p>
+                      }
+                    </div>
+                    <eth-status-chip
+                      [value]="observation.status"
+                      [labelKey]="observation.status === 'ANSWERED' ? 'projects.answered' : 'projects.waitingResponse'"
+                      [tone]="observation.status === 'ANSWERED' ? 'success' : 'warning'"
+                    />
+                  </div>
+                  <p class="round-text">{{ observation.text }}</p>
+                  @if (observation.relatedDocuments.length) {
+                    <p class="record-meta">{{ 'projects.relatedDocuments' | translate }}: {{ observation.relatedDocuments.join(', ') }}</p>
+                  }
+                  <div class="actions round-actions">
+                    <button type="button" class="ghost" (click)="previewCycle(observation.cycleNumber)">{{ 'projects.viewObservations' | translate }}</button>
+                    <button type="button" class="text-action" (click)="previewCycle(observation.cycleNumber)">{{ 'projects.downloadPdf' | translate }}</button>
+                  </div>
+                  @if (responseOpen()) {
+                    <textarea [value]="draftAnswer(observation.id)" (input)="setAnswer(observation.id, $any($event.target).value)" [placeholder]="'projects.answerPlaceholder' | translate"></textarea>
+                    <div class="actions">
+                      <button type="button" class="secondary" (click)="reply(observation.id)">{{ 'projects.saveAnswer' | translate }}</button>
+                      <button type="button" class="btn" (click)="sendAnswers()">{{ 'projects.submitResponse' | translate }}</button>
+                    </div>
+                    @if (responseError()) {
+                      <p class="field-error">{{ 'projects.responseRequired' | translate }}</p>
+                    }
+                  } @else {
+                    @for (response of responses(observation.id); track response.id) {
+                      <p class="round-text">{{ response.text }}</p>
+                    }
+                  }
+                </li>
+              }
+              </ul>
+            }
+          } @else if (publishedCycles().length) {
+            <div [id]="sid('published')" class="anchor" tabindex="-1">
+            <ul class="rounds">
+            @for (cycle of publishedCycles(); track cycle.id) {
+              <li class="round">
+                <div class="record-head">
+                  <div>
+                    <h3>{{ 'projects.roundN' | translate: { n: cycle.cycleNumber } }}</h3>
+                    <p class="record-meta">{{ displayDate(cycle.closedAt || cycle.openedAt) }}</p>
+                  </div>
+                  <eth-status-chip
+                    [value]="cycle.status || ''"
+                    [labelKey]="cycle.status === 'PUBLISHED' ? 'cases.published' : 'cases.closedRound'"
+                    [tone]="cycle.status === 'PUBLISHED' ? 'success' : 'muted'"
+                  />
+                </div>
+                @if (cycle.consolidatedObservations) {
+                  <details class="round-detail">
+                    <summary>{{ 'cases.consolidatedObservation' | translate }}</summary>
+                    <p class="round-text">{{ cycle.consolidatedObservations }}</p>
+                  </details>
+                }
+                <div class="actions round-actions">
+                  <button type="button" class="ghost" (click)="previewCycle(cycle.cycleNumber)">{{ 'projects.viewObservations' | translate }}</button>
+                  <button type="button" class="text-action" (click)="previewCycle(cycle.cycleNumber)">{{ 'projects.downloadPdf' | translate }}</button>
+                </div>
+              </li>
+            }
+            </ul>
+            </div>
+          } @else if (!access.internalReviews && !access.ownReview) {
+            <p class="hint">{{ 'projects.noObservations' | translate }}</p>
+          }
+        </section>
+
+        <section class="block anchor" [id]="sid('resolution')" tabindex="-1">
+          <h2>{{ 'projects.resolutionTitle' | translate }}</h2>
+          @if (issuedResolution(); as issued) {
+            <div class="record-head">
+              <div>
+                <h3>{{ 'projects.resolution' | translate: { correlative: issued.correlative } }}</h3>
+                @if (issued.issuedAt) {
+                  <p class="record-meta">{{ displayDate(issued.issuedAt) }}</p>
+                }
+              </div>
+              <eth-status-chip [value]="issued.kind" />
+            </div>
+            <div class="actions">
+              <button type="button" class="ghost" (click)="previewResolution()">{{ 'projects.viewResolution' | translate }}</button>
+              <button type="button" class="btn" (click)="downloadResolution()">{{ 'projects.downloadResolution' | translate }}</button>
+            </div>
+          } @else if (access.draftResolution && resolution(); as draft) {
+            <div class="record-head">
+              <div>
+                <h3>{{ 'projects.resolution' | translate: { correlative: draft.correlative } }}</h3>
+                @if (draft.workflow === 'PENDING_PRESIDENT') {
+                  <p class="record-meta">{{ 'projects.preparedForValidation' | translate }}</p>
+                }
+                @if (draft.intakeDate) {
+                  <p class="record-meta">{{ displayDate(draft.intakeDate) }}</p>
+                }
+              </div>
+              <eth-status-chip
+                [value]="draft.workflow"
+                [labelKey]="'catalogs.resolutionWorkflow.' + draft.workflow"
+                [tone]="draft.workflow === 'PENDING_PRESIDENT' ? 'info' : draft.workflow === 'VALIDATED' ? 'success' : 'muted'"
+              />
+            </div>
+            @if (draft.returnedComment) {
+              <p class="alert">{{ draft.returnedComment }}</p>
+            }
+            <div class="actions">
+              <button type="button" class="ghost" (click)="previewResolution()">{{ 'projects.viewResolution' | translate }}</button>
+            </div>
+          } @else if (!access.prepareResolution) {
+            <p><eth-status-chip value="PENDING" /></p>
+            <p class="hint">{{ 'projects.resolutionPendingDetail' | translate }}</p>
+          }
+
+          @if ((access.prepareResolution || (access.draftResolution && resolution())) && latestDocuments().length) {
+            <h3 class="subhead">{{ 'cases.attachedDocuments' | translate }}</h3>
+            <p class="record-meta">{{ 'projects.documentCount' | translate: { count: latestDocuments().length } }}</p>
+            <ul class="doc-lines">
+              @for (doc of latestDocuments(); track doc.id) {
+                <li>
+                  @if (access.prepareResolution) {
+                    <label>
+                      <input type="checkbox" [checked]="selectedDocs()[doc.id]" (change)="toggleDoc(doc.id, $any($event.target).checked)" />
+                      {{ doc.name }} · v{{ doc.version }}
+                    </label>
+                  } @else {
+                    <span>{{ doc.name }} · v{{ doc.version }}</span>
+                  }
+                  <button type="button" class="text-action" (click)="previewDocument(doc)">{{ 'projects.download' | translate }}</button>
+                </li>
+              }
+            </ul>
+          }
+
+          @if (access.prepareResolution) {
+            <h3>{{ 'cases.prepareResolution' | translate }}</h3>
+            <label class="field">
+              <span class="label-caption">{{ 'cases.decisionType' | translate }}</span>
+              <select [value]="kind()" (change)="kind.set($any($event.target).value)">
+                <option value="APPROVED">{{ 'catalogs.resolutionKinds.APPROVED' | translate }}</option>
+                <option value="REJECTED">{{ 'catalogs.resolutionKinds.REJECTED' | translate }}</option>
+                <option value="EXEMPT">{{ 'catalogs.resolutionKinds.EXEMPT' | translate }}</option>
+              </select>
+            </label>
+            <label class="field">
+              <span class="label-caption">{{ 'cases.rationale' | translate }}</span>
+              <textarea [value]="resolutionText()" (input)="resolutionText.set($any($event.target).value)"></textarea>
+            </label>
+            <div class="actions">
+              <button type="button" class="ghost" (click)="previewResolution()">{{ 'cases.previewPdf' | translate }}</button>
+              <button type="button" class="btn" (click)="prepare()">{{ 'cases.sendToPresidency' | translate }}</button>
+            </div>
+          }
+
+          @if (access.validateResolution) {
+            <div class="decision">
+              <h3>{{ 'projects.presidencyDecision' | translate }}</h3>
+              <p>{{ 'projects.presidencyDecisionHint' | translate }}</p>
+              <div class="actions decision-actions">
+                <button type="button" class="btn" (click)="askValidate()">{{ 'cases.validateResolution' | translate }}</button>
+                <button type="button" class="warning" (click)="askPresidentReturn()">{{ 'projects.returnToSecretariat' | translate }}</button>
+              </div>
+            </div>
+          }
+        </section>
+
+        <section class="block anchor" [id]="sid('post')" tabindex="-1">
+          <h2>{{ 'projects.postProcesses' | translate }}</h2>
+          <div class="post-list">
+            <div>
+              <h3>{{ 'projects.amendment' | translate }}</h3>
+              @if (item.processKind === 'AMENDMENT') {
+                <p>{{ ('projects.processStatus.' + (item.processStatus ?? 'DRAFT')) | translate }}</p>
+              } @else {
+                <p class="hint">{{ 'projects.noAmendments' | translate }}</p>
+              }
+            </div>
+            <div>
+              <h3>{{ 'projects.followUp' | translate }}</h3>
+              @if (item.processKind === 'FOLLOW_UP' || item.processKind === 'CLOSURE_FOLLOW_UP') {
+                <p>{{ ('projects.processStatus.' + (item.processStatus ?? 'DRAFT')) | translate }}</p>
+              } @else {
+                <p class="hint">{{ 'projects.noFollowUps' | translate }}</p>
+              }
+            </div>
+            @if (relatedRecords().length) {
+              <div>
+                <h3>{{ 'projects.sameCommitteeRecords' | translate }}</h3>
+                <ul class="record-list">
+                  @for (record of relatedRecords(); track record.id) {
+                    <li>
+                      <span>{{ record.code }}</span>
+                      <eth-status-chip [value]="record.status" />
+                      <span>{{ 'projects.intakeColumn' | translate }} {{ record.receivedAt | localeDate }}</span>
+                      <a [routerLink]="['/expedientes', record.id]">{{ 'projects.viewCase' | translate }}</a>
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+          </div>
+        </section>
+
+        <section class="block anchor history-section" [id]="sid('history')" tabindex="-1">
+          <eth-committee-history-timeline [events]="historyItems()" (open)="openHistory($event)" />
+        </section>
+        }
+    </div>
+  }
+}
+
+@if (confirmNotify()) {
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="notify-title">
+    <div class="modal-card">
+      <h2 id="notify-title">{{ 'projects.notifyCommittee' | translate }}</h2>
+      <p>{{ 'projects.notifyConfirm' | translate }}</p>
+      <div class="actions">
+        <button type="button" class="btn" (click)="notify()">{{ 'projects.confirmSend' | translate }}</button>
+        <button type="button" class="ghost" (click)="confirmNotify.set(false)">{{ 'common.cancel' | translate }}</button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (confirmReturn()) {
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="return-title">
+    <div class="modal-card">
+      <h2 id="return-title">{{ (presidentReturn() ? 'projects.returnToSecretariat' : 'cases.returnTitle') | translate }}</h2>
+      <label class="field">
+        <span class="label-caption">{{ 'cases.returnReason' | translate }}</span>
+        <textarea [value]="returnReason()" (input)="returnReason.set($any($event.target).value); returnError.set(false)"></textarea>
+        @if (returnError()) {
+          <span class="field-error">{{ 'cases.returnReasonRequired' | translate }}</span>
+        }
+      </label>
+      <div class="actions">
+        <button type="button" class="ghost" (click)="cancelReturn()">{{ 'common.cancel' | translate }}</button>
+        <button type="button" class="btn warning" (click)="confirmAdmitReturn()">{{ 'common.confirm' | translate }}</button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (confirmValidate()) {
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="validate-title">
+    <div class="modal-card">
+      <h2 id="validate-title">{{ 'cases.validateResolution' | translate }}</h2>
+      <p>{{ 'projects.validateConfirm' | translate }}</p>
+      <div class="actions">
+        <button type="button" class="ghost" (click)="confirmValidate.set(false)">{{ 'common.cancel' | translate }}</button>
+        <button type="button" class="btn" (click)="validate()">{{ 'cases.validateResolution' | translate }}</button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (confirmPublish()) {
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="publish-title">
+    <div class="modal-card">
+      <h2 id="publish-title">{{ 'cases.publishObservations' | translate }}</h2>
+      <p>{{ 'cases.publishConfirm' | translate }}</p>
+      <label class="field">
+        <span class="label-caption">{{ 'cases.publishMessageLabel' | translate }}</span>
+        <textarea [value]="publishNotice()" (input)="publishNotice.set($any($event.target).value)"></textarea>
+      </label>
+      <div class="actions">
+        <button type="button" class="btn" (click)="publish()">{{ 'cases.publish' | translate }}</button>
+        <button type="button" class="ghost" (click)="confirmPublish.set(false)">{{ 'common.cancel' | translate }}</button>
+      </div>
+    </div>
+  </div>
+}

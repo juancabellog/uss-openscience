@@ -41,11 +41,11 @@ export const DECISION_CATALOG = [
 ] as const;
 
 export const ROLE_LABELS: Record<string, string> = {
-  ADMINISTRATOR: 'catalogs.roles.ADMINISTRATOR',
-  COMMITTEE_PRESIDENT: 'catalogs.roles.COMMITTEE_PRESIDENT',
-  EXECUTIVE_SECRETARY: 'catalogs.roles.EXECUTIVE_SECRETARY',
-  COMMITTEE_MEMBER: 'catalogs.roles.COMMITTEE_MEMBER',
-  RESEARCHER: 'catalogs.roles.RESEARCHER'
+  ADMINISTRATOR: 'roles.administrator',
+  COMMITTEE_PRESIDENT: 'roles.committee_president',
+  EXECUTIVE_SECRETARY: 'roles.executive_secretary',
+  REVIEWER: 'roles.reviewer',
+  RESEARCHER: 'roles.researcher'
 };
 
 export const OFFICIAL_COMMITTEE_NAMES: Record<string, string> = {
@@ -60,6 +60,13 @@ export const COMMITTEE_LABELS: Record<string, string> = {
   CECUA: 'catalogs.committees.CECUA',
   BIOSEGURIDAD: 'catalogs.committees.BIOSEGURIDAD',
   NO_REQUIERE_COMITE: 'catalogs.committees.NO_REQUIERE_COMITE'
+};
+
+export const COMMITTEE_SHORT_LABELS: Record<string, string> = {
+  CEC: 'catalogs.committees.short.CEC',
+  CECUA: 'catalogs.committees.short.CECUA',
+  BIOSEGURIDAD: 'catalogs.committees.short.BIOSEGURIDAD',
+  NO_REQUIERE_COMITE: 'catalogs.committees.short.NO_REQUIERE_COMITE'
 };
 
 export const CASE_STATUS_LABELS: Record<string, string> = {

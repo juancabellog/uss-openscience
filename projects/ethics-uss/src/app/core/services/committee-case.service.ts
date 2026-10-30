@@ -11,6 +11,7 @@ import { CommunicationService } from './communication.service';
 import { AuditService } from './audit.service';
 import { EthicsStore } from './ethics-store.service';
 import { NotificationService } from './notification.service';
+import { holds, hasScope } from '../workflow/role-capabilities';
 import { nowIso, uid } from './ids';
 
 @Injectable({ providedIn: 'root' })
@@ -141,8 +142,18 @@ export class CommitteeCaseService {
     this.patch(caseId, { status });
   }
 
-  requiredDocs(committee: EthicsCommittee): Array<{ key: string; label: string; required: boolean }> {
-    return requirementsFor(committee).map((item) => ({ key: item.id, label: item.nameKey, required: item.required }));
+  /** Cierra la respuesta del investigador y vuelve a dejar el paquete congelado. */
+  receiveResearcherResponse(caseId: string): void {
+    this.patch(caseId, { status: 'IN_REVIEW', packageFrozen: true });
+  }
+
+  requiredDocs(committee: EthicsCommittee): Array<{ key: string; label: string; required: boolean; versionable: boolean }> {
+    return requirementsFor(committee).map((item) => ({
+      key: item.id,
+      label: item.nameKey,
+      required: item.required,
+      versionable: item.versionable
+    }));
   }
 
   completion(caseId: string): { done: number; total: number } {
@@ -191,7 +202,7 @@ export class CommitteeCaseService {
   private notifyOfficers(item: CommitteeCase, draft: { type: string; title: string; body: string; params?: Record<string, string | number> }): void {
     this.store
       .snapshot()
-      .users.filter((user) => (user.role === 'EXECUTIVE_SECRETARY' || user.role === 'COMMITTEE_PRESIDENT') && user.committees.includes(item.committee))
+      .users.filter((user) => hasScope(user, 'COMMITTEE') && holds(user, 'VIEW_COMMITTEE_SESSIONS') && user.committees.includes(item.committee))
       .forEach((user) => this.notifications.notify(user.id, { ...draft, link: `/expedientes/${item.id}` }));
   }
 }

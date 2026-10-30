@@ -1,11 +1,13 @@
 import { Injectable } from '@angular/core';
+import { DemoAuthService } from '../auth/demo-auth.service';
 import { reviewFormFor } from '../forms/review-form.definition';
 import { Review, Role } from '../models/ethics.models';
 import { AuditService } from './audit.service';
 import { CommitteeCaseService } from './committee-case.service';
 import { EthicsStore } from './ethics-store.service';
-import { ReviewerService } from './reviewer.service';
 import { nowIso, uid } from './ids';
+import { PermissionService } from './permission.service';
+import { ReviewerService } from './reviewer.service';
 
 @Injectable({ providedIn: 'root' })
 export class ReviewService {
@@ -13,43 +15,81 @@ export class ReviewService {
     private readonly store: EthicsStore,
     private readonly audit: AuditService,
     private readonly assignments: ReviewerService,
-    private readonly cases: CommitteeCaseService
+    private readonly cases: CommitteeCaseService,
+    private readonly permissions: PermissionService,
+    private readonly auth: DemoAuthService
   ) {}
 
-  visibleTo(assignmentId: string, userId: string, role: Role): Review | undefined {
+  visibleTo(assignmentId: string, userId: string, _role: Role): Review | undefined {
     const assignment = this.assignments.getAssignment(assignmentId);
     if (!assignment) {
       return undefined;
     }
     const review = this.store.snapshot().reviews.find((item) => item.assignmentId === assignmentId);
-    if (!review) {
+    if (!review || review.reviewerId !== assignment.reviewerId) {
       return undefined;
     }
-    if (role === 'RESEARCHER') {
-      return undefined;
-    }
-    if (role === 'COMMITTEE_MEMBER' && review.reviewerId !== userId) {
-      return undefined;
-    }
-    return review;
+    return this.canReadReview(userId, review.caseId, review.reviewerId) ? review : undefined;
   }
 
-  listForCase(caseId: string, userId: string, role: Role, cycleNumber?: number): Review[] {
+  listForCase(caseId: string, userId: string, _role: Role, cycleNumber?: number): Review[] {
     const items = this.store.snapshot().reviews.filter((item) =>
       item.caseId === caseId && (cycleNumber === undefined || item.cycleNumber === cycleNumber)
     );
-    if (role === 'RESEARCHER') {
-      return [];
+    const user = this.store.snapshot().users.find((item) => item.id === userId);
+    const item = this.cases.get(caseId);
+    const context = {
+      projectId: item?.projectId,
+      committeeCaseId: caseId,
+      committeeType: item?.committee,
+      workflowStatus: item?.status
+    };
+    if (user && this.permissions.can(user, 'VIEW_ALL_REVIEWS', context)) {
+      return items.filter((review) => !!review.submittedAt);
     }
-    if (role === 'COMMITTEE_MEMBER') {
-      return items.filter((item) => item.reviewerId === userId);
+    if (user && this.permissions.can(user, 'VIEW_OWN_REVIEW', context)) {
+      return items.filter((review) => review.reviewerId === userId);
     }
-    return items;
+    return [];
+  }
+
+  private canReadReview(userId: string, caseId: string, reviewerId: string): boolean {
+    const user = this.store.snapshot().users.find((item) => item.id === userId);
+    const item = this.cases.get(caseId);
+    if (!user || !item) {
+      return false;
+    }
+    const context = {
+      projectId: item.projectId,
+      committeeCaseId: caseId,
+      committeeType: item.committee,
+      workflowStatus: item.status
+    };
+    if (this.permissions.can(user, 'VIEW_ALL_REVIEWS', context)) {
+      return true;
+    }
+    if (reviewerId !== userId) {
+      return false;
+    }
+    return this.store.snapshot().assignments.some((row) =>
+      row.caseId === caseId && row.reviewerId === userId && row.status !== 'REJECTED' && row.status !== 'CONFLICT'
+    );
   }
 
   save(assignmentId: string, criteria: Record<string, string>, submit: boolean): Review {
     const assignment = this.assignments.getAssignment(assignmentId);
-    if (!assignment) {
+    const user = this.auth.currentUser();
+    if (!assignment || !user || user.id !== assignment.reviewerId || assignment.status !== 'ACCEPTED') {
+      throw new Error('Asignación no encontrada');
+    }
+    const currentCase = this.cases.get(assignment.caseId);
+    const allowed = this.permissions.can(user, submit ? 'SUBMIT_OWN_REVIEW' : 'EDIT_OWN_REVIEW', {
+      projectId: currentCase?.projectId,
+      committeeCaseId: assignment.caseId,
+      committeeType: currentCase?.committee,
+      workflowStatus: currentCase?.status
+    });
+    if (!allowed) {
       throw new Error('Asignación no encontrada');
     }
     const current = this.cases.get(assignment.caseId);
@@ -84,7 +124,10 @@ export class ReviewService {
         description: 'Envió revisión',
         projectId: this.cases.get(assignment.caseId)?.projectId
       });
-      const done = this.assignments.byCase(assignment.caseId).every((item) => item.status === 'COMPLETED' || item.id === assignmentId);
+      const active = this.assignments.currentBySlot(assignment.caseId)
+        .map((item) => item.assignment)
+        .filter((item) => !!item && item.status !== 'REJECTED' && item.status !== 'CONFLICT');
+      const done = active.length === 2 && active.every((item) => item!.status === 'COMPLETED' || item!.id === assignmentId);
       if (done) {
         this.cases.setStatus(assignment.caseId, 'IN_REVIEW');
       }
