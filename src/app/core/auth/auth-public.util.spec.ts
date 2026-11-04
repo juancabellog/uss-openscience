@@ -1,4 +1,6 @@
 import {
+  activationFailureKey,
+  activationFields,
   currentPagePath,
   isPublicAuthApi,
   isPublicPagePath,
@@ -35,6 +37,30 @@ describe('auth public flow', () => {
     expect(currentPagePath('/', '/openscience/auth/activate-account', '/openscience/')).toBe(
       '/auth/activate-account'
     );
+  });
+
+  it('does not describe a missing institutional profile as an expired link', () => {
+    expect(activationFailureKey('AUTH_PROFILE_REQUIRED')).toBe('auth.activateProfileRejected');
+    expect(activationFailureKey('AUTH_PROFILE_REQUIRED')).not.toBe('auth.tokenInvalid');
+    expect(activationFailureKey('AUTH_TOKEN_INVALID')).toBe('auth.tokenInvalid');
+    expect(activationFailureKey('AUTH_ALREADY_ACTIVE')).toBe('auth.alreadyActivated');
+    expect(activationFailureKey('AUTH_PASSWORD_POLICY')).toBe('auth.passwordPolicy');
+    expect(activationFailureKey('DATABASE_ERROR')).toBe('auth.activateFailed');
+    expect(activationFailureKey(undefined)).not.toBe('auth.tokenInvalid');
+  });
+
+  it('shows the institutional profile only when the preview requires it', () => {
+    expect(activationFields(false)).toEqual(['password', 'confirm']);
+    expect(activationFields(undefined)).toEqual(['password', 'confirm']);
+    expect(activationFields(true)).toEqual([
+      'givenName',
+      'familyName',
+      'campus',
+      'faculty',
+      'positionTitle',
+      'password',
+      'confirm'
+    ]);
   });
 
   it('recognizes public auth APIs', () => {

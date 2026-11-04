@@ -1,7 +1,7 @@
 <div class="drawer" role="dialog" aria-modal="true">
   <div class="drawer__panel">
     <h2>{{ (user() ? 'admin.users.edit' : 'admin.users.new') | translate }}</h2>
-    <form [formGroup]="form" (ngSubmit)="submit()">
+    <form [formGroup]="form" (ngSubmit)="submit()" [attr.aria-busy]="busy() ? true : null">
       <label class="filter-field">
         <span>{{ 'admin.users.firstName' | translate }}</span>
         <input class="os-control" formControlName="firstName" />
@@ -35,14 +35,25 @@
         }
       </fieldset>
       @if (error(); as key) {
-        <p class="auth-error">{{ key | translate }}</p>
+        <p class="auth-error" role="alert">{{ key | translate }}</p>
       }
       <div class="drawer__actions">
-        <button type="button" (click)="closed.emit()">{{ 'common.cancel' | translate }}</button>
-        <button type="submit" class="page-action page-action--primary" [disabled]="busy()">
-          {{ (user() ? 'admin.users.save' : 'admin.users.createInvite') | translate }}
+        <button type="button" (click)="closed.emit()" [disabled]="busy()">{{ 'common.cancel' | translate }}</button>
+        <button type="submit" class="page-action page-action--primary uss-op-button" [disabled]="busy()" [attr.aria-busy]="busy() ? true : null">
+          @if (busy()) { <span class="uss-op-spinner" aria-hidden="true"></span> }
+          @if (busy()) {
+            {{ (user() ? 'admin.users.saving' : 'admin.users.creating') | translate }}
+          } @else {
+            {{ (user() ? 'admin.users.save' : 'admin.users.createInvite') | translate }}
+          }
         </button>
       </div>
+      <uss-operation-feedback
+        [visible]="saveView().showPanel"
+        [title]="saveView().loadingMessage"
+        [detail]="saveView().detailMessage"
+        [extra]="saveView().longRunningMessage"
+      />
     </form>
   </div>
 </div>

@@ -39,8 +39,11 @@ export interface ActivationPreviewDto {
   maskedEmail?: string | null;
   purpose?: string;
   profileRequired?: boolean;
+  ethicsInvitation?: boolean;
+  pureReadonly?: boolean;
   givenName?: string | null;
   familyName?: string | null;
+  positionTitle?: string | null;
   preferredLanguage?: string | null;
 }
 

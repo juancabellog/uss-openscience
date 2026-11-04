@@ -18,7 +18,9 @@ export interface ProjectViewModel {
   funding: string;
   researcherName: string | null;
   submittedAt: string;
+  updatedAt: string;
   overallStatus: string | null;
+  continueDraft: boolean;
   committees: ProjectCommitteeView[];
   nextExpiration: { date: string; committeeKey: string } | null;
 }

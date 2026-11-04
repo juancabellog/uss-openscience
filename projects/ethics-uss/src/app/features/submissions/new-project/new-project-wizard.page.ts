@@ -1,14 +1,16 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core';
 import { ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { environment } from '../../../../environments/environment';
 import { DemoAuthService } from '../../../core/auth/demo-auth.service';
-import { NEW_PROJECT_FORM, asText, buildFormGroup, questionOf, questionVisible, questionsOfSection, requiresSupervisedContext, requiresTutor, FormAnswerValue, FormQuestion } from '../../../core/forms';
+import { NEW_PROJECT_FORM, asText, answersToPayload, buildFormGroup, hasAnswer, questionOf, questionVisible, questionsOfSection, requiresSupervisedContext, requiresTutor, resolveAnswers, FormAnswerValue, FormQuestion } from '../../../core/forms';
 import { InstitutionalProfile, prefillValue } from '../../../core/forms/institutional-prefill';
 import { EthicsSubmissionService } from '../../../core/services/ethics-submission.service';
+import { ProjectService } from '../../../core/services/project.service';
 import { EthicsFormFieldsComponent } from '../../../shared/forms/ethics-form-fields.component';
 import { I18nService } from '../../../core/i18n/i18n.service';
 import { I18N_IMPORTS } from '../../../shared/i18n/i18n.imports';
+import { draftEditDecision, firstPendingStep } from './draft-resume';
 import { currentStepBlocks, sectionComplete, WizardStepField, wizardMove, wizardStepStatus } from './wizard-step-navigation';
 
 @Component({
@@ -20,13 +22,19 @@ import { currentStepBlocks, sectionComplete, WizardStepField, wizardMove, wizard
 })
 export class NewProjectWizardPage {
   private readonly submissions = inject(EthicsSubmissionService);
+  private readonly projects = inject(ProjectService);
   private readonly auth = inject(DemoAuthService);
   private readonly router = inject(Router);
   readonly i18n = inject(I18nService);
+  /** Vacío en una solicitud nueva. En `/proyectos/:id/borrador` es el proyecto ya guardado. */
+  readonly id = input<string>();
   readonly definition = NEW_PROJECT_FORM;
   readonly step = signal(1);
   readonly saving = signal(false);
+  readonly savingAction = signal<'draft' | 'submit' | null>(null);
   readonly message = signal<string | null>(null);
+  private readonly submissionId = signal<string | null>(null);
+  private readonly openedDraft = signal<string | null>(null);
   readonly steps = this.definition.sections.map((section) => section.title);
   readonly form = buildFormGroup(this.definition);
   readonly formTick = signal(0);
@@ -51,8 +59,44 @@ export class NewProjectWizardPage {
 
   constructor() {
     this.form.valueChanges.subscribe(() => this.formTick.update((value) => value + 1));
+    effect(() => {
+      const projectId = this.id();
+      if (!projectId || this.openedDraft() === projectId) {
+        return;
+      }
+      this.openedDraft.set(projectId);
+      this.openDraft(projectId);
+    });
     this.prefillAuthenticatedUser();
     void this.prefillFromBackend();
+  }
+
+  private openDraft(projectId: string): void {
+    const submission = this.submissions.byProject(projectId);
+    const project = this.projects.get(projectId)?.project;
+    const decision = draftEditDecision({
+      found: !!submission,
+      status: submission?.status,
+      ownerId: project?.researcherId,
+      actorId: this.auth.currentUser()?.id
+    });
+    if (decision !== 'ok' || !submission) {
+      void this.router.navigate(decision === 'closed' ? ['/proyectos', projectId] : ['/proyectos']);
+      return;
+    }
+    this.submissionId.set(submission.id);
+    const saved = answersToPayload(this.definition, resolveAnswers(submission));
+    const patch: Record<string, FormAnswerValue> = {};
+    for (const [key, value] of Object.entries(saved)) {
+      if (hasAnswer(value as FormAnswerValue)) {
+        patch[key] = value as FormAnswerValue;
+      }
+    }
+    this.form.patchValue(patch);
+    this.step.set(firstPendingStep(this.completion()));
+    if (typeof history !== 'undefined' && history.state?.draftSaved === true) {
+      this.message.set(this.i18n.translate('submission.new.draftSaved'));
+    }
   }
 
   private prefillAuthenticatedUser(): void {
@@ -183,21 +227,43 @@ export class NewProjectWizardPage {
   }
 
   saveDraft(): void {
+    if (this.saving()) {
+      return;
+    }
     this.saving.set(true);
-    const submission = this.submissions.saveDraft('NEW_PROJECT', this.form.getRawValue());
-    this.saving.set(false);
-    this.message.set(this.i18n.translate('submission.new.draftSaved'));
-    void this.router.navigate(['/proyectos', submission.projectId]);
+    this.savingAction.set('draft');
+    try {
+      const submission = this.submissions.saveDraft('NEW_PROJECT', this.form.getRawValue(), this.submissionId() ?? undefined);
+      this.submissionId.set(submission.id);
+      this.message.set(this.i18n.translate('submission.new.draftSaved'));
+      if (this.id() !== submission.projectId) {
+        void this.router.navigate(['/proyectos', submission.projectId, 'borrador'], { replaceUrl: true, state: { draftSaved: true } });
+      }
+    } catch {
+      this.message.set(this.i18n.translate('submission.new.draftClosed'));
+    } finally {
+      this.saving.set(false);
+      this.savingAction.set(null);
+    }
   }
 
   submit(): void {
+    if (this.saving()) {
+      return;
+    }
     if (!asText(this.form.controls['title'].value).trim() || !this.form.controls['truth'].value || !this.form.controls['singapore'].value) {
       this.message.set(this.i18n.translate('submission.new.completeToSubmit'));
       return;
     }
     this.saving.set(true);
-    const submission = this.submissions.submit('NEW_PROJECT', this.form.getRawValue());
-    this.saving.set(false);
-    void this.router.navigate(['/proyectos', submission.projectId]);
+    this.savingAction.set('submit');
+    try {
+      const submission = this.submissions.submit('NEW_PROJECT', this.form.getRawValue(), this.submissionId() ?? undefined);
+      void this.router.navigate(['/proyectos', submission.projectId]);
+    } catch {
+      this.message.set(this.i18n.translate('submission.new.draftClosed'));
+      this.saving.set(false);
+      this.savingAction.set(null);
+    }
   }
 }

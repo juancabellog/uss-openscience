@@ -1,5 +1,11 @@
 import { attachI18nKeys } from './form-i18n';
 import { FormDefinition, FormQuestion } from './form.types';
+import {
+  INSTITUTIONAL_CAMPUSES,
+  INSTITUTIONAL_FACULTIES,
+  INSTITUTIONAL_POSITIONS,
+  institutionalSelectOptions
+} from './institutional-options';
 
 const QUESTIONS: FormQuestion[] = [
   {
@@ -97,16 +103,7 @@ const QUESTIONS: FormQuestion[] = [
     type: 'select',
     label: 'Sede - Campus USS donde se ejecuta',
     required: true,
-    options: [
-      'Santiago - Bellavista',
-      'Santiago - Los Leones',
-      'Santiago - Ciudad Universitaria (Huechuraba)',
-      'Concepción - Tres Pascualas',
-      'Concepción - Paicaví',
-      'Valdivia - Sede',
-      'Valdivia - Centro de Estudios Científicos',
-      'Patagonia'
-    ].map((label) => ({ id: label, label }))
+    options: institutionalSelectOptions(INSTITUTIONAL_CAMPUSES)
   },
   {
     id: 'NP-008',
@@ -116,19 +113,7 @@ const QUESTIONS: FormQuestion[] = [
     type: 'select',
     label: 'Facultad/Unidad',
     required: true,
-    options: [
-      'Arquitectura, Arte y Diseño',
-      'Ciencias',
-      'Ciencias de la Rehabilitación y Calidad de Vida',
-      'Ciencias para el cuidado de la Salud',
-      'Derecho y Ciencias Sociales',
-      'Economía, Negocios y Gobierno',
-      'Educación',
-      'Ingeniería',
-      'Medicina',
-      'Medicina Veterinaria',
-      'Odontología'
-    ].map((label) => ({ id: label, label }))
+    options: institutionalSelectOptions(INSTITUTIONAL_FACULTIES)
   },
   {
     id: 'NP-009',
@@ -148,18 +133,7 @@ const QUESTIONS: FormQuestion[] = [
     type: 'select',
     label: 'Tipo de Cargo',
     required: true,
-    options: [
-      'Estudiante de pregrado',
-      'Estudiante de magister',
-      'Estudiante de doctorado',
-      'Postdoctorante',
-      'Asistente de Investigación',
-      'Personal Técnico',
-      'Docente',
-      'Co-Investigador',
-      'Investigador',
-      'Director Unidad Administrativa'
-    ].map((label) => ({ id: label, label }))
+    options: institutionalSelectOptions(INSTITUTIONAL_POSITIONS)
   },
   {
     id: 'NP-011',
@@ -200,16 +174,7 @@ const QUESTIONS: FormQuestion[] = [
     label: 'Sede - Campus USS del patrocinante o tutor',
     required: true,
     displayWhen: 'formative-ir',
-    options: [
-      'Santiago - Bellavista',
-      'Santiago - Los Leones',
-      'Santiago - Ciudad Universitaria (Huechuraba)',
-      'Concepción - Tres Pascualas',
-      'Concepción - Paicaví',
-      'Valdivia - Sede',
-      'Valdivia - Centro de Estudios Científicos',
-      'Patagonia'
-    ].map((label) => ({ id: label, label }))
+    options: institutionalSelectOptions(INSTITUTIONAL_CAMPUSES)
   },
   {
     id: 'NP-015',
@@ -220,19 +185,7 @@ const QUESTIONS: FormQuestion[] = [
     label: 'Facultad/Unidad patrocinante o tutor',
     required: true,
     displayWhen: 'formative-ir',
-    options: [
-      'Arquitectura, Arte y Diseño',
-      'Ciencias',
-      'Ciencias de la Rehabilitación y Calidad de Vida',
-      'Ciencias para el cuidado de la Salud',
-      'Derecho y Ciencias Sociales',
-      'Economía, Negocios y Gobierno',
-      'Educación',
-      'Ingeniería',
-      'Medicina',
-      'Medicina Veterinaria',
-      'Odontología'
-    ].map((label) => ({ id: label, label }))
+    options: institutionalSelectOptions(INSTITUTIONAL_FACULTIES)
   },
   {
     id: 'NP-016',

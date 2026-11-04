@@ -17,6 +17,8 @@ import { presentCommittees } from './committee-presentation';
 import { ProjectViewModel } from './project-view.model';
 import { projectHasStatus, projectHasValidity } from './project-inventory';
 import { projectBelongsToCommittees } from '../../core/workflow/committee-projects';
+import { WorkspaceService } from '../../core/layout/workspace.service';
+import { isCommitteeWorkspace } from '../../core/layout/workspace';
 import { ProjectViewToggleComponent } from './project-view-toggle.component';
 
 type ViewMode = 'cards' | 'list';
@@ -35,7 +37,7 @@ type ViewMode = 'cards' | 'list';
   template: `
     <section>
       <header class="projects-toolbar">
-        <h1>{{ 'projects.title' | translate }}</h1>
+        <h1>{{ (workspaceKind() === 'RESEARCHER' ? 'navigation.myProjects' : 'projects.title') | translate }}</h1>
         <div class="projects-toolbar__actions">
           <eth-project-view-toggle [mode]="mode()" (modeChange)="setMode($event)" />
           @if (canCreate()) {
@@ -201,6 +203,7 @@ export class ProjectListPage {
   private readonly i18n = inject(I18nService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly workspaces = inject(WorkspaceService);
   private readonly query = toSignal(this.route.queryParamMap, { initialValue: this.route.snapshot.queryParamMap });
   private readonly choice = signal<{ userId: string; mode: ViewMode } | null>(null);
   private readonly emptyFilters: ProjectFilterValue = { query: '', researcherId: '', from: '', to: '', status: '', validity: '' };
@@ -214,6 +217,7 @@ export class ProjectListPage {
     return !!user && !hasScope(user, 'OWN_PROJECT');
   });
   readonly authorized = computed(() => this.projectsApi.listVisible());
+  readonly workspaceKind = computed(() => this.workspaces.active()?.kind ?? null);
   readonly committeeScope = computed(() => this.query().get('scope') === 'committee');
   readonly showCommitteeScope = computed(() => {
     const membership = new Set(this.auth.currentUser()?.committees ?? []);
@@ -267,7 +271,18 @@ export class ProjectListPage {
     const expiry = (item: CommitteeCase) => this.projectsApi.expiryInfo(item);
     const membership = new Set(this.auth.currentUser()?.committees ?? []);
     const committeeOnly = this.committeeScope();
+    const workspace = this.workspaces.active();
+    const userId = this.auth.currentUser()?.id;
     return this.authorized().filter((row) => {
+      if (workspace?.kind === 'RESEARCHER' && row.project.researcherId !== userId) {
+        return false;
+      }
+      if (workspace?.kind === 'REVIEWER' && row.globalStatus === 'DRAFT') {
+        return false;
+      }
+      if (workspace?.scopeId && isCommitteeWorkspace(workspace.kind) && !row.cases.some((item) => item.committee === workspace.scopeId)) {
+        return false;
+      }
       if (committeeOnly && !projectBelongsToCommittees(row.cases.map((item) => item.committee), membership)) {
         return false;
       }
@@ -407,14 +422,18 @@ export class ProjectListPage {
     const next = committees
       .filter((item) => item.expiresAt && item.daysLeft !== null && item.daysLeft >= 0)
       .sort((a, b) => (a.expiresAt ?? '').localeCompare(b.expiresAt ?? ''))[0];
+    const user = this.auth.currentUser();
+    const ownDraft = row.globalStatus === 'DRAFT' && !!user && row.project.researcherId === user.id && this.permissions.can(user, 'CREATE_REQUEST');
     return {
       id: row.project.id,
-      title: row.project.title,
+      title: row.project.title.trim(),
       code: row.project.code,
       funding: row.project.fundingSource,
       researcherName: role && role !== 'RESEARCHER' ? row.researcher?.displayName ?? null : null,
       submittedAt: row.project.createdAt,
+      updatedAt: row.project.updatedAt,
       overallStatus: showOverall ? row.globalStatus : null,
+      continueDraft: ownDraft,
       committees,
       nextExpiration: next?.expiresAt ? { date: next.expiresAt, committeeKey: next.shortNameKey } : null
     };

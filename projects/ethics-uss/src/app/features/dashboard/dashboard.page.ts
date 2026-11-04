@@ -18,7 +18,9 @@ import { StatusChipComponent } from '../../shared/components/status-chip.compone
 import { I18N_IMPORTS } from '../../shared/i18n/i18n.imports';
 import { HomeSummaryTileComponent } from '../../shared/components/home-summary-tile.component';
 import { INVENTORY_INDICATORS } from '../projects/project-inventory';
-import { activeReviews, pendingReviews } from '../reviews/review-inbox.filter';
+import { activeReviews, completedReviews, pendingReviews } from '../reviews/review-inbox.filter';
+import { WorkspaceService } from '../../core/layout/workspace.service';
+import { isCommitteeWorkspace } from '../../core/layout/workspace';
 import { EXPIRY_ATTENTION, HOME_INDICATORS, OWN_EXPIRY_ATTENTION, attentionFor, committeeWorkHome, ownAttentionFor, ownsProjectHome } from './home-work';
 import { operationalTiles, showCommitteeProjects } from './home-tiles';
 import { reviewAttentionCopy } from './review-work';
@@ -91,6 +93,7 @@ export class DashboardPage {
   private readonly audit = inject(AuditService);
   private readonly store = inject(EthicsStore);
   readonly i18n = inject(I18nService);
+  private readonly workspaces = inject(WorkspaceService);
   readonly user = this.auth.currentUser;
   readonly committeeScope = computed(() => hasScope(this.user(), 'COMMITTEE'));
   readonly roleLabelKey = computed(() => {
@@ -98,9 +101,51 @@ export class DashboardPage {
     return user ? profileRoleKey(user) : '';
   });
   readonly activeCommittee = this.auth.activeCommittee;
-  readonly rows = computed(() => this.projects.listVisible());
+  readonly rows = computed(() => {
+    const visible = this.projects.listVisible();
+    const workspace = this.workspaces.active();
+    const user = this.user();
+    if (workspace?.kind === 'RESEARCHER' && user) {
+      return visible.filter((row) => row.project.researcherId === user.id);
+    }
+    if (workspace?.scopeId && isCommitteeWorkspace(workspace.kind)) {
+      return visible.filter((row) => row.cases.some((item) => item.committee === workspace.scopeId));
+    }
+    return visible;
+  });
   readonly workHome = computed(() => committeeWorkHome(this.user()));
   readonly ownHome = computed(() => ownsProjectHome(this.user()));
+  readonly activeWorkspace = computed(() => this.workspaces.active());
+  readonly showCommittee = computed(() => {
+    const kind = this.activeWorkspace()?.kind;
+    if (!kind) {
+      return this.workHome();
+    }
+    return isCommitteeWorkspace(kind);
+  });
+  readonly showOwn = computed(() => {
+    const kind = this.activeWorkspace()?.kind;
+    if (!kind) {
+      return this.ownHome();
+    }
+    return kind === 'RESEARCHER';
+  });
+  readonly showReviews = computed(() => this.activeWorkspace()?.kind === 'REVIEWER');
+  readonly showInstitutional = computed(() => {
+    const kind = this.activeWorkspace()?.kind;
+    if (!kind) {
+      return this.institutionalHome();
+    }
+    return kind === 'ADMINISTRATOR';
+  });
+  readonly reviewCounts = computed(() => {
+    const items = this.assignments.assignmentsFor(this.user()?.id ?? '');
+    return {
+      pending: pendingReviews(items),
+      active: activeReviews(items),
+      completed: completedReviews(items)
+    };
+  });
   readonly granted = computed(() => capabilitiesForRoles(rolesOf(this.user())));
   readonly institutionalHome = computed(() => !this.workHome() && !this.ownHome() && institutionalModules(this.granted()).length > 0);
   readonly inventory = computed(() => {
@@ -268,6 +313,10 @@ export class DashboardPage {
     const user = this.user();
     if (!user) {
       return [];
+    }
+    const workspace = this.workspaces.active();
+    if (workspace?.scopeId && isCommitteeWorkspace(workspace.kind)) {
+      return this.cases.byCommittee([workspace.scopeId as EthicsCommittee]);
     }
     if (this.granted().has('VIEW_AUDIT')) {
       return this.cases.list();

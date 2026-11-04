@@ -1,8 +1,15 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { merge } from 'rxjs';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { activationFailureKey } from '../../core/auth/auth-public.util';
+import {
+  INSTITUTIONAL_CAMPUSES,
+  INSTITUTIONAL_FACULTIES,
+  INSTITUTIONAL_POSITIONS
+} from '../../../../projects/ethics-uss/src/app/core/forms/institutional-options';
 import { I18nService } from '../../core/i18n/i18n.service';
 import { AuthApiService } from '../../core/services/api/auth-api.service';
 import { InstitutionalHeaderComponent } from '../../layout/institutional-header/institutional-header.component';
@@ -13,45 +20,13 @@ type PreviewState = {
   status: 'loading' | 'VALID' | 'INVALID' | 'EXPIRED' | 'USED' | 'ALREADY_ACTIVE';
   maskedEmail?: string | null;
   profileRequired?: boolean;
+  ethicsInvitation?: boolean;
+  pureReadonly?: boolean;
   givenName?: string | null;
   familyName?: string | null;
+  positionTitle?: string | null;
 };
 
-const CAMPUSES = [
-  'Santiago - Bellavista',
-  'Santiago - Los Leones',
-  'Santiago - Ciudad Universitaria (Huechuraba)',
-  'Concepción - Tres Pascualas',
-  'Concepción - Paicaví',
-  'Valdivia - Sede',
-  'Valdivia - Centro de Estudios Científicos',
-  'Patagonia'
-];
-const FACULTIES = [
-  'Arquitectura, Arte y Diseño',
-  'Ciencias',
-  'Ciencias de la Rehabilitación y Calidad de Vida',
-  'Ciencias para el cuidado de la Salud',
-  'Derecho y Ciencias Sociales',
-  'Economía, Negocios y Gobierno',
-  'Educación',
-  'Ingeniería',
-  'Medicina',
-  'Medicina Veterinaria',
-  'Odontología'
-];
-const POSITIONS = [
-  'Estudiante de pregrado',
-  'Estudiante de magister',
-  'Estudiante de doctorado',
-  'Postdoctorante',
-  'Asistente de Investigación',
-  'Personal Técnico',
-  'Docente',
-  'Co-Investigador',
-  'Investigador',
-  'Director Unidad Administrativa'
-];
 
 @Component({
   selector: 'os-activate-account',
@@ -73,9 +48,9 @@ export class ActivateAccountComponent {
   readonly error = signal<string | null>(null);
   readonly showPassword = signal(false);
   readonly showConfirm = signal(false);
-  readonly campuses = CAMPUSES;
-  readonly faculties = FACULTIES;
-  readonly positions = POSITIONS;
+  readonly campuses = INSTITUTIONAL_CAMPUSES;
+  readonly faculties = INSTITUTIONAL_FACULTIES;
+  readonly positions = INSTITUTIONAL_POSITIONS;
   readonly form = new FormGroup({
     givenName: new FormControl('', { nonNullable: true }),
     familyName: new FormControl('', { nonNullable: true }),
@@ -102,8 +77,11 @@ export class ActivateAccountComponent {
           status: normalizeStatus(value.status, value.valid),
           maskedEmail: value.maskedEmail,
           profileRequired: value.profileRequired === true,
+          ethicsInvitation: value.ethicsInvitation === true,
+          pureReadonly: value.pureReadonly === true,
           givenName: value.givenName,
-          familyName: value.familyName
+          familyName: value.familyName,
+          positionTitle: value.positionTitle
         });
       },
       error: () => this.preview.set({ status: 'INVALID' })
@@ -123,7 +101,45 @@ export class ActivateAccountComponent {
     if (!(this.submitted() || control.touched) || control.valid) {
       return null;
     }
-    return control.hasError('minlength') ? 'auth.passwordPolicy' : 'auth.passwordRequired';
+    return control.hasError('minlength') ? 'auth.passwordPolicy' : 'auth.newPasswordRequired';
+  }
+
+  confirmError(): string | null {
+    this.formTick();
+    const control = this.form.controls.confirm;
+    if (!(this.submitted() || control.touched) || control.value.length > 0) {
+      return null;
+    }
+    return 'auth.confirmRequired';
+  }
+
+  fieldError(name: 'givenName' | 'familyName' | 'campus' | 'faculty' | 'positionTitle'): string | null {
+    this.formTick();
+    if (!this.preview().profileRequired) {
+      return null;
+    }
+    const control = this.form.controls[name];
+    const value = control.value.trim();
+    if (!(this.submitted() || control.touched) || value.length > 0) {
+      return null;
+    }
+    const keys = {
+      givenName: 'auth.givenNameRequired',
+      familyName: 'auth.familyNameRequired',
+      campus: 'auth.campusRequired',
+      faculty: 'auth.facultyRequired',
+      positionTitle: 'auth.positionRequired'
+    } as const;
+    return keys[name];
+  }
+
+  ethics(): boolean {
+    return this.preview().ethicsInvitation === true;
+  }
+
+  shown(value: string | null | undefined): string {
+    const text = value?.trim();
+    return text ? text : this.i18n.translate('auth.notAvailable');
   }
 
   submit(): void {
@@ -140,7 +156,7 @@ export class ActivateAccountComponent {
         || !this.form.controls.positionTitle.value;
       if (missing) {
         this.form.markAllAsTouched();
-        this.error.set('auth.activateProfileHelp');
+        this.error.set(null);
         return;
       }
     }
@@ -164,8 +180,14 @@ export class ActivateAccountComponent {
         this.done.set(true);
         this.busy.set(false);
       },
-      error: () => {
-        this.error.set('auth.tokenInvalid');
+      error: (error: unknown) => {
+        const code = error instanceof HttpErrorResponse
+          ? (error.error as { code?: string } | null)?.code
+          : undefined;
+        if (code === 'AUTH_PROFILE_REQUIRED') {
+          this.form.markAllAsTouched();
+        }
+        this.error.set(activationFailureKey(code));
         this.busy.set(false);
       }
     });

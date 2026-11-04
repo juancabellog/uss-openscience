@@ -46,10 +46,12 @@ public final class EthicsOnboardingTest {
         check(institutionalBlock.contains("users.continue") && institutionalBlock.contains("searchingUser"), "admin starts with continue and a lookup");
         check(!institutionalBlock.contains("givenName.set") && !institutionalBlock.contains("familyName.set"), "admin does not ask for names before resolution");
         check(institutionalBlock.contains("sendInvitation") && institutionalBlock.contains("enableEthics"), "admin invites or enables after resolution");
+        String usersTs = Files.readString(Path.of("../projects/ethics-uss/src/app/features/administration/users.page.ts"));
+        check(usersTs.contains("updated.accountStatus === 'PENDING_ACTIVATION'") && usersTs.contains("users.pendingInviteHint"), "enabling Ethics on a pending account does not promise existing credentials");
 
-        int accountPanel = start.indexOf("panel() === 'account'");
-        int loginPanel = start.indexOf("@else {", accountPanel);
-        String publicBlock = start.substring(accountPanel, loginPanel);
+        int accountPanel = start.indexOf("} @else if (panel() === 'account')");
+        int loginForm = start.indexOf("signIn()", accountPanel);
+        String publicBlock = start.substring(accountPanel, loginForm);
         check(publicBlock.contains("institutionalEmail") && !publicBlock.contains("givenName"), "public create-account starts with email");
         check(start.contains("startInstitutional"), "public create-account calls the email resolution");
 
@@ -68,7 +70,26 @@ public final class EthicsOnboardingTest {
         int welcome = catalog.indexOf("welcome.body");
         String welcomeLine = catalog.substring(welcome, catalog.indexOf("welcome.closing"));
         check(!welcomeLine.contains("token=") && !welcomeLine.toLowerCase().contains("password"), "welcome does not carry a password or token");
-        check(auth.contains("issueEthicsInvitation") && auth.contains("InstitutionalCatalog.accepts"), "activation validates the institutional catalog before the password");
+        check(auth.contains("issueEthicsInvitation") && auth.contains("InstitutionalCatalog.accepts"), "activation still knows the institutional catalog");
+        check(onboarding.contains("ethicsActivationView") && onboarding.contains("findIdentityByEmail"), "a PURE identity stays read-only at activation");
+        check(onboarding.contains("pure.id") && onboarding.contains("null,"), "a person missing from PURE is stored with a null PURE id and a PURE person keeps its id");
+        int activateMethod = auth.indexOf("public AuthUserDto activate(");
+        int resetMethod = auth.indexOf("public GenericMessageDto resetPassword");
+        String activateBody = auth.substring(activateMethod, resetMethod);
+        check(activateBody.contains("AUTH_TOKEN_INVALID"), "a missing or expired token is rejected");
+        check(activateBody.contains("localProfile") && activateBody.contains("AUTH_PROFILE_REQUIRED"), "an institutional person missing from PURE must send the local profile");
+        check(activateBody.contains("pureReadonly"), "a PURE invitation does not accept a locally edited profile");
+        check(activateBody.indexOf("AUTH_PROFILE_REQUIRED") < activateBody.indexOf("accessRepository.activate("), "the profile check happens before the account is activated");
+        check(!activateBody.contains("OPENSCIENCE"), "the shared activator does not grant OpenScience");
+        int enable = activation.indexOf("ensureEthicsActive");
+        int profile = activation.indexOf("profileRequired");
+        check(enable >= 0 && profile > enable && !activation.substring(enable, profile).contains("return"), "blank names still enable Ethics");
+        check(activation.contains("ensureEthicsActive") && activation.contains("\"RESEARCHER\""), "after activation Ethics enables only its own access and RESEARCHER");
+        check(!activation.contains("OPENSCIENCE"), "an Ethics invitation does not enable the OpenScience application");
+        String screen = Files.readString(Path.of("../src/app/features/auth/activate-account.component.ts"));
+        check(screen.contains("activationFailureKey"), "the activation screen does not label every failure as an expired link");
+        String production = Files.readString(Path.of("../src/environments/environment.production.ts"));
+        check(production.contains("apiBaseUrl: '/openscience-api/v1'"), "production activation posts to /openscience-api/v1");
 
         System.out.println("EthicsOnboardingTest OK");
     }

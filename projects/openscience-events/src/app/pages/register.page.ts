@@ -16,6 +16,7 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { Location } from '@angular/common';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { OperationRun, watchOperation } from '../../../../../shared/operation-feedback/operation-feedback';
 import { catchError, map, of, switchMap } from 'rxjs';
 import {
   EventPublicDetail,
@@ -65,6 +66,9 @@ export class RegisterPage {
   readonly step = signal<'email' | 'check-email' | 'confirm-link' | 'form' | 'done'>('email');
   readonly pendingToken = signal<string | null>(null);
   readonly busy = signal(false);
+  private readonly registrationRun = new OperationRun();
+  private stopRegistration: (() => void) | null = null;
+  readonly registrationView = signal(this.registrationRun.view());
   readonly emailSent = signal(false);
   readonly errorKey = signal<string | null>(null);
   readonly toastKey = signal<string | null>(null);
@@ -90,6 +94,7 @@ export class RegisterPage {
       if (this.toastTimer) {
         clearTimeout(this.toastTimer);
       }
+      this.stopRegistration?.();
       if (this.tickTimer) {
         clearInterval(this.tickTimer);
       }
@@ -137,6 +142,20 @@ export class RegisterPage {
     return 'register.closedBanner';
   }
 
+  private trackRegistration(): void {
+    if (!this.registrationRun.start({
+      loadingMessage: this.i18n.translate('register.sending'),
+      detailMessage: this.i18n.translate('register.sendingDetail'),
+      longRunningMessage: this.i18n.translate('register.stillWorking'),
+      blocking: false
+    })) {
+      return;
+    }
+    this.registrationView.set(this.registrationRun.view());
+    this.stopRegistration?.();
+    this.stopRegistration = watchOperation(this.registrationRun, () => this.registrationView.set(this.registrationRun.view()));
+  }
+
   request(): void {
     if (this.busy()) {
       return;
@@ -146,9 +165,12 @@ export class RegisterPage {
       return;
     }
     this.busy.set(true);
+    this.trackRegistration();
     this.errorKey.set(null);
     this.api.requestRegistration(this.slug(), this.emailForm.controls.email.value, this.i18n.locale()).subscribe({
       next: (result) => {
+        this.registrationRun.succeed();
+        this.registrationView.set(this.registrationRun.view());
         this.busy.set(false);
         this.emailSent.set(!!result.emailSent);
         this.step.set('check-email');
@@ -157,6 +179,8 @@ export class RegisterPage {
         this.moveFocus('confirm');
       },
       error: (err: unknown) => {
+        this.registrationRun.fail();
+        this.registrationView.set(this.registrationRun.view());
         this.busy.set(false);
         this.errorKey.set(this.connectionOrApiKey(err, 'register.sendFailed'));
       }

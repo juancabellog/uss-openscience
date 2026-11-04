@@ -13,6 +13,31 @@ public final class PublicAppUrl {
         return normalize(firstNonBlank(environmentValue, configValue));
     }
 
+    /**
+     * Una URL local de Ethics no se usa si OpenScience ya apunta a un host público.
+     * Así un JAR empaquetado en el equipo de desarrollo no manda localhost desde hidra.
+     */
+    public static String ethicsBase(String configuredEthics, String openscienceBase) {
+        String ethics = normalize(configuredEthics);
+        String app = normalize(openscienceBase);
+        if (ethics != null && !looksLocal(ethics)) {
+            return ethics;
+        }
+        if (app != null && !looksLocal(app)) {
+            return origin(app) + "/ethics";
+        }
+        return ethics;
+    }
+
+    static String origin(String url) {
+        int scheme = url.indexOf("://");
+        if (scheme < 0) {
+            return url;
+        }
+        int slash = url.indexOf('/', scheme + 3);
+        return slash < 0 ? url : url.substring(0, slash);
+    }
+
     public static boolean looksLocal(String url) {
         if (url == null || url.isBlank()) {
             return true;

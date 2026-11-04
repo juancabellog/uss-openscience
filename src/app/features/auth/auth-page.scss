@@ -22,6 +22,36 @@
   gap: var(--os-space-xs);
 }
 
+.auth-card--profile {
+  width: min(32rem, calc(100% - (var(--os-space-lg) * 2)));
+}
+
+.auth-section {
+  display: grid;
+  gap: var(--os-space-sm);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.auth-section h2 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--os-text-primary);
+}
+
+.auth-readonly {
+  display: grid;
+  gap: 0.15rem;
+  margin: 0;
+  color: var(--os-text-primary);
+}
+
+.auth-readonly span {
+  color: var(--os-text-secondary);
+  font-size: var(--os-fs-sm);
+}
+
 .auth-card h1 {
   margin: 0;
   font-size: 1.4rem;

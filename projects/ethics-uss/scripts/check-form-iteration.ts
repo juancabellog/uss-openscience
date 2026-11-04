@@ -14,7 +14,9 @@ function check(condition: boolean, message: string): void {
 const form = readFileSync(new URL('../src/app/core/forms/new-project-form.definition.ts', import.meta.url), 'utf8');
 check(form.includes("'FONDNECYT Postdoctoral'"), 'P2 keeps the Excel spelling FONDNECYT');
 check(!form.includes('FONDECYT Postdoctoral'), 'P2 does not silently correct the spelling');
-check(form.split("'Economía, Negocios y Gobierno'").length - 1 === 2, 'faculty name appears in P8 and P15, not as a duplicated option');
+check(form.split('institutionalSelectOptions(INSTITUTIONAL_FACULTIES)').length - 1 === 2, 'P8 and P15 share the faculty catalog');
+check(form.split('institutionalSelectOptions(INSTITUTIONAL_CAMPUSES)').length - 1 === 2, 'P7 and P14 share the campus catalog');
+check(form.split('institutionalSelectOptions(INSTITUTIONAL_POSITIONS)').length - 1 === 1, 'P10 uses the shared position catalog');
 for (const id of ['NP-011', 'NP-012', 'NP-013', 'NP-014', 'NP-015']) {
   const slice = form.slice(form.indexOf(`id: '${id}'`), form.indexOf(`id: '${id}'`) + 500);
   check(slice.includes("displayWhen: 'formative-ir'"), `${id} follows the narrower tutor condition`);

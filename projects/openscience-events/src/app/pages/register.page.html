@@ -61,6 +61,12 @@
           {{ 'register.email' | translate }}
           <input #emailInput type="email" formControlName="email" autocomplete="email" [attr.aria-invalid]="emailForm.controls.email.invalid && emailForm.controls.email.touched" />
         </label>
+        @if (registrationView().showDetail) {
+          <p role="status">{{ 'register.sendingDetail' | translate }}</p>
+        }
+        @if (registrationView().showLong) {
+          <p role="status">{{ 'register.stillWorking' | translate }}</p>
+        }
         <button type="submit" [disabled]="busy()" [attr.aria-busy]="busy()">
           @if (busy()) {
             <span class="btn-spinner" aria-hidden="true"></span>

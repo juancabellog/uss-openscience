@@ -6,7 +6,10 @@ public class ActivationPreviewDto {
     public String maskedEmail;
     public String purpose;
     public boolean profileRequired;
+    public boolean ethicsInvitation;
+    public boolean pureReadonly;
     public String givenName;
     public String familyName;
+    public String positionTitle;
     public String preferredLanguage;
 }

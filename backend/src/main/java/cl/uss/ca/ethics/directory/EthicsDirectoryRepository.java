@@ -1,6 +1,7 @@
 package cl.uss.ca.ethics.directory;
 
 import cl.uss.ca.ethics.auth.AssignmentStatus;
+import cl.uss.ca.ethics.auth.EthicsUserRemoval;
 import cl.uss.ca.ethics.auth.EthicsUserCatalog;
 import cl.uss.ca.ethics.auth.RoleAssignment;
 import cl.uss.ca.ethics.auth.ScopeType;
@@ -70,6 +71,52 @@ public class EthicsDirectoryRepository extends JdbcRepository {
             statement.executeUpdate();
         } catch (SQLException ex) {
             throw new DatabaseException("Failed to disable Ethics access", ex);
+        }
+    }
+
+    public EthicsUserRemoval.Facts removalFacts(long userId) {
+        try (Connection connection = connection()) {
+            return readRemovalFacts(connection, userId);
+        } catch (SQLException ex) {
+            throw new DatabaseException("Failed to read Ethics history", ex);
+        }
+    }
+
+    /**
+     * Quita el alta de Ethics y las asignaciones globales de configuración.
+     * No borra app_user, person, pure_person, otras aplicaciones ni filas de historia.
+     * Vuelve a contar dentro de la misma transacción.
+     */
+    public String removeEthicsEnrollment(long userId) {
+        try (Connection connection = connection()) {
+            boolean auto = connection.getAutoCommit();
+            connection.setAutoCommit(false);
+            try {
+                EthicsUserRemoval.Facts facts = readRemovalFacts(connection, userId);
+                String block = EthicsUserRemoval.block(facts);
+                if (block != null) {
+                    connection.rollback();
+                    return block;
+                }
+                deleteConfigurationRoles(connection, userId);
+                if (countRoles(connection, userId) > 0) {
+                    connection.rollback();
+                    return EthicsUserRemoval.HAS_HISTORY;
+                }
+                deleteEthicsApplication(connection, userId);
+                connection.commit();
+                return null;
+            } catch (SQLException | RuntimeException ex) {
+                connection.rollback();
+                if (ex instanceof SQLException sql) {
+                    throw new DatabaseException("Failed to remove the Ethics enrollment", sql);
+                }
+                throw ex;
+            } finally {
+                connection.setAutoCommit(auto);
+            }
+        } catch (SQLException ex) {
+            throw new DatabaseException("Failed to remove the Ethics enrollment", ex);
         }
     }
 
@@ -549,6 +596,145 @@ public class EthicsDirectoryRepository extends JdbcRepository {
             }
         }
         return index;
+    }
+
+    private EthicsUserRemoval.Facts readRemovalFacts(Connection connection, long userId) throws SQLException {
+        String accountStatus = scalar(connection, "SELECT status FROM " + qualified("app_user") + " WHERE id = ? AND deleted_at IS NULL", userId);
+        String ethicsStatus = ethicsStatus(connection, userId);
+        long[] roles = roleBuckets(connection, userId);
+        boolean lastAdministrator = operativeAdministrator(connection, userId)
+                && "ACTIVE".equalsIgnoreCase(accountStatus)
+                && "ACTIVE".equalsIgnoreCase(ethicsStatus)
+                && otherActiveAdministrators(userId) <= 0;
+        return new EthicsUserRemoval.Facts(
+                countSnapshots(connection, userId),
+                roles[0],
+                roles[1],
+                roles[2],
+                lastAdministrator,
+                "PENDING_ACTIVATION".equals(accountStatus)
+        );
+    }
+
+    private String ethicsStatus(Connection connection, long userId) throws SQLException {
+        if (!tableExists("user_application")) {
+            return null;
+        }
+        return scalar(connection,
+                "SELECT status FROM " + qualified("user_application") + " WHERE user_id = ? AND application_id = 'ETHICS'",
+                userId);
+    }
+
+    private long countSnapshots(Connection connection, long userId) throws SQLException {
+        if (!tableExists("ethics_request_person_snapshot") || !columnExists("app_user", "person_id")) {
+            return 0;
+        }
+        String sql = """
+                SELECT COUNT(*)
+                FROM %s s
+                JOIN %s u ON u.person_id = s.person_id
+                WHERE u.id = ? AND u.person_id IS NOT NULL
+                """.formatted(qualified("ethics_request_person_snapshot"), qualified("app_user"));
+        return count(connection, sql, userId);
+    }
+
+    /** [revisiones, actuaciones de proyecto/proceso o completadas, comité vigente o revocado]. */
+    private long[] roleBuckets(Connection connection, long userId) throws SQLException {
+        long[] buckets = new long[3];
+        if (!tableExists("ethics_role_assignment")) {
+            return buckets;
+        }
+        String sql = """
+                SELECT
+                  COALESCE(SUM(CASE WHEN role_id = 'REVIEWER' THEN 1 ELSE 0 END), 0),
+                  COALESCE(SUM(CASE WHEN role_id <> 'REVIEWER' AND (scope_type IN ('PROJECT', 'PROCESS') OR status = 'COMPLETED') THEN 1 ELSE 0 END), 0),
+                  COALESCE(SUM(CASE WHEN role_id <> 'REVIEWER' AND scope_type = 'COMMITTEE' AND status <> 'COMPLETED' THEN 1 ELSE 0 END), 0)
+                FROM %s
+                WHERE user_id = ?
+                """.formatted(qualified("ethics_role_assignment"));
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, userId);
+            try (ResultSet rs = statement.executeQuery()) {
+                if (rs.next()) {
+                    buckets[0] = rs.getLong(1);
+                    buckets[1] = rs.getLong(2);
+                    buckets[2] = rs.getLong(3);
+                }
+            }
+        }
+        return buckets;
+    }
+
+    private boolean operativeAdministrator(Connection connection, long userId) throws SQLException {
+        if (!tableExists("ethics_role_assignment")) {
+            return false;
+        }
+        String sql = """
+                SELECT 1 FROM %s
+                WHERE user_id = ? AND role_id = 'ADMINISTRATOR' AND status = 'ACTIVE'
+                  AND (valid_from IS NULL OR valid_from <= CURRENT_DATE)
+                  AND (valid_until IS NULL OR valid_until >= CURRENT_DATE)
+                LIMIT 1
+                """.formatted(qualified("ethics_role_assignment"));
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, userId);
+            try (ResultSet rs = statement.executeQuery()) {
+                return rs.next();
+            }
+        }
+    }
+
+    private void deleteConfigurationRoles(Connection connection, long userId) throws SQLException {
+        if (!tableExists("ethics_role_assignment")) {
+            return;
+        }
+        String sql = """
+                DELETE FROM %s
+                WHERE user_id = ?
+                  AND role_id <> 'REVIEWER'
+                  AND scope_type = 'GLOBAL'
+                  AND status IN ('ACTIVE', 'REVOKED')
+                """.formatted(qualified("ethics_role_assignment"));
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, userId);
+            statement.executeUpdate();
+        }
+    }
+
+    private long countRoles(Connection connection, long userId) throws SQLException {
+        if (!tableExists("ethics_role_assignment")) {
+            return 0;
+        }
+        return count(connection, "SELECT COUNT(*) FROM " + qualified("ethics_role_assignment") + " WHERE user_id = ?", userId);
+    }
+
+    private void deleteEthicsApplication(Connection connection, long userId) throws SQLException {
+        if (!tableExists("user_application")) {
+            return;
+        }
+        String sql = "DELETE FROM " + qualified("user_application") + " WHERE user_id = ? AND application_id = 'ETHICS'";
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, userId);
+            statement.executeUpdate();
+        }
+    }
+
+    private static String scalar(Connection connection, String sql, long userId) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, userId);
+            try (ResultSet rs = statement.executeQuery()) {
+                return rs.next() ? rs.getString(1) : null;
+            }
+        }
+    }
+
+    private static long count(Connection connection, String sql, long userId) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, userId);
+            try (ResultSet rs = statement.executeQuery()) {
+                return rs.next() ? rs.getLong(1) : 0;
+            }
+        }
     }
 
     public record DirectoryPage(List<EthicsUserCatalog.Account> items, int page, int size, long total) {

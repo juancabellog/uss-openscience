@@ -8,8 +8,15 @@
     }
   </header>
 
+  @if (message() === 'users.invitationSent') {
+    <h2>{{ 'users.invitationSentTitle' | translate }}</h2>
+  } @else if (message() === 'users.invitationMailFailed') {
+    <h2>{{ 'users.invitationRecordedTitle' | translate }}</h2>
+  } @else if (message() && message() === inviteErrorKey()) {
+    <h2>{{ 'users.inviteFailedTitle' | translate }}</h2>
+  }
   @if (message()) {
-    <p class="hint" role="status">{{ message()! | translate }}</p>
+    <p class="hint" [attr.role]="messageRole()">{{ message()! | translate }}</p>
   }
 
   @if (mode() === 'list') {
@@ -74,7 +81,7 @@
     } @else if (!rows().length) {
       <p class="hint">{{ 'users.emptyCriteria' | translate }}</p>
     } @else {
-      <div class="table-wrap">
+      <div class="table-wrap" (scroll)="closeMenu(false)">
         <table>
           <thead>
             <tr>
@@ -103,13 +110,23 @@
                     }
                   </span>
                 </td>
-                <td><eth-status-chip [tone]="user.accountStatus === 'ACTIVE' ? 'success' : 'muted'" [labelKey]="user.accountStatus === 'ACTIVE' ? 'users.active' : 'users.inactive'" /></td>
+                <td><eth-status-chip [tone]="user.accountStatus === 'ACTIVE' ? 'success' : 'muted'" [labelKey]="accountStatusKey(user.accountStatus)" /></td>
                 <td>
                   <div class="row-actions">
-                    @if (!user.ethicsAccess) {
-                      <button type="button" class="ghost" (click)="enableFromList(user)">{{ 'users.enableAccess' | translate }}</button>
+                    <button type="button" class="ghost compact" (click)="openDetail(user.id)">{{ 'users.detail' | translate }}</button>
+                    @if (hasMenu(user)) {
+                      <button
+                        type="button"
+                        class="ghost icon compact"
+                        [attr.aria-label]="actionsLabel(user)"
+                        aria-haspopup="menu"
+                        [attr.aria-expanded]="menuUserId() === user.id"
+                        [attr.aria-controls]="menuUserId() === user.id ? 'user-menu-' + user.id : null"
+                        (click)="toggleMenu(user, $event)"
+                      >
+                        <eth-icon name="more" />
+                      </button>
                     }
-                    <button type="button" class="ghost" (click)="openDetail(user.id)">{{ 'users.detail' | translate }}</button>
                   </div>
                 </td>
               </tr>
@@ -155,7 +172,10 @@
             <p>{{ 'users.ethicsAccess' | translate }}: {{ (found.ethicsAccess ? 'users.ethicsYes' : 'users.ethicsNo') | translate }}</p>
             @if (found.accountStatus === 'PENDING_ACTIVATION') {
               <p class="hint">{{ 'users.pendingInviteHint' | translate }}</p>
-              <button type="button" class="btn" (click)="sendInvitation()">{{ 'users.resendInvitation' | translate }}</button>
+              <button type="button" class="btn uss-op-button" [disabled]="inviteView().running" [attr.aria-busy]="inviteView().running ? true : null" (click)="sendInvitation()">
+                @if (inviteView().running) { <span class="uss-op-spinner" aria-hidden="true"></span> }
+                {{ inviteView().running ? inviteView().loadingMessage : ('users.resendInvitation' | translate) }}
+              </button>
             } @else if (found.ethicsAccess) {
               <p class="hint">{{ 'users.alreadyEthics' | translate }}</p>
             } @else {
@@ -171,11 +191,17 @@
             }
             <p class="hint">{{ 'users.pureReadonly' | translate }}</p>
             <p class="hint">{{ 'users.pureInviteHint' | translate }}</p>
-            <button type="button" class="btn" (click)="sendInvitation()">{{ (found.invitation === 'PENDING' || found.invitation === 'EXPIRED' ? 'users.resendInvitation' : 'users.sendInvitation') | translate }}</button>
+            <button type="button" class="btn uss-op-button" [disabled]="inviteView().running" [attr.aria-busy]="inviteView().running ? true : null" (click)="sendInvitation()">
+              @if (inviteView().running) { <span class="uss-op-spinner" aria-hidden="true"></span> }
+              {{ inviteView().running ? inviteView().loadingMessage : ((found.invitation === 'PENDING' || found.invitation === 'EXPIRED' ? 'users.resendInvitation' : 'users.sendInvitation') | translate) }}
+            </button>
           } @else {
             <p>{{ 'users.notFoundInstitutional' | translate }}</p>
             <p class="hint">{{ 'users.registerInviteHint' | translate }}</p>
-            <button type="button" class="btn" (click)="sendInvitation()">{{ (found.invitation === 'PENDING' || found.invitation === 'EXPIRED' ? 'users.resendInvitation' : 'users.sendRegistrationInvite') | translate }}</button>
+            <button type="button" class="btn uss-op-button" [disabled]="inviteView().running" [attr.aria-busy]="inviteView().running ? true : null" (click)="sendInvitation()">
+              @if (inviteView().running) { <span class="uss-op-spinner" aria-hidden="true"></span> }
+              {{ inviteView().running ? inviteView().loadingMessage : ((found.invitation === 'PENDING' || found.invitation === 'EXPIRED' ? 'users.resendInvitation' : 'users.sendRegistrationInvite') | translate) }}
+            </button>
           }
         }
       } @else {
@@ -188,6 +214,12 @@
       }
     </form>
   }
+  <uss-operation-feedback
+    [visible]="inviteView().showPanel"
+    [title]="inviteView().loadingMessage"
+    [detail]="inviteView().detailMessage"
+    [extra]="inviteView().longRunningMessage"
+  />
 
   @if (mode() === 'detail') {
     @if (loading()) {
@@ -200,7 +232,7 @@
         <p>
           <eth-status-chip [tone]="user.personKind === 'EXTERNAL' ? 'warning' : 'info'" [labelKey]="user.personKind === 'EXTERNAL' ? 'users.external' : 'users.institutional'" />
           <eth-status-chip [tone]="user.dataSource === 'PURE' ? 'info' : 'muted'" [labelKey]="user.dataSource === 'PURE' ? 'users.pure' : 'users.local'" />
-          <eth-status-chip [tone]="user.accountStatus === 'ACTIVE' ? 'success' : 'muted'" [labelKey]="user.accountStatus === 'ACTIVE' ? 'users.active' : 'users.inactive'" />
+          <eth-status-chip [tone]="user.accountStatus === 'ACTIVE' ? 'success' : 'muted'" [labelKey]="accountStatusKey(user.accountStatus)" />
         </p>
         @if (user.dataSource === 'PURE') {
           <p>{{ user.displayName }}</p>
@@ -222,27 +254,37 @@
         <p>{{ 'users.applicationsNote' | translate }}</p>
         <div class="access-section">
           <p class="access-status">{{ 'users.ethicsAccess' | translate }}: {{ (user.ethicsAccess ? 'users.ethicsYes' : 'users.ethicsNo') | translate }}</p>
-          @if (!user.ethicsAccess) {
+          @if (user.accountStatus === 'PENDING_ACTIVATION') {
+            <p class="hint">{{ 'users.pendingInviteHint' | translate }}</p>
+            @if (showResend(user)) {
+              <button type="button" class="btn uss-op-button" [disabled]="inviteView().running" [attr.aria-busy]="inviteView().running ? true : null" (click)="resendInvitation(user)">
+                @if (inviteView().running) { <span class="uss-op-spinner" aria-hidden="true"></span> }
+                {{ inviteView().running ? inviteView().loadingMessage : ('users.resendInvitation' | translate) }}
+              </button>
+            }
+          } @else if (!user.ethicsAccess) {
             <button type="button" class="btn" (click)="enableSelected()">{{ 'users.enableEthics' | translate }}</button>
           } @else {
-            @if (disableNeedsConfirm()) {
-              <p class="active-review-warning" id="active-review-warning">{{ 'users.activeReviewWarning' | translate }}</p>
-              <label class="confirm-disable-row">
-                <input
-                  type="checkbox"
-                  [ngModel]="confirmDisable()"
-                  (ngModelChange)="confirmDisable.set($event)"
-                  aria-describedby="active-review-warning"
-                />
-                <span>{{ 'users.confirmDisable' | translate }}</span>
-              </label>
+            <button type="button" class="ghost disable-access-action" (click)="askDisable()">{{ 'users.disableEthics' | translate }}</button>
+          }
+          @if (removal()?.deletable) {
+            <button type="button" class="ghost" (click)="askDelete()">
+              {{ (removal()?.pendingInvitation ? 'users.cancelInvitation' : 'users.deleteUser') | translate }}
+            </button>
+          } @else if (removal(); as check) {
+            @if (check.reason === 'LAST_ADMINISTRATOR') {
+              <p class="hint">{{ 'users.lastAdministrator' | translate }}</p>
+            } @else if (historyOnlyKey(); as only) {
+              <p class="hint">{{ only | translate }}</p>
+            } @else {
+              <p class="hint">{{ 'users.historyLead' | translate }}</p>
+              <ul class="history-list">
+                @for (line of historyLines(); track line) {
+                  <li>{{ line }}</li>
+                }
+              </ul>
+              <p class="hint">{{ 'users.historyKeep' | translate }}</p>
             }
-            <button
-              type="button"
-              class="ghost disable-access-action"
-              (click)="disable()"
-              [disabled]="disableNeedsConfirm() && !confirmDisable()"
-            >{{ 'users.disableEthics' | translate }}</button>
           }
         </div>
 
@@ -299,6 +341,69 @@
     }
   }
 </section>
+
+@if (menuUser(); as user) {
+  <div
+    class="row-menu"
+    role="menu"
+    [id]="'user-menu-' + user.id"
+    [style.top.px]="menuTop()"
+    [style.bottom.px]="menuBottom()"
+    [style.right.px]="menuRight()"
+    (keydown)="onMenuKey($event)"
+  >
+    @if (showResend(user)) {
+      <button type="button" role="menuitem" [disabled]="inviteView().running" [attr.aria-busy]="inviteView().running ? true : null" (click)="resendFromMenu(user)">
+        @if (inviteView().running) { <span class="uss-op-spinner" aria-hidden="true"></span> }
+        {{ inviteView().running ? inviteView().loadingMessage : ('users.resendInvitation' | translate) }}
+      </button>
+    }
+    @if (showEditRoles(user)) {
+      <button type="button" role="menuitem" (click)="editRolesFromMenu(user)">{{ 'users.editRoles' | translate }}</button>
+    }
+    @if (showEnable(user)) {
+      <button type="button" role="menuitem" (click)="enableFromMenu(user)">{{ 'users.enableAccess' | translate }}</button>
+    }
+    @if (showDisable(user)) {
+      <button type="button" role="menuitem" (click)="disableFromMenu(user)">{{ 'users.disableEthics' | translate }}</button>
+    }
+    @if (showDelete(user)) {
+      <button type="button" class="danger" role="menuitem" (click)="deleteFromMenu(user)">
+        {{ (menuRemoval()?.pendingInvitation ? 'users.cancelInvitation' : 'users.deleteUser') | translate }}
+      </button>
+    }
+    @if (!showResend(user) && !showEditRoles(user) && !showEnable(user) && !showDisable(user) && !showDelete(user)) {
+      <p class="menu-note">{{ (menuRemoval() ? 'users.notDeletableHint' : 'users.loading') | translate }}</p>
+    }
+  </div>
+}
+
+@if (deleteOpen()) {
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="delete-user-title" [attr.aria-busy]="removing()" (keydown.escape)="deleteOpen.set(false)">
+    <div class="modal-card">
+      <h2 id="delete-user-title">{{ 'users.deleteTitle' | translate }}</h2>
+      <p>{{ (removal()?.pendingInvitation ? 'users.deletePendingBody' : 'users.deleteBody') | translate }}</p>
+      <p>{{ 'users.deleteUntracked' | translate }}</p>
+      <div class="choices">
+        <button type="button" class="ghost" (click)="deleteOpen.set(false)" [disabled]="removing()" autofocus>{{ 'common.cancel' | translate }}</button>
+        <button type="button" class="btn danger" (click)="confirmDelete()" [disabled]="removing()">{{ (removal()?.pendingInvitation ? 'users.cancelInvitation' : 'users.deleteUser') | translate }}</button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (disableOpen()) {
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="disable-user-title" (keydown.escape)="disableOpen.set(false)">
+    <div class="modal-card">
+      <h2 id="disable-user-title">{{ 'users.activeReviewTitle' | translate }}</h2>
+      <p>{{ 'users.activeReviewWarning' | translate }}</p>
+      <div class="choices">
+        <button type="button" class="ghost" (click)="disableOpen.set(false)" autofocus>{{ 'common.cancel' | translate }}</button>
+        <button type="button" class="btn warning" (click)="disable(true)">{{ 'users.disableEthics' | translate }}</button>
+      </div>
+    </div>
+  </div>
+}
 
 @if (pendingRemove(); as role) {
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="remove-role-title" [attr.aria-busy]="revoking()" (keydown.escape)="cancelRemove()">

@@ -1,0 +1,74 @@
+:host {
+  display: inline-block;
+  position: relative;
+  margin-left: 0.75rem;
+}
+
+.workspace-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.workspace-kicker {
+  color: var(--eth-muted);
+  font-size: 0.85rem;
+}
+
+.workspace-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 2rem;
+  padding: 0.15rem 0.55rem;
+  border: 1px solid var(--eth-border);
+  border-radius: 999px;
+  background: var(--eth-surface);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.workspace-trigger:focus-visible,
+.workspace-menu button:focus-visible {
+  outline: 2px solid var(--eth-focus, #1f4b73);
+  outline-offset: 2px;
+}
+
+.workspace-menu {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + 0.35rem);
+  left: 0;
+  min-width: 16rem;
+  margin: 0;
+  padding: 0.35rem;
+  list-style: none;
+  background: var(--eth-surface);
+  border: 1px solid var(--eth-border);
+  border-radius: 0.6rem;
+  box-shadow: 0 8px 24px rgb(20 24 20 / 12%);
+}
+
+.workspace-menu button {
+  display: grid;
+  width: 100%;
+  gap: 0.1rem;
+  padding: 0.45rem 0.6rem;
+  border: 0;
+  border-radius: 0.4rem;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.workspace-menu button[aria-selected='true'] {
+  background: color-mix(in srgb, var(--eth-primary) 8%, white);
+}
+
+.workspace-menu span {
+  color: var(--eth-muted);
+  font-size: 0.8rem;
+}

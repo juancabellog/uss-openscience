@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { DemoAuthService } from '../../core/auth/demo-auth.service';
 import { I18nService } from '../../core/i18n/i18n.service';
 import { AuditEvent, CommitteeCase, EthicsCommittee } from '../../core/models/ethics.models';
@@ -42,11 +43,18 @@ interface SummaryCommittee {
 
 @Component({
   selector: 'eth-project-detail-page',
-  imports: [StatusChipComponent, CommitteeWorkspaceComponent, ProjectCommitteeTabsComponent, RequestDocumentsComponent, ...I18N_IMPORTS],
+  imports: [RouterLink, StatusChipComponent, CommitteeWorkspaceComponent, ProjectCommitteeTabsComponent, RequestDocumentsComponent, ...I18N_IMPORTS],
   templateUrl: './project-detail.page.html',
   styles: `
-    .kicker {
+    .kicker,
+    .draft-note {
       margin: 0;
+    }
+    .draft-note {
+      color: var(--eth-muted);
+    }
+    .draft-note + p {
+      margin: 0.6rem 0 1rem;
     }
     .title-row {
       display: flex;
@@ -208,6 +216,12 @@ export class ProjectDetailPage {
   readonly tab = signal('resumen');
   readonly shortCommittees = COMMITTEE_SHORT_LABELS;
   readonly row = computed(() => this.projects.get(this.id()));
+  readonly canContinue = computed(() => {
+    const row = this.row();
+    const user = this.auth.currentUser();
+    const submission = this.submissions.byProject(this.id());
+    return !!row && !!user && row.globalStatus === 'DRAFT' && submission?.status === 'DRAFT' && row.project.researcherId === user.id && this.permissions.can(user, 'CREATE_REQUEST');
+  });
   readonly committees = COMMITTEE_LABELS;
   readonly groups = computed(() => {
     const row = this.row();

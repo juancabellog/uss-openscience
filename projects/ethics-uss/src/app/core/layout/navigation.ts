@@ -1,7 +1,10 @@
+import { WorkspaceKind, workspaceAllows } from './workspace';
+
 export interface NavLink {
   path: string;
   labelKey: string;
   action?: boolean;
+  query?: Record<string, string>;
 }
 
 export interface NavSection {
@@ -101,9 +104,10 @@ const HIDDEN_WITHOUT_ASSIGNMENT = new Set(['/proyectos', '/revisiones', '/histor
 
 export function visibleNavigation(
   capabilities: ReadonlySet<string>,
-  options?: { hideUnassignedCasePaths?: boolean }
+  options?: { hideUnassignedCasePaths?: boolean; workspaceKind?: WorkspaceKind | null }
 ): NavSection[] {
   const hide = options?.hideUnassignedCasePaths === true;
+  const workspace = options?.workspaceKind ?? null;
   return SECTIONS.map((section) => ({
     id: section.id,
     labelKey: section.labelKey,
@@ -111,8 +115,23 @@ export function visibleNavigation(
     items: section.items
       .filter((item) => item.when(capabilities))
       .filter((item) => !(hide && HIDDEN_WITHOUT_ASSIGNMENT.has(item.path)))
-      .map((item) => ({ path: item.path, labelKey: item.labelKey, ...(item.action ? { action: true } : {}) }))
+      .filter((item) => workspaceAllows(workspace, item.path))
+      .flatMap((item) => presentLink(item, workspace))
   })).filter((section) => section.items.length > 0);
+}
+
+function presentLink(item: NavRule, workspace: WorkspaceKind | null): NavLink[] {
+  if (workspace === 'RESEARCHER' && item.path === '/proyectos') {
+    return [{ path: item.path, labelKey: 'navigation.myProjects' }];
+  }
+  if (workspace === 'REVIEWER' && item.path === '/revisiones') {
+    return [
+      { path: item.path, labelKey: 'workspace.reviewsPending', query: { status: 'PENDING' } },
+      { path: item.path, labelKey: 'workspace.reviewsActive', query: { status: 'ACCEPTED' } },
+      { path: item.path, labelKey: 'workspace.reviewsCompleted', query: { status: 'COMPLETED' } }
+    ];
+  }
+  return [{ path: item.path, labelKey: item.labelKey, ...(item.action ? { action: true } : {}) }];
 }
 
 export function parseSidebarSections(raw: string | null): Record<string, boolean> | null {

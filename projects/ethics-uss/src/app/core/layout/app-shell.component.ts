@@ -3,7 +3,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter, map } from 'rxjs';
-import { COMMITTEE_LABELS } from '../../mocks/catalogs';
+import { COMMITTEE_LABELS, COMMITTEE_SHORT_LABELS } from '../../mocks/catalogs';
 import { hasScope, profileRoleKey, rolesOf } from '../workflow/role-capabilities';
 import { capabilitiesForRoles } from '../../features/dashboard/home-institutional';
 import { DemoAuthService } from '../auth/demo-auth.service';
@@ -20,10 +20,12 @@ import { IconComponent } from '../../shared/components/icon.component';
 import { I18N_IMPORTS } from '../../shared/i18n/i18n.imports';
 import { LanguageSwitcherComponent } from '../../shared/i18n/language-switcher.component';
 import { NavSection, SIDEBAR_SECTIONS_KEY, parseSidebarSections, resolveOpenSections, toggleStoredSection, visibleNavigation } from './navigation';
+import { WorkspaceSwitchComponent } from './workspace-switch.component';
+import { WorkspaceService } from './workspace.service';
 
 @Component({
   selector: 'eth-app-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, FormsModule, LanguageSwitcherComponent, IconComponent, ...I18N_IMPORTS],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, FormsModule, LanguageSwitcherComponent, IconComponent, WorkspaceSwitchComponent, ...I18N_IMPORTS],
   templateUrl: './app-shell.component.html',
   styleUrl: './app-shell.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -35,6 +37,7 @@ export class AppShellComponent {
   private readonly notifications = inject(NotificationService);
   private readonly router = inject(Router);
   private readonly store = inject(EthicsStore);
+  readonly workspaces = inject(WorkspaceService);
   readonly i18n = inject(I18nService);
   readonly user = this.auth.currentUser;
   readonly demoSelector = demoSelectorVisible(environment.demoEnabled, environment.production);
@@ -49,12 +52,14 @@ export class AppShellComponent {
   readonly committees = computed(() => this.user()?.committees ?? []);
   readonly activeCommittee = this.auth.activeCommittee;
   readonly committeeKey = (code: string) => COMMITTEE_LABELS[code] ?? code;
+  readonly shortCommitteeKey = (code: string) => COMMITTEE_SHORT_LABELS[code] ?? code;
   readonly unread = computed(() => {
     const id = this.user()?.id;
     return id ? this.notifications.unreadCount(id) : 0;
   });
   readonly nav = computed(() => {
     this.store.state();
+    this.workspaces.active();
     return this.menuFor(this.user());
   });
   private readonly url = toSignal(
@@ -125,7 +130,10 @@ export class AppShellComponent {
     const caps = user.grantedCapabilities ? new Set(user.grantedCapabilities) : capabilitiesForRoles(rolesOf(user));
     const caseOnly = !hasScope(user, 'GLOBAL') && !hasScope(user, 'COMMITTEE') && !hasScope(user, 'OWN_PROJECT');
     const assigned = this.store.snapshot().assignments.some((item) => item.reviewerId === user.id && !item.supersededAt);
-    return visibleNavigation(caps, { hideUnassignedCasePaths: caseOnly && !assigned });
+    return visibleNavigation(caps, {
+      hideUnassignedCasePaths: caseOnly && !assigned,
+      workspaceKind: this.workspaces.active()?.kind ?? null
+    });
   }
 }
 

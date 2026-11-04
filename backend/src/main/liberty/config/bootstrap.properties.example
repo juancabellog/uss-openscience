@@ -33,6 +33,9 @@ db_password=
 # Solo para liberty:dev. En hidra NO usar localhost: ponga APP_PUBLIC_URL en prod.env
 # (https://apps.cienciavida.org/openscience). Esa variable gana sobre este archivo.
 # APP_PUBLIC_URL=http://localhost:4200
+# Invitaciones de Ethics. En hidra: https://apps.cienciavida.org/ethics
+# ETHICS_PUBLIC_URL=http://localhost:4400
+# ethics.app.publicUrl=http://localhost:4400
 # AUTH_BOOTSTRAP_EMAIL=
 # MAIL_SMTP_HOST=
 # MAIL_SMTP_PORT=587

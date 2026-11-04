@@ -36,3 +36,11 @@ Todas las preguntas son obligatorias cuando están visibles. La clasificación d
 | P26 | Declaración | Sí | Siempre. Declaración de Singapur, con enlace a `/declaracion-singapur.pdf`. |
 
 P4–P10 se precargan desde `GET /api/v1/ethics/me/profile` solo si el dato existe y el campo sigue vacío y sin edición. Sede, facultad y programa quedan vacíos cuando PURE no los tiene. El patrocinante (P11–P16) no se precarga con el usuario autenticado.
+
+## Borrador
+
+Guardar borrador escribe la misma solicitud en el store local (`ethics-uss-store-v11`): un `projectId` y un `submissionId` que se reutilizan. El título vacío no se reemplaza por un texto inventado. La tarjeta muestra «Solicitud sin título» solo en pantalla.
+
+Al volver, Mis proyectos ofrece **Continuar solicitud** y abre `/proyectos/:id/borrador` en el mismo wizard. Las respuestas guardadas pisan el precargado; el perfil solo llena lo que sigue vacío. El paso inicial es el primer paso incompleto, o el último si ya están todos completos. No hay un `currentStep` persistido.
+
+Un segundo guardado actualiza ese registro. Enviar usa el mismo `submit`. Después del envío la ruta de borrador vuelve al detalle y desaparece Continuar solicitud. Otra persona, o una solicitud que ya no está en `DRAFT`, no se hidrata. La copia de persona sigue tomándose solo en el envío.

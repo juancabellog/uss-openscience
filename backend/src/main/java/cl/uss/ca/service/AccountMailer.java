@@ -28,6 +28,10 @@ public class AccountMailer {
     @ConfigProperty(name = "openscience.app.publicUrl")
     Optional<String> publicUrl;
 
+    @Inject
+    @ConfigProperty(name = "ethics.app.publicUrl")
+    Optional<String> ethicsPublicUrl;
+
     public boolean configured() {
         return mailService.isConfigured() && publicBase() != null;
     }
@@ -43,7 +47,7 @@ public class AccountMailer {
             ActivationOrigin origin
     ) {
         String language = MailLocale.resolve(user == null ? null : user.preferredLanguage, null);
-        String url = publicBase() + "/auth/activate-account?token=" + rawToken + "&lang=" + language;
+        String url = activationUrl(origin, publicBase(), ethicsBase(), rawToken, language);
         String until = expiresAt == null ? "" : WHEN.format(expiresAt);
         AccountMailCatalog.MailContent content = AccountMailCatalog.activation(
                 language,
@@ -79,6 +83,34 @@ public class AccountMailer {
         String until = expiresAt == null ? "" : WHEN.format(expiresAt);
         AccountMailCatalog.MailContent content = AccountMailCatalog.reset(language, displayName(user), url, until);
         mailService.send(MailMessage.of(user.email, content.subject(), content.text(), content.html()));
+    }
+
+    /** Una invitación de Ethics abre la app de Ethics. El token y la contraseña siguen siendo los de app_user. */
+    public static String activationUrl(
+            ActivationOrigin origin,
+            String openscienceBase,
+            String ethicsBase,
+            String rawToken,
+            String language
+    ) {
+        boolean ethics = origin == ActivationOrigin.ETHICS_INVITE;
+        String base = PublicAppUrl.normalize(ethics ? ethicsBase : openscienceBase);
+        String path = ethics ? "/activar-cuenta" : "/auth/activate-account";
+        return base + path + "?token=" + rawToken + "&lang=" + language;
+    }
+
+    private String ethicsBase() {
+        String configured = PublicAppUrl.resolve(
+                System.getenv("ETHICS_PUBLIC_URL"),
+                ethicsPublicUrl == null ? null : ethicsPublicUrl.orElse(null)
+        );
+        String resolved = PublicAppUrl.ethicsBase(configured, publicBase());
+        if (PublicAppUrl.looksLocal(resolved)) {
+            LOG.warning("Ethics activation links will use a local URL ("
+                    + resolved
+                    + "). Set ETHICS_PUBLIC_URL in prod.env, e.g. https://apps.cienciavida.org/ethics");
+        }
+        return resolved;
     }
 
     private String publicBase() {

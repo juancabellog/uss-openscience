@@ -6,10 +6,12 @@ import cl.uss.ca.api.dto.PurePersonIdentity;
 import cl.uss.ca.auth.EmailNormalizer;
 import cl.uss.ca.auth.UserStatus;
 import cl.uss.ca.ethics.auth.EthicsAccountActivated;
+import cl.uss.ca.ethics.auth.EthicsActivationView;
 import cl.uss.ca.ethics.auth.EthicsAdminDirectory;
 import cl.uss.ca.ethics.auth.EthicsAdminRepository;
 import cl.uss.ca.exception.DatabaseException;
 import cl.uss.ca.exception.ValidationException;
+import cl.uss.ca.identity.EthicsTestInstitutionalEmails;
 import cl.uss.ca.identity.InstitutionalDomains;
 import cl.uss.ca.identity.InstitutionalOnboarding;
 import cl.uss.ca.mail.MailLocale;
@@ -22,6 +24,9 @@ import cl.uss.ca.service.AuthService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 
@@ -31,8 +36,10 @@ import java.time.ZoneOffset;
  */
 @ApplicationScoped
 public class EthicsOnboardingService implements EthicsAccountActivated {
+    private static final Logger LOG = Logger.getLogger(EthicsOnboardingService.class.getName());
     public static final String USE_LOGIN = "ETHICS_USE_LOGIN";
     public static final String INVITE_SENT = "ETHICS_INVITE_SENT";
+    public static final String INVITE_RESENT = "ETHICS_INVITE_RESENT";
     public static final String NOT_INSTITUTIONAL = "NOT_INSTITUTIONAL_DOMAIN";
 
     @Inject
@@ -52,6 +59,9 @@ public class EthicsOnboardingService implements EthicsAccountActivated {
 
     @Inject
     AccountMailer mailer;
+
+    @Inject
+    EthicsTestInstitutionalEmails testInstitutionalEmails;
 
     public EthicsOnboardingDto resolve(String email) {
         String normalized = requireInstitutional(email);
@@ -115,7 +125,7 @@ public class EthicsOnboardingService implements EthicsAccountActivated {
     }
 
     public GenericMessageDto publicStart(String email, String flowLocale) {
-        if (!InstitutionalDomains.isAllowedInstitutionalEmail(email)) {
+        if (!admit(email)) {
             throw new ValidationException(NOT_INSTITUTIONAL, InstitutionalDomains.SELF_REGISTRATION_DENIED);
         }
         String normalized = EmailNormalizer.normalize(email);
@@ -128,7 +138,7 @@ public class EthicsOnboardingService implements EthicsAccountActivated {
             rememberFlowLanguage(existing, flowLocale);
             boolean sent = auth.issueEthicsInvitation(existing);
             admin.audit(null, existing.id, "USER_INVITATION_SENT", "ethics invitation");
-            return GenericMessageDto.of(INVITE_SENT, "Si el correo es institucional, recibirás los pasos para continuar.", sent);
+            return GenericMessageDto.of(INVITE_RESENT, "Si el correo es institucional, recibirás los pasos para continuar.", sent);
         }
         if (existing != null) {
             return GenericMessageDto.of(USE_LOGIN, "Si ya tienes una cuenta, utiliza Iniciar sesión.");
@@ -142,34 +152,67 @@ public class EthicsOnboardingService implements EthicsAccountActivated {
     }
 
     @Override
+    public EthicsActivationView ethicsActivationView(long userId) {
+        String status = admin.ethicsApplicationStatus(userId);
+        if (!"PENDING".equals(status) && !"ACTIVE".equals(status)) {
+            return EthicsActivationView.none();
+        }
+        AccessUserRecord user = accounts.findUserById(userId);
+        PurePersonIdentity pure = user == null ? null : people.findIdentityByEmail(user.email);
+        if (pure != null && pure.id != null) {
+            return new EthicsActivationView(true, true, shown(pure.firstName), shown(pure.lastName), shown(pure.position));
+        }
+        return new EthicsActivationView(true, false, null, null, null);
+    }
+
+    @Override
     public void onActivated(long userId, String givenName, String familyName, String campus, String faculty, String positionTitle) {
-        if (!"PENDING".equals(admin.ethicsApplicationStatus(userId))) {
+        String ethicsStatus = admin.ethicsApplicationStatus(userId);
+        if (!"PENDING".equals(ethicsStatus) && !"ACTIVE".equals(ethicsStatus)) {
             return;
         }
         AccessUserRecord user = accounts.findUserById(userId);
         if (user == null) {
             return;
         }
-        if (InstitutionalOnboarding.profileRequired(givenName, familyName)) {
-            return;
-        }
-        Long personId = admin.insertInstitutionalPerson(
-                null,
-                user.email,
-                givenName,
-                familyName,
-                campus,
-                faculty,
-                positionTitle,
-                null
-        );
-        if (personId != null) {
-            admin.linkPerson(userId, personId);
-        }
         boolean enabled = admin.ensureEthicsActive(userId);
         boolean researcher = false;
-        if (InstitutionalDomains.isAllowedInstitutionalEmail(user.email)) {
+        if (testInstitutionalEmails != null && testInstitutionalEmails.eligible(user.email)) {
             researcher = admin.ensureStructuralRole(userId, "RESEARCHER");
+        }
+        try {
+            PurePersonIdentity pure = people.findIdentityByEmail(user.email);
+            if (pure != null && pure.id != null) {
+                Long personId = admin.insertInstitutionalPerson(
+                        pure.id,
+                        user.email,
+                        text(pure.firstName),
+                        text(pure.lastName),
+                        null,
+                        null,
+                        text(pure.position),
+                        null
+                );
+                if (personId != null) {
+                    admin.linkPerson(userId, personId);
+                }
+            } else if (!InstitutionalOnboarding.profileRequired(givenName, familyName)) {
+                Long personId = admin.insertInstitutionalPerson(
+                        null,
+                        user.email,
+                        givenName,
+                        familyName,
+                        campus,
+                        faculty,
+                        positionTitle,
+                        null
+                );
+                if (personId != null) {
+                    admin.linkPerson(userId, personId);
+                }
+            }
+        } catch (RuntimeException ex) {
+            LOG.log(Level.WARNING, "Institutional person was not stored for user " + userId, ex);
         }
         admin.audit(userId, "USER_REGISTERED", "institutional account activated");
         if (enabled) {
@@ -178,7 +221,7 @@ public class EthicsOnboardingService implements EthicsAccountActivated {
         if (researcher) {
             admin.audit(userId, "RESEARCHER_ASSIGNED", "default researcher");
         }
-        welcome(userId, user.email, (givenName + " " + familyName).trim());
+        welcome(userId, user.email, (text(givenName) + " " + text(familyName)).trim());
     }
 
     private EthicsOnboardingDto send(AccessUserRecord user, EthicsOnboardingDto resolved, CurrentUser actor) {
@@ -283,8 +326,29 @@ public class EthicsOnboardingService implements EthicsAccountActivated {
         user.preferredLanguage = language;
     }
 
-    private static String requireInstitutional(String email) {
-        if (!InstitutionalDomains.isAllowedInstitutionalEmail(email)) {
+    private boolean admit(String email) {
+        boolean allowed = testInstitutionalEmails != null && testInstitutionalEmails.eligible(email);
+        if (allowed && testInstitutionalEmails.contains(email)) {
+            LOG.info("Ethics institutional eligibility: email=" + masked(email) + " source=TEST_ALLOWLIST");
+        }
+        return allowed;
+    }
+
+    private static String masked(String email) {
+        String normalized = EmailNormalizer.normalize(email);
+        if (normalized == null) {
+            return "***";
+        }
+        int at = normalized.indexOf('@');
+        if (at <= 0) {
+            return "***";
+        }
+        String local = normalized.substring(0, at);
+        return local.substring(0, Math.min(2, local.length())) + "***" + normalized.substring(at);
+    }
+
+    private String requireInstitutional(String email) {
+        if (!admit(email)) {
             throw new ValidationException(NOT_INSTITUTIONAL, InstitutionalDomains.SELF_REGISTRATION_DENIED);
         }
         String normalized = EmailNormalizer.normalize(email);
@@ -296,6 +360,11 @@ public class EthicsOnboardingService implements EthicsAccountActivated {
 
     private static String text(String value) {
         return value == null ? "" : value.trim();
+    }
+
+    private static String shown(String value) {
+        String text = text(value);
+        return text.isEmpty() ? null : text;
     }
 
     private static Long actorId(CurrentUser actor) {

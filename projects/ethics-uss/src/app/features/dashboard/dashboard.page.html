@@ -7,7 +7,7 @@
     }
   </p>
 
-  @if (workHome()) {
+  @if (showCommittee()) {
     <section class="work-block" aria-labelledby="home-summary">
       <h2 id="home-summary">{{ 'dashboard.workSummary' | translate }}</h2>
       <div class="work-summary">
@@ -106,7 +106,7 @@
         </ol>
       </section>
     }
-  } @else if (ownHome()) {
+  } @else if (showOwn()) {
     <section class="work-block" aria-labelledby="home-summary">
       <h2 id="home-summary">{{ 'dashboard.summary' | translate }}</h2>
       <div class="work-summary is-inventory">
@@ -195,9 +195,19 @@
       </p>
     </section>
   }
-  @if (unassignedReviewer()) {
+  @if (showReviews()) {
+    <section class="work-block" aria-labelledby="home-reviews">
+      <h2 id="home-reviews">{{ 'workspace.myReviews' | translate }}</h2>
+      <div class="work-summary">
+        <eth-home-summary-tile labelKey="workspace.reviewsPending" ariaKey="workspace.reviewsPendingAria" [count]="reviewCounts().pending" route="/revisiones" [query]="{ status: 'PENDING' }" />
+        <eth-home-summary-tile labelKey="workspace.reviewsActive" ariaKey="workspace.reviewsActiveAria" [count]="reviewCounts().active" route="/revisiones" [query]="{ status: 'ACCEPTED' }" />
+        <eth-home-summary-tile labelKey="workspace.reviewsCompleted" ariaKey="workspace.reviewsCompletedAria" [count]="reviewCounts().completed" route="/revisiones" [query]="{ status: 'COMPLETED' }" />
+      </div>
+    </section>
+  }
+  @if (!activeWorkspace() && unassignedReviewer()) {
     <p class="empty">{{ 'dashboard.noAssignedReviews' | translate }}</p>
-  } @else if (tiles().length) {
+  } @else if (!activeWorkspace() && tiles().length) {
     <section class="work-block" aria-labelledby="home-modules">
       <h2 id="home-modules">{{ 'dashboard.workSummary' | translate }}</h2>
       <div class="work-summary is-operational">
@@ -266,7 +276,7 @@
       </section>
     }
   }
-  @if (institutionalHome()) {
+  @if (showInstitutional()) {
     <section class="work-block" aria-labelledby="home-admin">
       <h2 id="home-admin">{{ 'dashboard.workSummary' | translate }}</h2>
       <div class="work-summary">

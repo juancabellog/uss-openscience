@@ -110,6 +110,8 @@
     "email": "Correo electrónico",
     "sendLink": "Enviar enlace",
     "sending": "Enviando enlace…",
+    "sendingDetail": "Estamos enviando el enlace de verificación. Esto puede tardar unos segundos.",
+    "stillWorking": "Esto está tardando más de lo habitual. Seguimos procesando la solicitud.",
     "linkSent": "Si el correo es válido, recibirá un enlace para continuar.",
     "checkEmailTitle": "Revisa tu correo electrónico",
     "checkEmailSent": "Te hemos enviado un enlace de verificación.",

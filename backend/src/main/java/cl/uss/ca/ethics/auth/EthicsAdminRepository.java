@@ -12,6 +12,9 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Lee y asegura el acceso de Ethics sobre {@code app_user}. No inserta cuentas ni contraseñas.
@@ -21,6 +24,7 @@ import java.util.List;
 @ApplicationScoped
 @Typed(EthicsAdminRepository.class)
 public class EthicsAdminRepository extends JdbcRepository implements EthicsAdminDirectory, RoleAssignmentProvider {
+    private static final Logger LOG = Logger.getLogger(EthicsAdminRepository.class.getName());
     @Override
     public AdminAccount findAccount(String normalizedEmail) {
         if (normalizedEmail == null || !tableExists("app_user")) {
@@ -261,11 +265,20 @@ public class EthicsAdminRepository extends JdbcRepository implements EthicsAdmin
         if (existing != null) {
             return existing;
         }
-        String sql = """
+        ensurePersonKindColumn();
+        boolean kind = columnExists("person", "person_kind");
+        String sql = kind
+                ? """
                 INSERT INTO %s (
                     pure_person_id, person_kind, first_name, last_name, email, email_normalized,
                     campus, faculty, position_title, created_by
                 ) VALUES (?, 'INSTITUTIONAL', ?, ?, ?, ?, ?, ?, ?, ?)
+                """.formatted(qualified("person"))
+                : """
+                INSERT INTO %s (
+                    pure_person_id, first_name, last_name, email, email_normalized,
+                    campus, faculty, position_title, created_by
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """.formatted(qualified("person"));
         try (Connection connection = connection();
              PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -292,6 +305,39 @@ public class EthicsAdminRepository extends JdbcRepository implements EthicsAdmin
             }
         } catch (SQLException ex) {
             throw new DatabaseException("Failed to create the institutional person", ex);
+        }
+    }
+
+    public void storeAccountPerson(long userId) {
+        if (!tableExists("app_user")) {
+            return;
+        }
+        String sql = "SELECT email, first_name, last_name FROM " + qualified("app_user") + " WHERE id = ?";
+        try (Connection connection = connection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, userId);
+            try (ResultSet rs = statement.executeQuery()) {
+                if (!rs.next()) {
+                    return;
+                }
+                Long personId = insertInstitutionalPerson(
+                        null,
+                        rs.getString("email"),
+                        rs.getString("first_name"),
+                        rs.getString("last_name"),
+                        null,
+                        null,
+                        null,
+                        null
+                );
+                if (personId != null) {
+                    linkPerson(userId, personId);
+                }
+            }
+        } catch (RuntimeException ex) {
+            LOG.log(Level.WARNING, "Account person was not stored for user " + userId, ex);
+        } catch (SQLException ex) {
+            LOG.log(Level.WARNING, "Account person was not stored for user " + userId, ex);
         }
     }
 
@@ -368,6 +414,27 @@ public class EthicsAdminRepository extends JdbcRepository implements EthicsAdmin
                         FOREIGN KEY (user_id) REFERENCES `uss-ca`.`app_user` (id)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
                 """);
+        ensurePersonKindColumn();
+    }
+
+    private void ensurePersonKindColumn() {
+        if (!tableExists("person") || columnExists("person", "person_kind")) {
+            return;
+        }
+        try {
+            execute("""
+                    ALTER TABLE `uss-ca`.`person`
+                        ADD COLUMN person_kind VARCHAR(32) NOT NULL DEFAULT 'INSTITUTIONAL'
+                    """);
+            rememberColumn("person", "person_kind", true);
+        } catch (RuntimeException ex) {
+            String message = String.valueOf(ex.getCause() == null ? ex.getMessage() : ex.getCause().getMessage());
+            if (message.toLowerCase(Locale.ROOT).contains("duplicate column")) {
+                rememberColumn("person", "person_kind", true);
+                return;
+            }
+            LOG.log(Level.WARNING, "person.person_kind was not added", ex);
+        }
     }
 
     private Long personId(long userId, String email) {

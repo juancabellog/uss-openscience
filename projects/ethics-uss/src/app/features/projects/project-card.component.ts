@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { I18nService } from '../../core/i18n/i18n.service';
 import { StatusChipComponent } from '../../shared/components/status-chip.component';
 import { I18N_IMPORTS } from '../../shared/i18n/i18n.imports';
 import { ProjectCommitteeSummaryComponent } from './project-committee-summary.component';
@@ -12,12 +13,16 @@ import { ProjectViewModel } from './project-view.model';
     <article class="project-card">
       <a
         class="project-card__link"
-        [routerLink]="['/proyectos', project().id]"
-        [attr.aria-label]="('projects.viewProject' | translate) + ': ' + project().title"
+        [routerLink]="project().continueDraft ? ['/proyectos', project().id, 'borrador'] : ['/proyectos', project().id]"
+        [attr.aria-label]="(project().continueDraft ? 'projects.continueDraft' : 'projects.viewProject') | translate"
       >
         <div class="project-card__main">
-          <h2>{{ project().title }}</h2>
+          <h2>{{ project().title || ('projects.untitled' | translate) }}</h2>
           <p class="muted">{{ project().code }} · {{ project().funding }}</p>
+          @if (project().continueDraft) {
+            <p class="draft-note">{{ 'projects.draftPending' | translate }}</p>
+            <p class="draft-note">{{ 'projects.draftUpdated' | translate }} {{ i18n.formatStamp(project().updatedAt) }}</p>
+          }
           @if (project().overallStatus; as status) {
             <p class="kicker">{{ 'dashboard.globalStatus' | translate }}</p>
             <eth-status-chip [value]="status" />
@@ -33,7 +38,7 @@ import { ProjectViewModel } from './project-view.model';
           }
         </div>
         <span class="project-card__footer">
-          {{ 'projects.viewProject' | translate }}
+          {{ (project().continueDraft ? 'projects.continueDraft' : 'projects.viewProject') | translate }}
           <span aria-hidden="true"> →</span>
         </span>
       </a>
@@ -75,8 +80,13 @@ import { ProjectViewModel } from './project-view.model';
       font-size: 1.2rem;
       line-height: 1.25;
     }
-    .muted {
+    .muted,
+    .draft-note {
       margin: 0;
+    }
+    .draft-note {
+      color: var(--eth-muted);
+      font-size: 0.85rem;
     }
     .kicker {
       margin: 0.35rem 0 0;
@@ -106,4 +116,5 @@ import { ProjectViewModel } from './project-view.model';
 })
 export class ProjectCardComponent {
   readonly project = input.required<ProjectViewModel>();
+  readonly i18n = inject(I18nService);
 }

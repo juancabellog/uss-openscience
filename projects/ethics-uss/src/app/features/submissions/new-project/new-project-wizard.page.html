@@ -63,11 +63,23 @@
       <eth-ethics-form-fields [questions]="questions('G')" [form]="form" [revision]="formTick()" mode="edit" />
     }
   </form>
-  @if (message(); as text) { <p class="alert" role="alert">{{ text }}</p> }
+  @if (saving()) {
+    <p class="alert" role="status" aria-live="polite">{{ (savingAction() === 'submit' ? 'submission.new.submitting' : 'submission.new.savingDraft') | translate }}</p>
+  } @else if (message(); as text) {
+    <p class="alert" [attr.role]="text === i18n.translate('submission.new.draftSaved') ? 'status' : 'alert'">{{ text }}</p>
+  }
   <div class="actions">
-    @if (step() > 1) { <button type="button" class="ghost" (click)="back()">{{ 'common.back' | translate }}</button> }
-    @if (step() < 7) { <button type="button" class="btn" (click)="next()">{{ 'common.continue' | translate }}</button> }
-    <button type="button" class="secondary" [disabled]="saving()" (click)="saveDraft()">{{ 'submission.new.saveDraft' | translate }}</button>
-    @if (step() === 7) { <button type="button" class="btn" [disabled]="saving()" (click)="submit()">{{ 'submission.new.submit' | translate }}</button> }
+    @if (step() > 1) { <button type="button" class="ghost" [disabled]="saving()" (click)="back()">{{ 'common.back' | translate }}</button> }
+    @if (step() < 7) { <button type="button" class="btn" [disabled]="saving()" (click)="next()">{{ 'common.continue' | translate }}</button> }
+    <button type="button" class="secondary uss-op-button" [disabled]="saving()" [attr.aria-busy]="saving() && savingAction() === 'draft' ? true : null" (click)="saveDraft()">
+      @if (saving() && savingAction() === 'draft') { <span class="uss-op-spinner" aria-hidden="true"></span> }
+      {{ (saving() && savingAction() === 'draft' ? 'submission.new.savingDraft' : 'submission.new.saveDraft') | translate }}
+    </button>
+    @if (step() === 7) {
+      <button type="button" class="btn uss-op-button" [disabled]="saving()" [attr.aria-busy]="saving() && savingAction() === 'submit' ? true : null" (click)="submit()">
+        @if (saving() && savingAction() === 'submit') { <span class="uss-op-spinner" aria-hidden="true"></span> }
+        {{ (saving() && savingAction() === 'submit' ? 'submission.new.submitting' : 'submission.new.submit') | translate }}
+      </button>
+    }
   </div>
 </section>

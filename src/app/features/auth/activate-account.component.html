@@ -1,98 +1,179 @@
 <os-institutional-header />
 <main class="auth-page">
-  <section class="auth-card">
+  <section class="auth-card" [class.auth-card--profile]="ethics()">
     <header class="auth-card__intro">
-      <h1>{{ 'auth.activateTitle' | translate }}</h1>
+      <h1>{{ (ethics() ? 'auth.activateEthicsTitle' : 'auth.activateTitle') | translate }}</h1>
       @if (!done() && preview().status === 'VALID') {
-        <p>{{ 'auth.activateHelp' | translate }}</p>
+        @if (ethics() && preview().pureReadonly) {
+          <p>{{ 'auth.activatePureSource' | translate }}</p>
+        } @else if (ethics() && preview().profileRequired) {
+          <p>{{ 'auth.activateLocalIntro' | translate }}</p>
+        } @else if (ethics()) {
+          <p>{{ 'auth.activateEthicsHelp' | translate }}</p>
+        } @else {
+          <p>{{ 'auth.activateHelp' | translate }}</p>
+        }
       }
     </header>
 
     @if (done()) {
-      <p class="auth-banner auth-banner--success" role="status">{{ 'auth.activateSuccess' | translate }}</p>
+      <p class="auth-banner auth-banner--success" role="status">{{ (ethics() ? 'auth.activateEthicsSuccess' : 'auth.activateSuccess') | translate }}</p>
       <a routerLink="/login" class="page-action page-action--primary auth-submit">{{ 'auth.backToLogin' | translate }}</a>
     } @else if (preview().status === 'loading') {
       <p role="status">{{ 'auth.validatingInvite' | translate }}</p>
-    } @else if (preview().status === 'EXPIRED') {
-      <p class="auth-banner auth-banner--error" role="alert">{{ 'auth.tokenExpired' | translate }}</p>
-      <p>{{ 'auth.contactAdmin' | translate }}</p>
-    } @else if (preview().status === 'USED' || preview().status === 'ALREADY_ACTIVE') {
+    } @else if (preview().status === 'ALREADY_ACTIVE') {
       <p class="auth-banner auth-banner--success" role="status">{{ 'auth.alreadyActivated' | translate }}</p>
       <a routerLink="/login" class="page-action page-action--primary auth-submit">{{ 'auth.backToLogin' | translate }}</a>
+    } @else if (preview().status === 'EXPIRED') {
+      <p class="auth-banner auth-banner--error" role="alert">{{ 'auth.tokenExpired' | translate }}</p>
+    } @else if (preview().status === 'USED') {
+      <p class="auth-banner auth-banner--error" role="alert">{{ 'auth.tokenUsed' | translate }}</p>
     } @else if (preview().status === 'INVALID') {
-      <p class="auth-banner auth-banner--error" role="alert">{{ 'auth.tokenInvalidOnly' | translate }}</p>
-      <p>{{ 'auth.contactAdmin' | translate }}</p>
+      <p class="auth-banner auth-banner--error" role="alert">{{ 'auth.tokenInvalid' | translate }}</p>
     } @else {
-      @if (preview().maskedEmail) {
-        <p>{{ 'auth.account' | translate }}: {{ preview().maskedEmail }}</p>
-      }
-      @if (preview().profileRequired) {
-        <p>{{ 'auth.activateProfileHelp' | translate }}</p>
-      } @else if (preview().givenName || preview().familyName) {
-        <p>{{ 'auth.activateKnownIdentity' | translate }}</p>
-        <p>{{ preview().givenName }} {{ preview().familyName }}</p>
-      }
       <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
-        @if (preview().profileRequired) {
-          <label class="filter-field"><span>{{ 'auth.givenName' | translate }} *</span><input class="os-control" formControlName="givenName" autocomplete="given-name" /></label>
-          <label class="filter-field"><span>{{ 'auth.familyName' | translate }} *</span><input class="os-control" formControlName="familyName" autocomplete="family-name" /></label>
-          <label class="filter-field"><span>{{ 'auth.campus' | translate }} *</span><select class="os-control" formControlName="campus"><option value=""></option>@for (item of campuses; track item) { <option [value]="item">{{ item }}</option> }</select></label>
-          <label class="filter-field"><span>{{ 'auth.faculty' | translate }} *</span><select class="os-control" formControlName="faculty"><option value=""></option>@for (item of faculties; track item) { <option [value]="item">{{ item }}</option> }</select></label>
-          <label class="filter-field"><span>{{ 'auth.position' | translate }} *</span><select class="os-control" formControlName="positionTitle"><option value=""></option>@for (item of positions; track item) { <option [value]="item">{{ item }}</option> }</select></label>
+        @if (ethics()) {
+          <label class="filter-field">
+            <span>{{ 'auth.account' | translate }}</span>
+            <input class="os-control" [value]="preview().maskedEmail || shown(null)" readonly />
+          </label>
+        } @else if (preview().maskedEmail) {
+          <p>{{ 'auth.account' | translate }}: {{ preview().maskedEmail }}</p>
         }
-        <label class="filter-field">
-          <span>{{ 'auth.newPassword' | translate }}</span>
-          <span class="auth-password">
-            <input
-              class="os-control"
-              [type]="showPassword() ? 'text' : 'password'"
-              name="new-password"
-              formControlName="password"
-              autocomplete="new-password"
-            />
-            <button
-              type="button"
-              class="auth-password__toggle"
-              [attr.aria-label]="(showPassword() ? 'auth.hidePassword' : 'auth.showPassword') | translate"
-              [attr.aria-pressed]="showPassword()"
-              (click)="showPassword.update((value) => !value)"
-            >
-              <os-icon [name]="showPassword() ? 'eye-off' : 'eye'" />
-            </button>
-          </span>
-          <span class="auth-field-hint">{{ 'auth.passwordPolicy' | translate }}</span>
-          @if (passwordError(); as passwordKey) {
-            <span class="auth-field-error">{{ passwordKey | translate }}</span>
+
+        @if (preview().pureReadonly) {
+          <section class="auth-section">
+            <h2>{{ 'auth.personalData' | translate }}</h2>
+            <p class="auth-readonly"><span>{{ 'auth.givenName' | translate }}</span> {{ shown(preview().givenName) }}</p>
+            <p class="auth-readonly"><span>{{ 'auth.familyName' | translate }}</span> {{ shown(preview().familyName) }}</p>
+          </section>
+          <section class="auth-section">
+            <h2>{{ 'auth.institutionalData' | translate }}</h2>
+            <p class="auth-readonly"><span>{{ 'auth.position' | translate }}</span> {{ shown(preview().positionTitle) }}</p>
+          </section>
+        } @else if (preview().profileRequired) {
+          <section class="auth-section">
+            <h2>{{ 'auth.personalData' | translate }}</h2>
+            <label class="filter-field" for="activate-given">
+              <span>{{ 'auth.givenName' | translate }} *</span>
+              <input id="activate-given" class="os-control" formControlName="givenName" autocomplete="given-name" [attr.aria-invalid]="fieldError('givenName') ? true : null" [attr.aria-describedby]="fieldError('givenName') ? 'activate-given-error' : null" />
+              @if (fieldError('givenName'); as key) {
+                <span class="auth-field-error" id="activate-given-error">{{ key | translate }}</span>
+              }
+            </label>
+            <label class="filter-field" for="activate-family">
+              <span>{{ 'auth.familyName' | translate }} *</span>
+              <input id="activate-family" class="os-control" formControlName="familyName" autocomplete="family-name" [attr.aria-invalid]="fieldError('familyName') ? true : null" [attr.aria-describedby]="fieldError('familyName') ? 'activate-family-error' : null" />
+              @if (fieldError('familyName'); as key) {
+                <span class="auth-field-error" id="activate-family-error">{{ key | translate }}</span>
+              }
+            </label>
+          </section>
+          <section class="auth-section">
+            <h2>{{ 'auth.institutionalData' | translate }}</h2>
+            <label class="filter-field" for="activate-campus">
+              <span>{{ 'auth.campus' | translate }} *</span>
+              <select id="activate-campus" class="os-control" formControlName="campus" [attr.aria-invalid]="fieldError('campus') ? true : null" [attr.aria-describedby]="fieldError('campus') ? 'activate-campus-error' : null">
+                <option value="">{{ 'auth.selectPlaceholder' | translate }}</option>
+                @for (item of campuses; track item) { <option [value]="item">{{ item }}</option> }
+              </select>
+              @if (fieldError('campus'); as key) {
+                <span class="auth-field-error" id="activate-campus-error">{{ key | translate }}</span>
+              }
+            </label>
+            <label class="filter-field" for="activate-faculty">
+              <span>{{ 'auth.faculty' | translate }} *</span>
+              <select id="activate-faculty" class="os-control" formControlName="faculty" [attr.aria-invalid]="fieldError('faculty') ? true : null" [attr.aria-describedby]="fieldError('faculty') ? 'activate-faculty-error' : null">
+                <option value="">{{ 'auth.selectPlaceholder' | translate }}</option>
+                @for (item of faculties; track item) { <option [value]="item">{{ item }}</option> }
+              </select>
+              @if (fieldError('faculty'); as key) {
+                <span class="auth-field-error" id="activate-faculty-error">{{ key | translate }}</span>
+              }
+            </label>
+            <label class="filter-field" for="activate-position">
+              <span>{{ 'auth.position' | translate }} *</span>
+              <select id="activate-position" class="os-control" formControlName="positionTitle" [attr.aria-invalid]="fieldError('positionTitle') ? true : null" [attr.aria-describedby]="fieldError('positionTitle') ? 'activate-position-error' : null">
+                <option value="">{{ 'auth.selectPlaceholder' | translate }}</option>
+                @for (item of positions; track item) { <option [value]="item">{{ item }}</option> }
+              </select>
+              @if (fieldError('positionTitle'); as key) {
+                <span class="auth-field-error" id="activate-position-error">{{ key | translate }}</span>
+              }
+            </label>
+          </section>
+        } @else if (preview().givenName || preview().familyName) {
+          <p>{{ 'auth.activateKnownIdentity' | translate }}</p>
+          <p>{{ preview().givenName }} {{ preview().familyName }}</p>
+        }
+
+        <section class="auth-section">
+          @if (ethics()) {
+            <h2>{{ 'auth.accessData' | translate }}</h2>
           }
-        </label>
-        <label class="filter-field">
-          <span>{{ 'auth.confirmPassword' | translate }}</span>
-          <span class="auth-password">
-            <input
-              class="os-control"
-              [type]="showConfirm() ? 'text' : 'password'"
-              name="confirm-password"
-              formControlName="confirm"
-              autocomplete="new-password"
-            />
-            <button
-              type="button"
-              class="auth-password__toggle"
-              [attr.aria-label]="(showConfirm() ? 'auth.hidePassword' : 'auth.showPassword') | translate"
-              [attr.aria-pressed]="showConfirm()"
-              (click)="showConfirm.update((value) => !value)"
-            >
-              <os-icon [name]="showConfirm() ? 'eye-off' : 'eye'" />
-            </button>
-          </span>
-        </label>
+          <label class="filter-field" for="activate-password">
+            <span>{{ 'auth.newPassword' | translate }} *</span>
+            <span class="auth-password">
+              <input
+                id="activate-password"
+                class="os-control"
+                [type]="showPassword() ? 'text' : 'password'"
+                name="new-password"
+                formControlName="password"
+                autocomplete="new-password"
+                [attr.aria-invalid]="passwordError() ? true : null"
+                [attr.aria-describedby]="passwordError() ? 'activate-password-error' : 'activate-password-hint'"
+              />
+              <button
+                type="button"
+                class="auth-password__toggle"
+                [attr.aria-label]="(showPassword() ? 'auth.hidePassword' : 'auth.showPassword') | translate"
+                [attr.aria-pressed]="showPassword()"
+                (click)="showPassword.update((value) => !value)"
+              >
+                <os-icon [name]="showPassword() ? 'eye-off' : 'eye'" />
+              </button>
+            </span>
+            <span class="auth-field-hint" id="activate-password-hint">{{ 'auth.passwordPolicy' | translate }}</span>
+            @if (passwordError(); as passwordKey) {
+              <span class="auth-field-error" id="activate-password-error">{{ passwordKey | translate }}</span>
+            }
+          </label>
+          <label class="filter-field" for="activate-confirm">
+            <span>{{ 'auth.confirmPassword' | translate }} *</span>
+            <span class="auth-password">
+              <input
+                id="activate-confirm"
+                class="os-control"
+                [type]="showConfirm() ? 'text' : 'password'"
+                name="confirm-password"
+                formControlName="confirm"
+                autocomplete="new-password"
+                [attr.aria-invalid]="confirmError() || mismatch() ? true : null"
+                [attr.aria-describedby]="confirmError() ? 'activate-confirm-error' : mismatch() ? 'activate-mismatch' : null"
+              />
+              <button
+                type="button"
+                class="auth-password__toggle"
+                [attr.aria-label]="(showConfirm() ? 'auth.hidePassword' : 'auth.showPassword') | translate"
+                [attr.aria-pressed]="showConfirm()"
+                (click)="showConfirm.update((value) => !value)"
+              >
+                <os-icon [name]="showConfirm() ? 'eye-off' : 'eye'" />
+              </button>
+            </span>
+            @if (confirmError(); as key) {
+              <span class="auth-field-error" id="activate-confirm-error">{{ key | translate }}</span>
+            }
+          </label>
+        </section>
         @if (mismatch()) {
-          <p class="auth-banner auth-banner--error" role="alert">{{ 'auth.passwordMismatch' | translate }}</p>
+          <p class="auth-banner auth-banner--error" id="activate-mismatch" role="alert">{{ 'auth.passwordMismatch' | translate }}</p>
         } @else if (error(); as key) {
           <p class="auth-banner auth-banner--error" role="alert">{{ key | translate }}</p>
         }
         <button type="submit" class="page-action page-action--primary auth-submit" [disabled]="busy()">
-          {{ 'auth.activateAction' | translate }}
+          {{ (ethics() ? 'auth.activateEthicsAction' : 'auth.activateAction') | translate }}
         </button>
       </form>
     }

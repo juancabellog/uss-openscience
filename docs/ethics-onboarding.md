@@ -20,9 +20,15 @@ La invitación pide únicamente contraseña y confirmación. Al activarla se cre
 
 Si el correo institucional no tiene cuenta ni ficha PURE, Administración solo envía la invitación de registro. La persona completa nombre, apellidos, campus, facultad o unidad y cargo, y define su contraseña. Esos catálogos son los del formulario de proyecto. No se pide carrera: `person` no tiene esa columna.
 
-Al completar el registro se crea una `Person` con `person_kind = INSTITUTIONAL` y `purePersonId` nulo. Sigue siendo institucional por el correo USS. No se escribe en `pure_person` y no se convierte en revisor externo. Después se crea el `UserAccount`, se activa Ética y se asigna `RESEARCHER`.
+Una invitación de Ethics abre `https://apps.cienciavida.org/ethics/activar-cuenta`. En local la base es `ethics.app.publicUrl` / `ETHICS_PUBLIC_URL` (en este entorno, `http://localhost:4500`). La pantalla es `projects/ethics-uss/src/app/features/auth/activate-account.page.ts`. Llama al mismo `GET` y `POST /auth/activate`: mismo token, mismo `app_user` y misma contraseña. Al terminar, el enlace vuelve a `/ingresar` de Ethics. OpenScience conserva `/auth/activate-account` solo para altas que no son de Ethics. Si OpenScience ya apunta a `https://apps.cienciavida.org/openscience`, una base local de Ethics se descarta y el correo usa `https://apps.cienciavida.org/ethics`. `./package-prod.sh` y `./run-prod.sh` escriben esa URL. Hay que volver a empaquetar o reiniciar el proceso de producción para que el correo que ya salió deje de usar localhost.
 
-La fila `person` se crea solo si esa tabla ya existe. El script propuesto no se ejecuta desde la aplicación. Si la tabla no está, la cuenta y el acceso a Ética igual se activan.
+`GET /auth/activate` responde `valid`, `status`, `maskedEmail`, `profileRequired`, `ethicsInvitation` y `pureReadonly`. Si `profileRequired` es verdadero, el formulario pide nombres, apellidos, sede, facultad o unidad y cargo, y el `POST /auth/activate` envía `givenName`, `familyName`, `campus`, `faculty` y `positionTitle` junto con `token` y `password`. Si es PURE, esos datos se muestran en solo lectura y la contraseña basta. `AUTH_PROFILE_REQUIRED` deja el formulario en pantalla. El enlace inválido, vencido o usado sale del `status` del GET, o de `AUTH_TOKEN_INVALID` en el POST.
+
+Los dominios institucionales siguen siendo `uss.cl`, `correo.uss.cl` y `docente.uss.cl`. Crear cuenta llama a `POST /auth/ethics-start` y no rechaza el dominio en el navegador. `ethics.testInstitutionalEmails` (variable `ETHICS_TEST_INSTITUTIONAL_EMAILS`) es una lista vacía por defecto. Solo admite correos completos, sin dominios ni comodines, para repetir el alta de una persona que no está en PURE. No convierte Gmail en un dominio del producto. En el Liberty local se define en `backend/src/main/liberty/config/bootstrap.properties`, que no se versiona. Para retirarla, borrar el valor y reiniciar el servidor.
+
+Al completar el registro se crea una `Person` con `person_kind = INSTITUTIONAL` y `purePersonId` nulo. Sigue siendo institucional por el correo USS. No se escribe en `pure_person` y no se convierte en revisor externo. El acceso a Ética y `RESEARCHER` quedan activos antes de esa fila. Si el insert de la persona falla, la cuenta igual queda activada.
+
+La fila `person` se crea solo si esa tabla ya existe. Al preparar las tablas de Ethics, si `person` no tiene `person_kind`, se agrega `VARCHAR(32) NOT NULL DEFAULT 'INSTITUTIONAL'`. Si esa columna no se puede agregar, el insert la omite y la activación continúa. El resto del script propuesto no se ejecuta desde la aplicación.
 
 ## Revisor externo
 
@@ -30,7 +36,7 @@ Este flujo no admite correos ajenos a USS, como `gmail.com`. El alta de un revis
 
 ## Autoregistro público
 
-Crear cuenta también empieza por el correo institucional y usa la misma resolución. Si ya hay una cuenta utilizable, la respuesta es: «Si ya tienes una cuenta, utiliza Iniciar sesión.» No se indica si la persona está en PURE ni se muestran datos internos. Una invitación nueva o reenviada solo confirma que, si el correo es institucional, llegarán los pasos siguientes.
+Crear cuenta también empieza por el correo institucional y usa la misma resolución. La pantalla lee el código de `POST /auth/ethics-start`, no el HTTP 200. `ETHICS_INVITE_SENT` con `emailSent` muestra «Revisa tu correo». `ETHICS_INVITE_RESENT` con `emailSent` avisa que se envió un enlace nuevo. `ETHICS_USE_LOGIN` dice que ya existe una cuenta y ofrece ir a iniciar sesión. `NOT_INSTITUTIONAL_DOMAIN` mantiene la restricción institucional. Si `emailSent` es falso, el aviso es que el correo no pudo enviarse. No se indica si la persona está en PURE ni se muestran datos internos.
 
 ## Auditoría
 

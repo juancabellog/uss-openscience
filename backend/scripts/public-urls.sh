@@ -9,6 +9,14 @@ production_app_url() {
   echo "${APP_PUBLIC_URL:-https://apps.cienciavida.org/openscience}"
 }
 
+production_ethics_url() {
+  local value="${ETHICS_PUBLIC_URL:-https://apps.cienciavida.org/ethics}"
+  case "$value" in
+    *localhost*|*127.0.0.1*) echo "https://apps.cienciavida.org/ethics" ;;
+    *) echo "$value" ;;
+  esac
+}
+
 upsert_kv() {
   local file="$1"
   local key="$2"
@@ -33,13 +41,16 @@ sanitize_public_urls() {
   local file="$1"
   local events_url="$2"
   local app_url="$3"
+  local ethics_url="$4"
   upsert_kv "$file" "EVENTS_PUBLIC_URL" "$events_url"
   upsert_kv "$file" "EVENTS_PUBLIC_BASE_URL" "$events_url"
   upsert_kv "$file" "APP_PUBLIC_URL" "$app_url"
+  upsert_kv "$file" "ETHICS_PUBLIC_URL" "$ethics_url"
   upsert_kv "$file" "EVENTS_ALLOW_LOCAL_MAIL_LINKS" "false"
   upsert_kv "$file" "EVENTS_REQUIRE_PUBLIC_URL" "true"
   upsert_kv "$file" "openscience.events.publicUrl" "$events_url"
   upsert_kv "$file" "openscience.app.publicUrl" "$app_url"
+  upsert_kv "$file" "ethics.app.publicUrl" "$ethics_url"
   upsert_kv "$file" "openscience.events.allowLocalMailLinks" "false"
   upsert_kv "$file" "openscience.events.requirePublicUrl" "true"
 }

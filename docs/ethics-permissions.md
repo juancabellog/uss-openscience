@@ -213,6 +213,12 @@ Ignacio es solo `REVIEWER`. Su `committees: ['CECUA']` describe composición ins
 
 `VALIDATE_RESOLUTION` y `RETURN_RESOLUTION` están en administración y presidencia. Secretaría no las tiene. `EDIT_CONSOLIDATED_OBSERVATIONS` y `SAVE_CONSOLIDATED_OBSERVATIONS` están en administración, presidencia y secretaría. El borrador no se muestra al revisor ni al investigador.
 
+## Espacio de trabajo
+
+Una persona puede ejercer múltiples funciones simultáneamente en Ética de Proyectos. Cuando estas funciones generan experiencias de navegación diferentes, la interfaz permite seleccionar un espacio de trabajo. Esta selección modifica navegación, inicio, etiquetas y filtros, pero no modifica la identidad, las asignaciones de rol ni las capabilities efectivas. La autorización continúa resolviéndose mediante capability, alcance y estado del workflow.
+
+`GET /api/v1/ethics/me/functions` devuelve las asignaciones vigentes, con comité cuando existe, para armar esa vista. No recibe un rol elegido y no cambia `AuthorizationService`. Una revisión `COMPLETED` sigue visible como función de revisor; una fila `REVOKED` no. Varias revisiones de la misma persona son un solo espacio «Revisor/a». Presidencia o secretaría de dos comités son dos espacios. La preferencia queda en el navegador (`ethics.active.workspace`) y se descarta si esa función ya no está.
+
 ## Lo que la interfaz todavía resuelve en local
 
 El prototipo aún no pide `GET /api/v1/ethics/permissions`. El espejo local usa los mismos identificadores que `permissions-V3.yml`. El menú, el inicio, los proyectos y el expediente consultan `permissionService.can(capability, context)`. El backend vuelve a autorizar y no confía en un rol enviado por el navegador.

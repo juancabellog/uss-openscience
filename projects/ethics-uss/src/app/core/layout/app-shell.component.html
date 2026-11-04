@@ -21,12 +21,13 @@
           </h2>
         }
         <ul class="sidebar-section-items" [id]="section.collapsible ? 'nav-panel-' + section.id : null" [class.is-collapsed]="section.collapsible && !sectionOpen(section.id)" [hidden]="section.collapsible && !sectionOpen(section.id)" [attr.aria-labelledby]="section.collapsible ? 'nav-' + section.id : null">
-          @for (item of section.items; track item.path) {
+            @for (item of section.items; track item.path + item.labelKey) {
             <li>
               <a
                 class="sidebar-item"
                 [class.sidebar-item--root]="!section.collapsible"
                 [routerLink]="item.path"
+                [queryParams]="item.query ?? null"
                 routerLinkActive="sidebar-item--active"
                 [routerLinkActiveOptions]="{ exact: item.path === '/' }"
                 ariaCurrent="page"
@@ -52,7 +53,11 @@
       @if (user()?.email) {
         <span class="muted"> {{ user()?.email }}</span>
       }
-      @if (roleLabelKey()) {
+      @if (workspaces.showSelector()) {
+        <eth-workspace-switch />
+      } @else if (workspaces.active(); as workspace) {
+        <span class="muted"> {{ workspace.scopeId ? (workspace.labelKey | translate: { committee: (shortCommitteeKey(workspace.scopeId) | translate) }) : (workspace.labelKey | translate) }}</span>
+      } @else if (roleLabelKey()) {
         <span class="muted"> {{ roleLabelKey() | translate }}</span>
       }
       @if (user(); as person) {
@@ -61,7 +66,7 @@
         }
       }
       @if (user(); as person) {
-        @if (showCommittee(person) && committees().length > 1) {
+        @if (showCommittee(person) && committees().length > 1 && !workspaces.options().some((item) => item.scopeId)) {
         <label class="role-switch">
           <span class="sr-only">{{ 'shell.activeCommittee' | translate }}</span>
           <select [ngModel]="activeCommittee()" (ngModelChange)="setCommittee($event)">

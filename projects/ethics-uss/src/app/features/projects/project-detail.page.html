@@ -2,9 +2,13 @@
   <section>
     <p class="kicker muted">{{ row.project.code }}</p>
     <div class="title-row">
-      <h1>{{ row.project.title }}</h1>
+      <h1>{{ row.project.title.trim() || ('projects.untitled' | translate) }}</h1>
       <eth-status-chip [value]="row.globalStatus" />
     </div>
+    @if (canContinue()) {
+      <p class="draft-note">{{ 'projects.draftPending' | translate }}</p>
+      <p><a class="btn" [routerLink]="['/proyectos', id(), 'borrador']">{{ 'projects.continueDraft' | translate }}</a></p>
+    }
 
     <eth-project-committee-tabs [tabs]="navTabs()" [active]="tab()" (activeChange)="tab.set($event)" />
 

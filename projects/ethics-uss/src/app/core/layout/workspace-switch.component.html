@@ -1,0 +1,40 @@
+<div class="workspace-switch">
+  <span class="workspace-kicker" id="workspace-label">{{ 'workspace.workingAs' | translate }}</span>
+  <button
+    type="button"
+    class="workspace-trigger"
+    aria-haspopup="listbox"
+    aria-controls="workspace-options"
+    [attr.aria-expanded]="open()"
+    [attr.aria-label]="'workspace.change' | translate"
+    [attr.title]="'workspace.help' | translate"
+    (click)="toggle()"
+    (keydown)="onTriggerKey($event)"
+  >
+    <span>{{ label() }}</span>
+    <span aria-hidden="true">▾</span>
+  </button>
+  @if (open()) {
+    <ul
+      id="workspace-options"
+      class="workspace-menu"
+      role="listbox"
+      [attr.aria-label]="'workspace.change' | translate"
+      (keydown)="onListKey($event)"
+    >
+      @for (item of workspaces.options(); track item.id) {
+        <li>
+          <button
+            type="button"
+            role="option"
+            [attr.aria-selected]="item.id === active()?.id"
+            (click)="choose(item.id)"
+          >
+            <strong>{{ caption(item) }}</strong>
+            <span>{{ item.descriptionKey | translate }}</span>
+          </button>
+        </li>
+      }
+    </ul>
+  }
+</div>

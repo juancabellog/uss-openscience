@@ -261,6 +261,13 @@ public abstract class JdbcRepository {
         return present;
     }
 
+    protected void rememberColumn(String table, String column, boolean present) {
+        if (table == null || column == null || !column.matches("[a-zA-Z0-9_]+")) {
+            return;
+        }
+        presentColumns.put(table + "." + column, present);
+    }
+
     private boolean probeColumn(String table, String column) {
         try (Connection connection = connection();
              PreparedStatement statement = connection.prepareStatement(

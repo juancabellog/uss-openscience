@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, ElementRef, input, output, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, effect, inject, input, output, signal, viewChild } from '@angular/core';
+import { OperationRun, watchOperation } from '../../../../../../shared/operation-feedback/operation-feedback';
 import { IconComponent } from '../../shared/components/icon.component';
 import { I18N_IMPORTS } from '../../shared/i18n/i18n.imports';
 
@@ -17,9 +18,15 @@ import { I18N_IMPORTS } from '../../shared/i18n/i18n.imports';
     />
     @if (busy()) {
       <button type="button" class="ghost" [class.labeled]="compact()" disabled [attr.aria-busy]="true" [attr.aria-label]="accessibleName()">
-        <span class="spinner" aria-hidden="true"></span>
+        <span class="uss-op-spinner" aria-hidden="true"></span>
         <span>{{ 'projects.uploading' | translate }}</span>
       </button>
+      @if (uploadView().showDetail) {
+        <p role="status">{{ 'projects.uploadingDetail' | translate }}</p>
+      }
+      @if (uploadView().showLong) {
+        <p role="status">{{ 'feedback.stillWorking' | translate }}</p>
+      }
     } @else if (error()) {
       <p class="upload-error" role="alert">{{ error() }}</p>
       <button type="button" class="ghost" [attr.aria-label]="accessibleName()" (click)="open()">
@@ -93,6 +100,34 @@ export class DocumentUploadActionComponent {
   readonly error = input('');
   readonly selected = output<File>();
   private readonly picker = viewChild<ElementRef<HTMLInputElement>>('picker');
+  private readonly uploadRun = new OperationRun();
+  private stopUpload: (() => void) | null = null;
+  readonly uploadView = signal(this.uploadRun.view());
+
+  constructor() {
+    inject(DestroyRef).onDestroy(() => this.stopUpload?.());
+    effect(() => {
+      if (this.busy()) {
+        if (this.uploadRun.view().running) {
+          return;
+        }
+        this.uploadRun.start({
+          loadingMessage: 'uploading',
+          detailMessage: 'detail',
+          longRunningMessage: 'long',
+          blocking: false
+        });
+        this.uploadView.set(this.uploadRun.view());
+        this.stopUpload?.();
+        this.stopUpload = watchOperation(this.uploadRun, () => this.uploadView.set(this.uploadRun.view()));
+        return;
+      }
+      if (this.uploadRun.view().running) {
+        this.uploadRun.succeed();
+        this.uploadView.set(this.uploadRun.view());
+      }
+    });
+  }
 
   open(): void {
     this.picker()?.nativeElement.click();

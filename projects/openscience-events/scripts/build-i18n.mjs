@@ -126,6 +126,8 @@ p('register.stepEmail', '1. Verifique su correo', '1. Verify your email');
 p('register.email', 'Correo electrónico', 'Email');
 p('register.sendLink', 'Enviar enlace', 'Send link');
 p('register.sending', 'Enviando enlace…', 'Sending link…');
+p('register.sendingDetail', 'Estamos enviando el enlace de verificación. Esto puede tardar unos segundos.', 'We are sending the verification link. This can take a few seconds.');
+p('register.stillWorking', 'Esto está tardando más de lo habitual. Seguimos procesando la solicitud.', 'This is taking longer than usual. We are still processing the request.');
 p('register.linkSent', 'Si el correo es válido, recibirá un enlace para continuar.', 'If the email is valid, you will receive a link to continue.');
 p('register.checkEmailTitle', 'Revisa tu correo electrónico', 'Check your email');
 p('register.checkEmailSent', 'Te hemos enviado un enlace de verificación.', 'We have sent you a verification link.');

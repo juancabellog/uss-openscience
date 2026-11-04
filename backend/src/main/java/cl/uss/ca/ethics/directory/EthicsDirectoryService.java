@@ -1,5 +1,6 @@
 package cl.uss.ca.ethics.directory;
 
+import cl.uss.ca.api.dto.EthicsRemovalDto;
 import cl.uss.ca.api.dto.EthicsDirectoryRoleDto;
 import cl.uss.ca.api.dto.EthicsDirectoryUserDto;
 import cl.uss.ca.api.dto.EthicsProfileWriteDto;
@@ -8,9 +9,12 @@ import cl.uss.ca.ethics.auth.AuthorizationContext;
 import cl.uss.ca.ethics.auth.AuthorizationService;
 import cl.uss.ca.ethics.auth.EthicsAdminRepository;
 import cl.uss.ca.ethics.auth.EthicsRoleRevocation;
+import cl.uss.ca.ethics.auth.EthicsUserRemoval;
+import cl.uss.ca.service.AuthService;
 import cl.uss.ca.ethics.auth.EthicsUserCatalog;
 import cl.uss.ca.ethics.auth.RoleAssignment;
 import cl.uss.ca.ethics.auth.RoleDefinitionProvider;
+import cl.uss.ca.identity.EthicsTestInstitutionalEmails;
 import cl.uss.ca.exception.ForbiddenException;
 import cl.uss.ca.exception.NotFoundException;
 import cl.uss.ca.exception.UnauthorizedException;
@@ -56,6 +60,9 @@ public class EthicsDirectoryService {
     @Inject
     AccessRepository accounts;
 
+    @Inject
+    EthicsTestInstitutionalEmails testInstitutionalEmails;
+
     public void assertMayManage(CurrentUser user) {
         if (user == null || user.id == null || user.id.isBlank()) {
             throw new UnauthorizedException("AUTH_REQUIRED", "Authentication is required");
@@ -83,10 +90,16 @@ public class EthicsDirectoryService {
                     "Este revisor tiene una revisión activa. Deshabilitar Ethics no reasigna esa revisión."
             );
         }
+        if (!active && directory.removalFacts(userId).lastAdministrator()) {
+            throw new ValidationException(
+                    EthicsUserRemoval.LAST_ADMINISTRATOR,
+                    "No es posible deshabilitar este acceso porque es el último administrador activo de Ética de Proyectos."
+            );
+        }
         if (active) {
             boolean enabled = admin.ensureEthicsActive(userId);
             boolean researcher = false;
-            if ("INSTITUTIONAL".equals(EthicsUserCatalog.personKind(account.personKind(), account.email()))) {
+            if ("INSTITUTIONAL".equals(kindOf(account))) {
                 researcher = admin.ensureStructuralRole(userId, "RESEARCHER");
             }
             if (enabled) {
@@ -106,12 +119,51 @@ public class EthicsDirectoryService {
         return get(userId);
     }
 
+    public EthicsRemovalDto removal(long userId) {
+        directory.require(userId);
+        return removalDto(directory.removalFacts(userId));
+    }
+
+    public void remove(long userId) {
+        EthicsUserCatalog.Account account = directory.require(userId);
+        String block = directory.removeEthicsEnrollment(userId);
+        if (EthicsUserRemoval.LAST_ADMINISTRATOR.equals(block)) {
+            throw new ValidationException(
+                    EthicsUserRemoval.LAST_ADMINISTRATOR,
+                    "No es posible eliminar este alta porque es el último administrador activo de Ética de Proyectos."
+            );
+        }
+        if (block != null) {
+            throw new ValidationException(
+                    EthicsUserRemoval.HAS_HISTORY,
+                    "Esta persona tiene actividad registrada en Ética de Proyectos y no puede eliminarse."
+            );
+        }
+        if ("PENDING_ACTIVATION".equals(account.accountStatus()) && accounts != null) {
+            accounts.invalidateTokens(userId, AuthService.PURPOSE_ACTIVATION);
+        }
+        audited(userId, EthicsUserRemoval.EVENT, "ethics enrollment removed");
+    }
+
+    private static EthicsRemovalDto removalDto(EthicsUserRemoval.Facts facts) {
+        EthicsRemovalDto dto = new EthicsRemovalDto();
+        dto.snapshots = facts.snapshots();
+        dto.reviewAssignments = facts.reviewAssignments();
+        dto.recordedActs = facts.recordedActs();
+        dto.committeeAssignments = facts.committeeAssignments();
+        dto.pendingInvitation = facts.pendingInvitation();
+        dto.reason = EthicsUserRemoval.block(facts);
+        dto.deletable = dto.reason == null;
+        dto.serverTracksProjects = false;
+        return dto;
+    }
+
     public EthicsDirectoryUserDto grantRole(long userId, String roleId) {
         if (roleId == null || !STRUCTURAL.contains(roleId)) {
             throw new ValidationException("ROLE_NOT_STRUCTURAL", "Esa función no se asigna desde la administración de usuarios.");
         }
         EthicsUserCatalog.Account account = directory.require(userId);
-        if (!"INSTITUTIONAL".equals(EthicsUserCatalog.personKind(account.personKind(), account.email()))) {
+        if (!"INSTITUTIONAL".equals(kindOf(account))) {
             throw new ForbiddenException(
                     "EXTERNAL_ROLE_DENIED",
                     "Una persona externa no puede ser investigador, secretario, presidente ni administrador."
@@ -182,6 +234,16 @@ public class EthicsDirectoryService {
         return get(userId);
     }
 
+    private String kindOf(EthicsUserCatalog.Account account) {
+        String stored = account.personKind();
+        if ("INSTITUTIONAL".equals(stored) || "EXTERNAL".equals(stored)) {
+            return stored;
+        }
+        return testInstitutionalEmails != null && testInstitutionalEmails.eligible(account.email())
+                ? "INSTITUTIONAL"
+                : "EXTERNAL";
+    }
+
     private EthicsDirectoryUserDto toDto(EthicsUserCatalog.Account account) {
         EthicsDirectoryUserDto dto = new EthicsDirectoryUserDto();
         dto.id = account.id();
@@ -189,7 +251,7 @@ public class EthicsDirectoryService {
         dto.familyName = blank(account.familyName());
         dto.displayName = (dto.givenName + " " + dto.familyName).trim();
         dto.email = blank(account.email());
-        dto.personKind = EthicsUserCatalog.personKind(account.personKind(), account.email());
+        dto.personKind = kindOf(account);
         dto.purePersonId = account.purePersonId();
         dto.dataSource = EthicsUserCatalog.dataSource(account.purePersonId());
         dto.accountStatus = blank(account.accountStatus());

@@ -110,6 +110,8 @@
     "email": "Email",
     "sendLink": "Send link",
     "sending": "Sending link…",
+    "sendingDetail": "We are sending the verification link. This can take a few seconds.",
+    "stillWorking": "This is taking longer than usual. We are still processing the request.",
     "linkSent": "If the email is valid, you will receive a link to continue.",
     "checkEmailTitle": "Check your email",
     "checkEmailSent": "We have sent you a verification link.",

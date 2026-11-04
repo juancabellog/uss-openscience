@@ -11,6 +11,10 @@ export const routes: Routes = [
     loadComponent: () => import('./features/auth/forgot-password.page').then((m) => m.ForgotPasswordPage)
   },
   {
+    path: 'activar-cuenta',
+    loadComponent: () => import('./features/auth/activate-account.page').then((m) => m.ActivateAccountPage)
+  },
+  {
     path: '',
     loadComponent: () => import('./core/layout/app-shell.component').then((m) => m.AppShellComponent),
     canActivate: [demoAuthGuard],
@@ -19,6 +23,7 @@ export const routes: Routes = [
       { path: 'proyectos', loadComponent: () => import('./features/projects/project-list.page').then((m) => m.ProjectListPage) },
       { path: 'proyectos/nuevo', canActivate: [capabilityGuard('CREATE_REQUEST')], loadComponent: () => import('./features/submissions/new-choice.page').then((m) => m.NewChoicePage) },
       { path: 'proyectos/nuevo/proyecto', canActivate: [capabilityGuard('CREATE_REQUEST')], loadComponent: () => import('./features/submissions/new-project/new-project-wizard.page').then((m) => m.NewProjectWizardPage) },
+      { path: 'proyectos/:id/borrador', canActivate: [capabilityGuard('CREATE_REQUEST')], loadComponent: () => import('./features/submissions/new-project/new-project-wizard.page').then((m) => m.NewProjectWizardPage) },
       { path: 'proyectos/nuevo/validacion', canActivate: [capabilityGuard('CREATE_REQUEST')], loadComponent: () => import('./features/submissions/validation-project/validation-wizard.page').then((m) => m.ValidationWizardPage) },
       { path: 'proyectos/:id', loadComponent: () => import('./features/projects/project-detail.page').then((m) => m.ProjectDetailPage) },
       {

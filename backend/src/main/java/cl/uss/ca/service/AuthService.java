@@ -21,8 +21,10 @@ import cl.uss.ca.auth.TokenPolicy;
 import cl.uss.ca.auth.TokenPreviewStatus;
 import cl.uss.ca.auth.UserStatus;
 import cl.uss.ca.ethics.auth.EthicsAccountActivated;
+import cl.uss.ca.ethics.auth.EthicsActivationView;
 import cl.uss.ca.exception.UnauthorizedException;
 import cl.uss.ca.exception.ValidationException;
+import cl.uss.ca.identity.ActivationProfileDecision;
 import cl.uss.ca.identity.InstitutionalCatalog;
 import cl.uss.ca.mail.MailLocale;
 import cl.uss.ca.identity.InstitutionalOnboarding;
@@ -257,15 +259,40 @@ public class AuthService {
             dto.preferredLanguage = MailLocale.resolve(user.preferredLanguage, null);
         }
         if (dto.valid && user != null) {
-            dto.profileRequired = InstitutionalOnboarding.profileRequired(user.firstName, user.lastName);
-            dto.givenName = user.firstName == null || user.firstName.isBlank() ? null : user.firstName;
-            dto.familyName = user.lastName == null || user.lastName.isBlank() ? null : user.lastName;
+            EthicsActivationView invitation = ethicsActivationView(user.id);
+            dto.ethicsInvitation = invitation.ethics;
+            dto.pureReadonly = invitation.pureReadonly;
+            dto.profileRequired = ActivationProfileDecision.profileRequired(
+                    invitation.ethics,
+                    invitation.pureReadonly,
+                    InstitutionalOnboarding.profileRequired(user.firstName, user.lastName));
+            if (invitation.pureReadonly) {
+                dto.givenName = invitation.givenName;
+                dto.familyName = invitation.familyName;
+                dto.positionTitle = invitation.positionTitle;
+            } else if (!dto.profileRequired) {
+                dto.givenName = user.firstName == null || user.firstName.isBlank() ? null : user.firstName;
+                dto.familyName = user.lastName == null || user.lastName.isBlank() ? null : user.lastName;
+            }
         }
         return dto;
     }
 
     public boolean issueEthicsInvitation(AccessUserRecord user) {
         return issueActivation(user, ActivationOrigin.ETHICS_INVITE);
+    }
+
+    private EthicsActivationView ethicsActivationView(long userId) {
+        if (ethicsActivation == null) {
+            return EthicsActivationView.none();
+        }
+        for (EthicsAccountActivated listener : ethicsActivation) {
+            EthicsActivationView view = listener.ethicsActivationView(userId);
+            if (view != null && view.ethics) {
+                return view;
+            }
+        }
+        return EthicsActivationView.none();
     }
 
     public AuthUserDto activate(String rawToken, String password) {
@@ -293,15 +320,18 @@ public class AuthService {
         if (UserStatus.ACTIVE.name().equals(user.status)) {
             throw new ValidationException("AUTH_ALREADY_ACTIVE", "Esta cuenta ya fue activada.");
         }
-        boolean needsProfile = InstitutionalOnboarding.profileRequired(user.firstName, user.lastName);
+        EthicsActivationView invitation = ethicsActivationView(user.id);
+        boolean namesMissing = InstitutionalOnboarding.profileRequired(user.firstName, user.lastName);
         String given = PersonNamePolicy.normalize(givenName);
         String family = PersonNamePolicy.normalize(familyName);
-        if (needsProfile && (!PersonNamePolicy.isAcceptable(given) || !PersonNamePolicy.isAcceptable(family)
-                || !InstitutionalCatalog.accepts(campus, faculty, positionTitle))) {
+        boolean suppliedProfile = PersonNamePolicy.isAcceptable(given) && PersonNamePolicy.isAcceptable(family)
+                && InstitutionalCatalog.accepts(campus, faculty, positionTitle);
+        boolean localProfile = invitation.ethics && !invitation.pureReadonly;
+        if (ActivationProfileDecision.passwordAloneRejected(invitation.ethics, invitation.pureReadonly, suppliedProfile, namesMissing)) {
             throw new ValidationException("AUTH_PROFILE_REQUIRED", "Complete los datos institucionales y la contraseña.");
         }
         passwordPolicy.validate(password);
-        if (needsProfile) {
+        if (suppliedProfile && !invitation.pureReadonly && (localProfile || namesMissing)) {
             accessRepository.updateUser(user.id, given, family, user.preferredLanguage == null ? "es" : user.preferredLanguage);
         }
         accessRepository.activate(user.id, PasswordHasher.hash(password.toCharArray(), iterations));
@@ -309,10 +339,15 @@ public class AuthService {
         accessRepository.invalidateTokens(user.id, PURPOSE_ACTIVATION);
         accessRepository.recordEvent("USER_ACTIVATED", user.id, user.id, null, null);
         if (ethicsActivation != null) {
-            String storedGiven = needsProfile ? given : user.firstName;
-            String storedFamily = needsProfile ? family : user.lastName;
+            String storedGiven = invitation.pureReadonly ? invitation.givenName
+                    : suppliedProfile && (localProfile || namesMissing) ? given : user.firstName;
+            String storedFamily = invitation.pureReadonly ? invitation.familyName
+                    : suppliedProfile && (localProfile || namesMissing) ? family : user.lastName;
+            String storedPosition = invitation.pureReadonly ? invitation.positionTitle : positionTitle;
+            String storedCampus = invitation.pureReadonly ? null : campus;
+            String storedFaculty = invitation.pureReadonly ? null : faculty;
             ethicsActivation.forEach(listener -> listener.onActivated(
-                    user.id, storedGiven, storedFamily, campus, faculty, positionTitle));
+                    user.id, storedGiven, storedFamily, storedCampus, storedFaculty, storedPosition));
         }
         return toDto(accessRepository.findUserById(user.id));
     }

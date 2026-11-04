@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, HostListener, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { DemoAuthService } from '../../core/auth/demo-auth.service';
@@ -11,18 +11,22 @@ import {
   EthicsDirectoryError,
   EthicsDirectoryRole,
   EthicsDirectoryUser,
-  EthicsOnboarding
+  EthicsOnboarding,
+  EthicsRemoval
 } from '../../core/services/ethics-directory.api';
 import { PermissionService } from '../../core/services/permission.service';
 import { I18N_IMPORTS } from '../../shared/i18n/i18n.imports';
+import { IconComponent } from '../../shared/components/icon.component';
 import { StatusChipComponent } from '../../shared/components/status-chip.component';
+import { OperationFeedbackPanelComponent } from '../../../../../../shared/operation-feedback/operation-feedback-panel.component';
+import { OperationRun, watchOperation } from '../../../../../../shared/operation-feedback/operation-feedback';
 
 const PAGE_SIZE = 25;
 const GRANTABLE = ['RESEARCHER', 'ADMINISTRATOR', 'COMMITTEE_PRESIDENT', 'EXECUTIVE_SECRETARY'] as const;
 
 @Component({
   selector: 'eth-users-page',
-  imports: [...I18N_IMPORTS, FormsModule, StatusChipComponent],
+  imports: [...I18N_IMPORTS, FormsModule, StatusChipComponent, IconComponent, OperationFeedbackPanelComponent],
   templateUrl: './users.page.html',
   styleUrl: './users.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -70,6 +74,16 @@ export class UsersPage {
   readonly institution = signal('');
   readonly structuralRole = signal('');
   readonly pendingRemove = signal<EthicsDirectoryRole | null>(null);
+  readonly removal = signal<EthicsRemoval | null>(null);
+  readonly deleteOpen = signal(false);
+  readonly disableOpen = signal(false);
+  readonly removing = signal(false);
+  readonly menuUserId = signal<string | null>(null);
+  readonly menuRemoval = signal<EthicsRemoval | null>(null);
+  readonly menuTop = signal<number | null>(null);
+  readonly menuBottom = signal<number | null>(null);
+  readonly menuRight = signal(8);
+  private menuTrigger: HTMLButtonElement | null = null;
   readonly revoking = signal(false);
   readonly canManage = computed(() => this.permissions.can(this.auth.currentUser(), 'MANAGE_USERS'));
   readonly filtersActive = computed(() =>
@@ -89,8 +103,16 @@ export class UsersPage {
       .map((id) => ({ id, label: `roles.${id.toLowerCase()}` }));
   });
 
+  private readonly inviteRun = new OperationRun();
+  private stopInviteWatch: (() => void) | null = null;
+  readonly inviteView = signal(this.inviteRun.view());
+  readonly inviteErrorKey = signal<string | null>(null);
+
   constructor() {
-    inject(DestroyRef).onDestroy(() => window.clearTimeout(this.searchTimer));
+    inject(DestroyRef).onDestroy(() => {
+      window.clearTimeout(this.searchTimer);
+      this.stopInviteWatch?.();
+    });
     if (this.route.snapshot.queryParamMap.get('crear') === 'externo') {
       this.mode.set('create');
       this.accountType.set('EXTERNAL');
@@ -175,6 +197,7 @@ export class UsersPage {
   }
 
   back(): void {
+    this.closeMenu(false);
     this.mode.set('list');
     this.message.set(null);
     this.confirmDisable.set(false);
@@ -182,7 +205,198 @@ export class UsersPage {
     void this.load();
   }
 
+  pendingInvitation(user: EthicsDirectoryUser): boolean {
+    return user.accountStatus === 'PENDING_ACTIVATION';
+  }
+
+  actionsLabel(user: EthicsDirectoryUser): string {
+    const name = user.displayName?.trim() || user.email;
+    return this.i18n.translate('users.actionsFor', { name });
+  }
+
+  showResend(user: EthicsDirectoryUser): boolean {
+    return this.canManage() && this.pendingInvitation(user) && user.personKind === 'INSTITUTIONAL';
+  }
+
+  showEditRoles(user: EthicsDirectoryUser): boolean {
+    return this.canManage() && user.personKind === 'INSTITUTIONAL' && !this.pendingInvitation(user);
+  }
+
+  showEnable(user: EthicsDirectoryUser): boolean {
+    return this.canManage() && !user.ethicsAccess && !this.pendingInvitation(user);
+  }
+
+  showDisable(user: EthicsDirectoryUser): boolean {
+    return this.canManage() && user.ethicsAccess;
+  }
+
+  showDelete(user: EthicsDirectoryUser): boolean {
+    return this.canManage() && this.menuUserId() === user.id && this.menuRemoval()?.deletable === true;
+  }
+
+  hasMenu(user: EthicsDirectoryUser): boolean {
+    return this.showResend(user)
+      || this.showEditRoles(user)
+      || this.showEnable(user)
+      || this.showDisable(user)
+      || (this.canManage() && this.pendingInvitation(user));
+  }
+
+  menuUser(): EthicsDirectoryUser | null {
+    const id = this.menuUserId();
+    return id ? this.rows().find((user) => user.id === id) ?? null : null;
+  }
+
+  toggleMenu(user: EthicsDirectoryUser, event: Event): void {
+    if (this.menuUserId() === user.id) {
+      this.closeMenu(true);
+      return;
+    }
+    const trigger = event.currentTarget as HTMLButtonElement;
+    const rect = trigger.getBoundingClientRect();
+    const below = window.innerHeight - rect.bottom;
+    this.menuTrigger = trigger;
+    this.menuUserId.set(user.id);
+    this.menuRemoval.set(null);
+    this.menuRight.set(Math.max(8, window.innerWidth - rect.right));
+    if (below < 180 && rect.top > 180) {
+      this.menuTop.set(null);
+      this.menuBottom.set(window.innerHeight - rect.top + 4);
+    } else {
+      this.menuBottom.set(null);
+      this.menuTop.set(rect.bottom + 4);
+    }
+    void this.api.removal(user.id).then((facts) => {
+      if (this.menuUserId() === user.id) {
+        this.menuRemoval.set(facts);
+        setTimeout(() => {
+          const active = document.activeElement;
+          if (!(active instanceof HTMLElement) || active.getAttribute('role') !== 'menuitem') {
+            this.focusMenuItem(0);
+          }
+        });
+      }
+    }).catch(() => {
+      if (this.menuUserId() === user.id) {
+        this.menuRemoval.set(null);
+      }
+    });
+    setTimeout(() => this.focusMenuItem(0));
+  }
+
+  private focusMenuItem(index: number): void {
+    const id = this.menuUserId();
+    if (!id) {
+      return;
+    }
+    const items = document.getElementById(`user-menu-${id}`)?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]');
+    items?.[index]?.focus();
+  }
+
+  closeMenu(restoreFocus: boolean): void {
+    const trigger = this.menuTrigger;
+    this.menuUserId.set(null);
+    this.menuRemoval.set(null);
+    this.menuTrigger = null;
+    if (restoreFocus) {
+      trigger?.focus();
+    }
+  }
+
+  onMenuKey(event: KeyboardEvent): void {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      this.closeMenu(true);
+      return;
+    }
+    const menu = event.currentTarget as HTMLElement;
+    const items = Array.from(menu.querySelectorAll<HTMLButtonElement>('[role="menuitem"]'));
+    if (!items.length) {
+      return;
+    }
+    const current = items.indexOf(document.activeElement as HTMLButtonElement);
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      items[(current + 1 + items.length) % items.length].focus();
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      items[(current - 1 + items.length) % items.length].focus();
+    } else if (event.key === 'Home') {
+      event.preventDefault();
+      items[0].focus();
+    } else if (event.key === 'End') {
+      event.preventDefault();
+      items[items.length - 1].focus();
+    }
+  }
+
+  resendFromMenu(user: EthicsDirectoryUser): void {
+    this.closeMenu(false);
+    void this.resendInvitation(user);
+  }
+
+  editRolesFromMenu(user: EthicsDirectoryUser): void {
+    this.closeMenu(false);
+    void this.openDetail(user.id);
+  }
+
+  enableFromMenu(user: EthicsDirectoryUser): void {
+    this.closeMenu(false);
+    void this.enableFromList(user);
+  }
+
+  disableFromMenu(user: EthicsDirectoryUser): void {
+    this.closeMenu(false);
+    this.selected.set(user);
+    this.confirmRequired.set(false);
+    this.askDisable();
+  }
+
+  deleteFromMenu(user: EthicsDirectoryUser): void {
+    const facts = this.menuRemoval();
+    if (!facts?.deletable) {
+      return;
+    }
+    this.selected.set(user);
+    this.removal.set(facts);
+    this.closeMenu(false);
+    this.deleteOpen.set(true);
+  }
+
+  async resendInvitation(user: EthicsDirectoryUser): Promise<void> {
+    await this.deliverInvitation(user.email, 'users.sendingInvitation');
+  }
+
+  @HostListener('document:pointerdown', ['$event'])
+  closeMenuFromPointer(event: PointerEvent): void {
+    if (!this.menuUserId()) {
+      return;
+    }
+    const target = event.target as Node | null;
+    const menu = document.getElementById(`user-menu-${this.menuUserId()}`);
+    if (target && (menu?.contains(target) || this.menuTrigger?.contains(target))) {
+      return;
+    }
+    this.closeMenu(false);
+  }
+
+  @HostListener('document:keydown', ['$event'])
+  closeMenuFromEscape(event: KeyboardEvent): void {
+    if (event.key === 'Escape' && this.menuUserId() && !this.deleteOpen() && !this.disableOpen()) {
+      event.preventDefault();
+      this.closeMenu(true);
+    }
+  }
+
+  @HostListener('window:resize')
+  closeMenuOnResize(): void {
+    if (this.menuUserId()) {
+      this.closeMenu(false);
+    }
+  }
+
   async openDetail(id: string): Promise<void> {
+    this.closeMenu(false);
     this.message.set(null);
     this.confirmDisable.set(false);
     this.confirmRequired.set(false);
@@ -190,7 +404,11 @@ export class UsersPage {
     this.loading.set(true);
     this.loadError.set(null);
     try {
-      const user = await this.api.get(id);
+      const [user, removal] = await Promise.all([
+        this.api.get(id),
+        this.api.removal(id).catch(() => null)
+      ]);
+      this.removal.set(removal);
       this.applyDetail(user);
     } catch (error) {
       this.selected.set(null);
@@ -217,10 +435,6 @@ export class UsersPage {
     this.message.set(null);
     this.lookedUp.set(null);
     this.resolution.set(null);
-    if (!isAllowedInstitutionalEmail(this.email())) {
-      this.message.set('users.notInstitutionalDomain');
-      return;
-    }
     this.resolving.set(true);
     try {
       const resolved = await this.api.resolveInstitutional(this.email());
@@ -234,14 +448,53 @@ export class UsersPage {
   }
 
   async sendInvitation(): Promise<void> {
-    this.message.set(null);
-    try {
-      const resolved = await this.api.inviteInstitutional(this.email());
-      this.resolution.set(resolved);
-      this.message.set(resolved.emailSent ? 'users.invitationSent' : 'users.invitationMailFailed');
-    } catch (error) {
-      this.message.set(this.failureKey(error));
+    await this.deliverInvitation(this.email(), 'users.creatingUser');
+  }
+
+  messageRole(): 'alert' | 'status' {
+    const key = this.message();
+    return key != null && key === this.inviteErrorKey() ? 'alert' : 'status';
+  }
+
+  private async deliverInvitation(email: string, loadingKey: string): Promise<void> {
+    if (!this.beginInvite(loadingKey)) {
+      return;
     }
+    this.message.set(null);
+    this.inviteErrorKey.set(null);
+    try {
+      const resolved = await this.api.inviteInstitutional(email);
+      this.resolution.set(resolved);
+      const key = resolved.emailSent ? 'users.invitationSent' : 'users.invitationMailFailed';
+      this.message.set(key);
+      this.inviteRun.succeed(this.i18n.translate(key));
+    } catch (error) {
+      const key = this.failureKey(error);
+      this.message.set(key);
+      this.inviteErrorKey.set(key);
+      this.inviteRun.fail(this.i18n.translate(key));
+    }
+    this.publishInvite();
+  }
+
+  private beginInvite(loadingKey: string): boolean {
+    const started = this.inviteRun.start({
+      loadingMessage: this.i18n.translate(loadingKey),
+      detailMessage: this.i18n.translate('users.inviteWorkingDetail'),
+      longRunningMessage: this.i18n.translate('feedback.stillWorking'),
+      blocking: true
+    });
+    if (!started) {
+      return false;
+    }
+    this.publishInvite();
+    this.stopInviteWatch?.();
+    this.stopInviteWatch = watchOperation(this.inviteRun, () => this.publishInvite());
+    return true;
+  }
+
+  private publishInvite(): void {
+    this.inviteView.set(this.inviteRun.view());
   }
 
   async createInstitutional(): Promise<void> {
@@ -304,30 +557,110 @@ export class UsersPage {
     await this.enable(current);
   }
 
-  async disable(): Promise<void> {
+  askDisable(): void {
+    if (this.disableNeedsConfirm()) {
+      this.disableOpen.set(true);
+      return;
+    }
+    void this.disable(false);
+  }
+
+  async disable(confirmed = false): Promise<void> {
     const current = this.selected();
     if (!current) {
       return;
     }
-    const needsConfirm = this.disableNeedsConfirm();
-    if (needsConfirm && !this.confirmDisable()) {
-      this.confirmRequired.set(true);
-      return;
-    }
     try {
-      const user = await this.api.setAccess(current.id, false, needsConfirm);
+      const user = await this.api.setAccess(current.id, false, confirmed);
       this.confirmDisable.set(false);
       this.confirmRequired.set(false);
+      this.disableOpen.set(false);
       this.applyDetail(user);
+      this.removal.set(await this.api.removal(current.id).catch(() => null));
       await this.refreshOwnContext(current.id);
       this.message.set('users.disabled');
     } catch (error) {
       if (error instanceof EthicsDirectoryError && error.code === 'ACTIVE_REVIEW') {
         this.confirmRequired.set(true);
-        this.confirmDisable.set(false);
+        this.disableOpen.set(true);
       }
       this.message.set(this.failureKey(error));
     }
+  }
+
+  askDelete(): void {
+    if (!this.removal()?.deletable) {
+      return;
+    }
+    this.deleteOpen.set(true);
+  }
+
+  async confirmDelete(): Promise<void> {
+    const current = this.selected();
+    if (!current || this.removing()) {
+      return;
+    }
+    this.removing.set(true);
+    try {
+      await this.api.remove(current.id);
+      this.deleteOpen.set(false);
+      this.removal.set(null);
+      this.message.set('users.removed');
+      this.mode.set('list');
+      await this.load();
+    } catch (error) {
+      this.deleteOpen.set(false);
+      if (error instanceof EthicsDirectoryError && error.code === 'ETHICS_USER_HAS_HISTORY') {
+        this.removal.set(await this.api.removal(current.id).catch(() => this.removal()));
+      }
+      this.message.set(this.failureKey(error));
+    } finally {
+      this.removing.set(false);
+    }
+  }
+
+  historyLines(): string[] {
+    const removal = this.removal();
+    if (!removal) {
+      return [];
+    }
+    const lines: string[] = [];
+    if (removal.snapshots > 0) {
+      lines.push(this.i18n.translate('users.historySnapshots', { count: removal.snapshots }));
+    }
+    if (removal.reviewAssignments > 0) {
+      lines.push(this.i18n.translate('users.historyReviews', { count: removal.reviewAssignments }));
+    }
+    if (removal.recordedActs > 0) {
+      lines.push(this.i18n.translate('users.historyActs', { count: removal.recordedActs }));
+    }
+    if (removal.committeeAssignments > 0) {
+      lines.push(this.i18n.translate('users.historyCommittees', { count: removal.committeeAssignments }));
+    }
+    return lines;
+  }
+
+  historyOnlyKey(): string | null {
+    const removal = this.removal();
+    if (!removal || removal.deletable) {
+      return null;
+    }
+    const kinds = [
+      removal.snapshots > 0,
+      removal.reviewAssignments > 0,
+      removal.recordedActs > 0,
+      removal.committeeAssignments > 0
+    ].filter(Boolean).length;
+    if (kinds !== 1) {
+      return null;
+    }
+    if (removal.reviewAssignments > 0) {
+      return 'users.historyReviewsOnly';
+    }
+    if (removal.recordedActs > 0 || removal.snapshots > 0) {
+      return 'users.historyProjectsOnly';
+    }
+    return null;
   }
 
   async grantRole(): Promise<void> {
@@ -339,6 +672,7 @@ export class UsersPage {
     try {
       const user = await this.api.grantRole(current.id, role);
       this.applyDetail(user);
+      this.removal.set(await this.api.removal(current.id).catch(() => null));
       const granted = (user.roles ?? []).some((item) =>
         item.id === role && !item.contextual && item.scopeType === 'GLOBAL' && item.scopeId === '*'
       );
@@ -405,6 +739,7 @@ export class UsersPage {
     try {
       const user = await this.api.revokeRole(current.id, role.assignmentId);
       this.applyDetail(user);
+      this.removal.set(await this.api.removal(current.id).catch(() => null));
       this.pendingRemove.set(null);
       await this.refreshOwnContext(current.id);
       this.message.set('users.roleRevoked');
@@ -442,7 +777,9 @@ export class UsersPage {
       this.applyDetail(updated);
       this.mode.set('detail');
       await this.refreshOwnContext(user.id);
-      this.message.set(user.ethicsAccess ? 'users.alreadyEthics' : 'users.enabled');
+      this.message.set(updated.accountStatus === 'PENDING_ACTIVATION'
+        ? 'users.pendingInviteHint'
+        : user.ethicsAccess ? 'users.alreadyEthics' : 'users.enabled');
     } catch (error) {
       this.message.set(this.failureKey(error));
     }
@@ -471,6 +808,7 @@ export class UsersPage {
       return;
     }
     const ticket = ++this.request;
+    this.closeMenu(false);
     this.loading.set(true);
     this.loadError.set(null);
     this.rows.set([]);
@@ -537,6 +875,9 @@ export class UsersPage {
       }
       if (error.code === 'ACTIVE_REVIEW') {
         return 'users.activeReviewWarning';
+      }
+      if (error.code === 'ETHICS_USER_HAS_HISTORY') {
+        return 'users.notDeletableHint';
       }
       if (error.code === 'EXTERNAL_ROLE_DENIED') {
         return 'users.externalRoleDenied';

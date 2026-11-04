@@ -18,8 +18,9 @@ fi
 EVENTS_PUBLIC_URL="$(production_events_url)"
 EVENTS_PUBLIC_BASE_URL="${EVENTS_PUBLIC_BASE_URL:-$EVENTS_PUBLIC_URL}"
 APP_PUBLIC_URL="$(production_app_url)"
+ETHICS_PUBLIC_URL="$(production_ethics_url)"
 EVENTS_ALLOW_LOCAL_MAIL_LINKS=false
-export EVENTS_PUBLIC_URL EVENTS_PUBLIC_BASE_URL APP_PUBLIC_URL EVENTS_ALLOW_LOCAL_MAIL_LINKS
+export EVENTS_PUBLIC_URL EVENTS_PUBLIC_BASE_URL APP_PUBLIC_URL ETHICS_PUBLIC_URL EVENTS_ALLOW_LOCAL_MAIL_LINKS
 
 JAVA_BIN="${JAVA_HOME:+$JAVA_HOME/bin/java}"
 JAVA_BIN="${JAVA_BIN:-java}"
@@ -48,6 +49,7 @@ echo "  Java:   $JAVA_BIN"
 echo "  Work:   $EXTRACT_DIR"
 echo "  API:    http://0.0.0.0:${HTTP_PORT}/api/v1"
 echo "  App:    ${APP_PUBLIC_URL:-<no definido — correos pueden salir con localhost>}"
+echo "  Ethics: ${ETHICS_PUBLIC_URL}"
 echo "  Events: ${EVENTS_PUBLIC_BASE_URL:-${EVENTS_PUBLIC_URL:-<no definido — configure EVENTS_PUBLIC_URL=https://apps.cienciavida.org/events>}}"
 echo "  MySQL:  ${DB_USER:-<embebido>}@${DB_HOST:-<embebido>}/${DB_NAME:-<embebido>}"
 echo "  Este proceso queda en primer plano. Ctrl+C para detener."
@@ -55,7 +57,7 @@ echo "  Este proceso queda en primer plano. Ctrl+C para detener."
 if [[ -n "$SERVER_BIN" ]]; then
   echo "  Modo:   servidor ya extraído ($SERVER_BIN)"
   EXTRACTED_ENV="$(cd "$(dirname "$SERVER_BIN")/../usr/servers/openscience" && pwd)/server.env"
-  sanitize_public_urls "$EXTRACTED_ENV" "$EVENTS_PUBLIC_URL" "$APP_PUBLIC_URL"
+  sanitize_public_urls "$EXTRACTED_ENV" "$EVENTS_PUBLIC_URL" "$APP_PUBLIC_URL" "$ETHICS_PUBLIC_URL"
   export JAVA_HOME="${JAVA_HOME:-$(dirname "$(dirname "$JAVA_BIN")")}"
   exec "$SERVER_BIN" run openscience
 fi

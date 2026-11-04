@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { formForType, normalizeTextPayload, payloadToAnswers, asTextOr } from '../forms/form-answers';
+import { formForType, normalizeTextPayload, payloadToAnswers, asText, asTextOr } from '../forms/form-answers';
 import { capturePersonSnapshot } from '../forms/person-snapshot';
 import { ClassificationCode, EthicsSubmission, EthicsSubmissionType, Project } from '../models/ethics.models';
 import { DemoAuthService } from '../auth/demo-auth.service';
@@ -10,6 +10,7 @@ import { EthicsClassificationService } from './ethics-classification.service';
 import { EthicsStore } from './ethics-store.service';
 import { NotificationService } from './notification.service';
 import { nowIso, uid } from './ids';
+import { draftEditDecision, draftIdentity } from '../../features/submissions/new-project/draft-resume';
 
 @Injectable({ providedIn: 'root' })
 export class EthicsSubmissionService {
@@ -37,8 +38,8 @@ export class EthicsSubmissionService {
   saveDraft(type: EthicsSubmissionType, payload: Record<string, unknown>, existingId?: string): EthicsSubmission {
     const user = this.auth.currentUser();
     this.assertInstitutionalResearcher(user?.id);
-    const title = asTextOr(payload['title'], 'Borrador sin título');
-    return this.upsert(type, payload, existingId, 'DRAFT', title, user?.id ?? 'u-inv-1', false);
+    this.assertDraftEditable(existingId, user?.id);
+    return this.upsert(type, payload, existingId, 'DRAFT', asText(payload['title']).trim(), user?.id ?? 'u-inv-1', false);
   }
 
   submit(type: EthicsSubmissionType, payload: Record<string, unknown>, existingId?: string): EthicsSubmission {
@@ -48,7 +49,8 @@ export class EthicsSubmissionService {
     if (!this.permissions.can(user, 'SUBMIT_REQUEST', { projectId: existing?.projectId })) {
       throw new Error('La solicitud no puede enviarse en este contexto');
     }
-    const title = asTextOr(payload['title'], 'Solicitud sin título');
+    this.assertDraftEditable(existingId, user?.id);
+    const title = asText(payload['title']).trim();
     const submission = this.upsert(type, payload, existingId, 'SUBMITTED', title, user?.id ?? 'u-inv-1', true);
     this.audit.record({
       action: 'SUBMIT_REQUEST',
@@ -115,6 +117,31 @@ export class EthicsSubmissionService {
     return this.get(submissionId)!;
   }
 
+  private assertDraftEditable(existingId: string | undefined, actorId: string | undefined): void {
+    if (!existingId) {
+      return;
+    }
+    const existing = this.get(existingId);
+    const ownerId = existing
+      ? this.store.snapshot().projects.find((item) => item.id === existing.projectId)?.researcherId
+      : undefined;
+    const decision = draftEditDecision({
+      found: !!existing,
+      status: existing?.status,
+      ownerId,
+      actorId
+    });
+    if (decision === 'missing') {
+      throw new Error('DRAFT_NOT_FOUND');
+    }
+    if (decision === 'closed') {
+      throw new Error('DRAFT_CLOSED');
+    }
+    if (decision === 'forbidden') {
+      throw new Error('DRAFT_FORBIDDEN');
+    }
+  }
+
   private assertInstitutionalResearcher(userId: string | undefined): void {
     const user = this.store.snapshot().users.find((item) => item.id === userId);
     if (user?.personKind === 'EXTERNAL' || user?.externalReviewer) {
@@ -137,8 +164,9 @@ export class EthicsSubmissionService {
       ? this.classification.suggest((stored['studyObjects'] as string[]) ?? [])
       : ((stored['committees'] as ClassificationCode[]) ?? []);
     const existing = existingId ? this.get(existingId) : undefined;
-    const projectId = existing?.projectId ?? uid('prj');
-    const submissionId = existing?.id ?? uid('sub');
+    const identity = draftIdentity(existing, () => ({ submissionId: uid('sub'), projectId: uid('prj') }));
+    const projectId = identity.projectId;
+    const submissionId = identity.submissionId;
     const stamp = nowIso();
     this.store.update((state) => {
       const project: Project = state.projects.find((item) => item.id === projectId) ?? {

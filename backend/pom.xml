@@ -85,9 +85,11 @@
                 <configuration>
                     <serverName>openscience</serverName>
                     <bootstrapPropertiesFile>src/main/liberty/config/bootstrap.properties</bootstrapPropertiesFile>
-                    <!-- Maven Central no publica checksums para *.esa.asc; el WARNING no es error de javac. -->
+                    <!-- Maven Central no publica checksums de *.esa.asc. Sin skip, install-feature
+                         baja esa firma y Maven imprime ChecksumFailureException aunque el .esa sí se valide. -->
                     <features>
                         <acceptLicense>true</acceptLicense>
+                        <verify>skip</verify>
                     </features>
                     <copyDependencies>
                         <location>jdbc</location>

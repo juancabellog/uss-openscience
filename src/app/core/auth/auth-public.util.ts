@@ -27,6 +27,42 @@ export function shouldRedirectUnauthorized(requestUrl: string, pageUrl: string):
   return !isPublicAuthApi(requestUrl) && !isPublicPagePath(pageUrl);
 }
 
+/**
+ * El POST de activación usa el mismo texto de enlace inválido solo cuando el token
+ * no sirve. Un perfil institucional incompleto no consume ni invalida el token.
+ */
+export const ACTIVATION_PROFILE_FIELDS = [
+  'givenName',
+  'familyName',
+  'campus',
+  'faculty',
+  'positionTitle',
+  'password',
+  'confirm'
+] as const;
+
+export const ACTIVATION_PASSWORD_FIELDS = ['password', 'confirm'] as const;
+
+export function activationFields(profileRequired: boolean | undefined): readonly string[] {
+  return profileRequired === true ? ACTIVATION_PROFILE_FIELDS : ACTIVATION_PASSWORD_FIELDS;
+}
+
+export function activationFailureKey(code: string | null | undefined): string {
+  switch (code) {
+    case 'AUTH_PROFILE_REQUIRED':
+      return 'auth.activateProfileRejected';
+    case 'AUTH_ALREADY_ACTIVE':
+      return 'auth.alreadyActivated';
+    case 'AUTH_PASSWORD_POLICY':
+    case 'AUTH_PASSWORD_REQUIRED':
+      return 'auth.passwordPolicy';
+    case 'AUTH_TOKEN_INVALID':
+      return 'auth.tokenInvalid';
+    default:
+      return 'auth.activateFailed';
+  }
+}
+
 export function currentPagePath(routerUrl: string, locationPath?: string, baseHref?: string): string {
   const fromLocation = stripAppBase((locationPath ?? '').split('?')[0], baseHref);
   if (fromLocation && fromLocation !== '/') {

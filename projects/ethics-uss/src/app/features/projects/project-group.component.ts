@@ -23,8 +23,12 @@ import { ProjectViewModel } from './project-view.model';
           <span aria-hidden="true">{{ expanded() ? '▼' : '▶' }}</span>
         </button>
         <div class="project-group__summary" (click)="expandedChange.emit(!expanded())">
-          <h2>{{ project().title }}</h2>
+          <h2>{{ project().title || ('projects.untitled' | translate) }}</h2>
           <p class="muted">{{ project().code }} · {{ project().funding }}</p>
+          @if (project().continueDraft) {
+            <p class="muted">{{ 'projects.draftPending' | translate }}</p>
+            <p class="muted">{{ 'projects.draftUpdated' | translate }} {{ i18n.formatStamp(project().updatedAt) }}</p>
+          }
           <p class="project-group__meta">
             @if (project().researcherName; as name) {
               <span>{{ 'projects.responsibleShort' | translate }}: {{ name }}</span>
@@ -53,8 +57,8 @@ import { ProjectViewModel } from './project-view.model';
             </p>
           }
         </div>
-        <a class="project-group__open" [routerLink]="['/proyectos', project().id]" (click)="$event.stopPropagation()">
-          {{ 'projects.viewProject' | translate }}
+        <a class="project-group__open" [routerLink]="project().continueDraft ? ['/proyectos', project().id, 'borrador'] : ['/proyectos', project().id]" (click)="$event.stopPropagation()">
+          {{ (project().continueDraft ? 'projects.continueDraft' : 'projects.viewProject') | translate }}
           <span aria-hidden="true"> →</span>
         </a>
       </header>
@@ -233,7 +237,7 @@ import { ProjectViewModel } from './project-view.model';
   `
 })
 export class ProjectGroupComponent {
-  private readonly i18n = inject(I18nService);
+  readonly i18n = inject(I18nService);
   readonly project = input.required<ProjectViewModel>();
   readonly expanded = input(false);
   readonly expandedChange = output<boolean>();

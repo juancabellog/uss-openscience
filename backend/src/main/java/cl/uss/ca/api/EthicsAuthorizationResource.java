@@ -3,6 +3,8 @@ package cl.uss.ca.api;
 import cl.uss.ca.api.dto.EthicsAccessWriteDto;
 import cl.uss.ca.api.dto.EthicsDirectoryUserDto;
 import cl.uss.ca.api.dto.EthicsInstitutionalProfileDto;
+import cl.uss.ca.api.dto.EthicsFunctionViewDto;
+import cl.uss.ca.api.dto.EthicsRemovalDto;
 import cl.uss.ca.api.dto.EthicsMeDto;
 import cl.uss.ca.api.dto.EthicsPermissionsDto;
 import cl.uss.ca.api.dto.EthicsProfileWriteDto;
@@ -11,6 +13,7 @@ import cl.uss.ca.api.dto.PageResponse;
 import cl.uss.ca.api.dto.PurePersonIdentity;
 import cl.uss.ca.ethics.auth.AuthorizationContext;
 import cl.uss.ca.ethics.auth.AuthorizationService;
+import cl.uss.ca.ethics.auth.EthicsFunctionViews;
 import cl.uss.ca.ethics.auth.EthicsEntryService;
 import cl.uss.ca.ethics.auth.EthicsUserCatalog;
 import cl.uss.ca.api.dto.EmailRequestDto;
@@ -39,6 +42,8 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
+
+import java.util.List;
 
 @Path("/ethics")
 @RequestScoped
@@ -101,6 +106,20 @@ public class EthicsAuthorizationResource {
         return directory.get(userId(id));
     }
 
+    @GET
+    @Path("/users/{id}/removal")
+    public EthicsRemovalDto removal(@PathParam("id") String id) {
+        directory.assertMayManage(currentUserService.current());
+        return directory.removal(userId(id));
+    }
+
+    @DELETE
+    @Path("/users/{id}")
+    public void remove(@PathParam("id") String id) {
+        directory.assertMayManage(currentUserService.current());
+        directory.remove(userId(id));
+    }
+
     @POST
     @Path("/users/{id}/ethics-access")
     @Consumes(MediaType.APPLICATION_JSON)
@@ -156,6 +175,18 @@ public class EthicsAuthorizationResource {
         CurrentUser user = currentUserService.current();
         ethicsEntry.assertMayEnter(user);
         return authorizationService.profile(user);
+    }
+
+    /** Asignaciones vigentes para armar el espacio de trabajo. No cambia la autorización. */
+    @GET
+    @Path("/me/functions")
+    public List<EthicsFunctionViewDto> functions() {
+        CurrentUser user = currentUserService.current();
+        ethicsEntry.assertMayEnter(user);
+        if (user == null || user.id == null || user.id.isBlank()) {
+            return List.of();
+        }
+        return EthicsFunctionViews.present(authorizationService.history(user.id));
     }
 
     @GET

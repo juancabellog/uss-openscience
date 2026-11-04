@@ -1,4 +1,6 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { OperationFeedbackPanelComponent } from '../../../../../../shared/operation-feedback/operation-feedback-panel.component';
+import { OperationRun, watchOperation } from '../../../../../../shared/operation-feedback/operation-feedback';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { COMMITTEE_LABELS } from '../../mocks/catalogs';
@@ -10,6 +12,7 @@ import { EthicsStore } from '../../core/services/ethics-store.service';
 import { ethicsOpen, UserAdminService } from '../../core/services/user-admin.service';
 import { institutionalDomain, isAllowedInstitutionalEmail } from '../../core/identity/institutional-email';
 import { demoSelectorVisible } from '../../core/auth/demo-mode';
+import type { InstitutionalStart } from '../../core/auth/ethics-start-outcome';
 import { SharedSessionSignIn } from '../../core/auth/shared-session-sign-in';
 import { I18nService } from '../../core/i18n/i18n.service';
 import { environment } from '../../../environments/environment';
@@ -19,7 +22,7 @@ import { LanguageSwitcherComponent } from '../../shared/i18n/language-switcher.c
 
 @Component({
   selector: 'eth-role-select-page',
-  imports: [LanguageSwitcherComponent, IconComponent, FormsModule, RouterLink, ...I18N_IMPORTS],
+  imports: [LanguageSwitcherComponent, IconComponent, FormsModule, RouterLink, OperationFeedbackPanelComponent, ...I18N_IMPORTS],
   template: `
     @if (demoSelector) {
     <section class="panel enter demo-wrap">
@@ -75,15 +78,39 @@ import { LanguageSwitcherComponent } from '../../shared/i18n/language-switcher.c
             <p class="eth-login__error" role="alert">{{ 'auth.ethicsDenied' | translate }}</p>
             <button type="button" class="btn eth-login__submit" (click)="leaveDenied()">{{ 'common.logout' | translate }}</button>
           } @else if (panel() === 'account') {
-            <p class="eth-login__note">{{ 'auth.ussOnly' | translate }}</p>
-            <form (submit)="$event.preventDefault(); createAccount()">
-              <label class="eth-login__field"><span>{{ 'users.institutionalEmail' | translate }}</span><input type="email" [ngModel]="email()" (ngModelChange)="email.set($event)" name="accountEmail" autocomplete="username" /></label>
-              @if (message()) {
-                <p class="eth-login__error" role="alert">{{ message()! | translate }}</p>
-              }
-              <button type="submit" class="btn eth-login__submit" [disabled]="busy()" [attr.aria-busy]="busy()">{{ 'auth.createAccount' | translate }}</button>
-            </form>
-            <button type="button" class="eth-login__link eth-login__back" (click)="showLogin()">{{ 'auth.backToLogin' | translate }}</button>
+            @if (accountResult() === 'sent' || accountResult() === 'resent') {
+              <div class="eth-login__status" role="status">
+                <h2>{{ 'auth.checkEmailTitle' | translate }}</h2>
+                <p>{{ (accountResult() === 'resent' ? 'auth.invitationResent' : 'auth.invitationSent') | translate }}</p>
+                <p>{{ 'auth.invitationSpam' | translate }}</p>
+              </div>
+            } @else if (accountResult() === 'login') {
+              <div class="eth-login__status eth-login__status--info" role="status">
+                <p>{{ 'auth.useExistingLogin' | translate }}</p>
+              </div>
+              <button type="button" class="btn eth-login__submit" (click)="showLogin()">{{ 'auth.goToLogin' | translate }}</button>
+            } @else {
+              <p class="eth-login__note">{{ 'auth.ussOnly' | translate }}</p>
+              <form (submit)="$event.preventDefault(); createAccount()">
+                <label class="eth-login__field"><span>{{ 'users.institutionalEmail' | translate }}</span><input type="email" [ngModel]="email()" (ngModelChange)="accountEmail($event)" name="accountEmail" autocomplete="username" /></label>
+                @if (accountErrorKey(); as errorKey) {
+                  <p class="eth-login__error" role="alert">{{ errorKey | translate }}</p>
+                }
+                <button type="submit" class="btn eth-login__submit uss-op-button" [disabled]="busy()" [attr.aria-busy]="busy()">
+                  @if (busy()) { <span class="uss-op-spinner" aria-hidden="true"></span> }
+                  {{ (busy() ? 'auth.sendingInvitation' : 'auth.createAccount') | translate }}
+                </button>
+              </form>
+            }
+            <uss-operation-feedback
+              [visible]="accountView().showPanel"
+              [title]="accountView().loadingMessage"
+              [detail]="accountView().detailMessage"
+              [extra]="accountView().longRunningMessage"
+            />
+            @if (accountResult() !== 'login') {
+              <button type="button" class="eth-login__link eth-login__back" (click)="showLogin()">{{ 'auth.backToLogin' | translate }}</button>
+            }
           } @else {
             <form (submit)="$event.preventDefault(); signIn()">
               <label class="eth-login__field"><span>{{ 'users.email' | translate }}</span><input type="email" [ngModel]="email()" (ngModelChange)="email.set($event)" name="email" autocomplete="username" /></label>
@@ -136,6 +163,9 @@ export class RoleSelectPage {
   readonly password = signal('');
   readonly showPassword = signal(false);
   readonly busy = signal(false);
+  private readonly accountRun = new OperationRun();
+  private stopAccount: (() => void) | null = null;
+  readonly accountView = signal(this.accountRun.view());
   readonly users = computed(() => this.store.state().users.filter((user) => ethicsOpen(user)));
   readonly email = signal('');
   readonly externalAttempt = computed(() => {
@@ -145,11 +175,13 @@ export class RoleSelectPage {
   readonly givenName = signal('');
   readonly familyName = signal('');
   readonly message = signal<string | null>(this.route.snapshot.queryParamMap.get('acceso') === 'denegado' ? 'users.registrationDenied' : null);
+  readonly accountResult = signal<InstitutionalStart | null>(null);
   readonly committeeLabels = COMMITTEE_LABELS;
   readonly profile = profileRoleKey;
   readonly committeeOf = (user: User) => hasScope(user, 'COMMITTEE') && user.committees.length > 0;
 
   constructor() {
+    inject(DestroyRef).onDestroy(() => this.stopAccount?.());
     if (!this.demoSelector) {
       void this.session.ensure().then((user) => {
         if (user) {
@@ -197,35 +229,68 @@ export class RoleSelectPage {
 
   showAccount(): void {
     this.message.set(null);
+    this.accountResult.set(null);
     this.panel.set('account');
+  }
+
+  accountEmail(value: string): void {
+    this.email.set(value);
+    this.accountResult.set(null);
+  }
+
+  accountErrorKey(): string | null {
+    const result = this.accountResult();
+    if (result === 'domain') {
+      return 'auth.directRegistrationDenied';
+    }
+    if (result === 'mail') {
+      return 'auth.invitationMailFailed';
+    }
+    if (result === 'rejected') {
+      return 'auth.createAccountFailed';
+    }
+    return null;
   }
 
   showLogin(): void {
     this.message.set(null);
+    this.accountResult.set(null);
     this.panel.set('form');
   }
 
   async createAccount(): Promise<void> {
-    if (this.busy()) {
+    if (this.busy() || this.accountResult() === 'sent' || this.accountResult() === 'resent') {
       return;
     }
     this.busy.set(true);
-    this.message.set(null);
+    if (!this.trackAccount()) {
+      return;
+    }
+    this.accountResult.set(null);
     const result = await this.sharedSession.startInstitutional(this.email(), this.i18n.currentLanguage());
+    this.accountResult.set(result);
     this.busy.set(false);
-    if (result === 'domain') {
-      this.message.set('auth.directRegistrationDenied');
-      return;
+    if (result === 'sent' || result === 'resent' || result === 'login') {
+      this.accountRun.succeed();
+    } else {
+      this.accountRun.fail();
     }
-    if (result === 'login') {
-      this.message.set('auth.useExistingLogin');
-      return;
+    this.accountView.set(this.accountRun.view());
+  }
+
+  private trackAccount(): boolean {
+    if (!this.accountRun.start({
+      loadingMessage: this.i18n.translate('auth.sendingInvitation'),
+      detailMessage: this.i18n.translate('auth.sendingInvitationDetail'),
+      longRunningMessage: this.i18n.translate('feedback.stillWorking'),
+      blocking: true
+    })) {
+      return false;
     }
-    if (result === 'rejected') {
-      this.message.set('auth.loginUnavailable');
-      return;
-    }
-    this.message.set('auth.institutionalNextSteps');
+    this.accountView.set(this.accountRun.view());
+    this.stopAccount?.();
+    this.stopAccount = watchOperation(this.accountRun, () => this.accountView.set(this.accountRun.view()));
+    return true;
   }
 
   async leaveDenied(): Promise<void> {

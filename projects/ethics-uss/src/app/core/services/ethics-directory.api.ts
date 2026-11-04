@@ -47,6 +47,17 @@ export interface EthicsOnboarding {
   user?: EthicsDirectoryUser | null;
 }
 
+export interface EthicsRemoval {
+  deletable: boolean;
+  reason: string | null;
+  pendingInvitation: boolean;
+  snapshots: number;
+  reviewAssignments: number;
+  recordedActs: number;
+  committeeAssignments: number;
+  serverTracksProjects: boolean;
+}
+
 export interface EthicsDirectoryQuery {
   search: string;
   type: string;
@@ -97,6 +108,14 @@ export class EthicsDirectoryApi {
     return this.request<EthicsDirectoryUser>(`${this.base}/${encodeURIComponent(id)}`);
   }
 
+  removal(id: string): Promise<EthicsRemoval> {
+    return this.request<EthicsRemoval>(`${this.base}/${encodeURIComponent(id)}/removal`);
+  }
+
+  remove(id: string): Promise<void> {
+    return this.request<void>(`${this.base}/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  }
+
   setAccess(id: string, active: boolean, confirmed: boolean): Promise<EthicsDirectoryUser> {
     return this.request<EthicsDirectoryUser>(`${this.base}/${encodeURIComponent(id)}/ethics-access`, {
       method: 'POST',
@@ -135,6 +154,9 @@ export class EthicsDirectoryApi {
         ...init.headers
       }
     });
+    if (response.status === 204) {
+      return undefined as T;
+    }
     if (!response.ok) {
       let code = 'LOAD_FAILED';
       try {

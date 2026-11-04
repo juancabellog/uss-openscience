@@ -62,6 +62,7 @@ echo "OPENSCIENCE-USS empaquetando JAR ejecutable"
 echo "  MySQL: $BOOTSTRAP (queda dentro del JAR; para cambiarla vuelva a empaquetar)"
 echo "  Puerto: ${HTTP_PORT:-9080}"
 echo "  App URL: $(production_app_url)"
+echo "  Ethics URL: $(production_ethics_url)"
 echo "  Events URL: $(production_events_url)"
 
 BOOTSTRAP_BAK=""
@@ -78,15 +79,16 @@ trap restore_packaged_url_files EXIT
 
 EVENTS_URL="$(production_events_url)"
 APP_URL="$(production_app_url)"
+ETHICS_URL="$(production_ethics_url)"
 if [[ -f "$BOOTSTRAP" ]]; then
   BOOTSTRAP_BAK="${BOOTSTRAP}.devbak"
   cp "$BOOTSTRAP" "$BOOTSTRAP_BAK"
-  sanitize_public_urls "$BOOTSTRAP" "$EVENTS_URL" "$APP_URL"
+  sanitize_public_urls "$BOOTSTRAP" "$EVENTS_URL" "$APP_URL" "$ETHICS_URL"
 fi
 if [[ -f "$CONFIG_DIR/server.env" ]]; then
   SERVER_ENV_BAK="$CONFIG_DIR/server.env.devbak"
   cp "$CONFIG_DIR/server.env" "$SERVER_ENV_BAK"
-  sanitize_public_urls "$CONFIG_DIR/server.env" "$EVENTS_URL" "$APP_URL"
+  sanitize_public_urls "$CONFIG_DIR/server.env" "$EVENTS_URL" "$APP_URL" "$ETHICS_URL"
 fi
 
 mvn "${MVN_ARGS[@]}" clean package \
