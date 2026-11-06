@@ -1,14 +1,52 @@
+:host {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+}
+
+:host.is-sticky {
+  position: sticky;
+  top: 0;
+  z-index: calc(var(--os-z-header) - 1);
+  margin-inline: calc(-1 * var(--os-space-lg));
+  margin-bottom: var(--os-space-lg);
+  padding: 0.35rem var(--os-space-lg) 0;
+  background: var(--os-background);
+  border-bottom: 1px solid var(--os-border);
+}
+
 .tabs {
+  margin-bottom: var(--os-space-lg);
+}
+
+:host.is-sticky .tabs {
+  margin-bottom: 0;
+}
+
+.tabs__track {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem 1rem;
-  margin-bottom: var(--os-space-lg);
+  min-width: 0;
+}
+
+:host.is-sticky .tabs__track {
+  flex-wrap: nowrap;
+  gap: 0.15rem 0.35rem;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
 }
 
 .tabs a {
   text-decoration: none;
   font-weight: 600;
   font-size: var(--os-fs-sm);
+}
+
+:host.is-sticky .tabs a {
+  flex: 0 0 auto;
+  padding: 0.55rem 0.7rem;
+  white-space: nowrap;
 }
 
 .tabs a.is-active {

@@ -2,7 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
-import { catchError, map, of, startWith, switchMap } from 'rxjs';
+import { catchError, combineLatest, map, of, startWith, switchMap } from 'rxjs';
 import { OrcidWork, PersonAffiliation, PersonDetail, PersonMetrics, PersonOrcidWorks } from '../../core/models/openscience.models';
 import { I18nService } from '../../core/i18n/i18n.service';
 import { metricFetchKind, metricFetchMessageKey, personMetricMatrix } from '../../core/utils/pure-metrics.util';
@@ -81,18 +81,17 @@ export class PeopleDetailComponent {
   );
 
   readonly orcidWorks = toSignal(
-    toObservable(this.id).pipe(
-      switchMap((id) =>
-        toObservable(this.orcidReload).pipe(
-          switchMap(() => {
-            const numericId = Number(id);
-            if (!Number.isFinite(numericId)) {
-              return of<PersonOrcidWorks | null>(null);
-            }
-            return this.peopleApi.getOrcidWorks(numericId).pipe(catchError(() => of(null)));
-          })
-        )
-      )
+    combineLatest({
+      id: toObservable(this.id),
+      reload: toObservable(this.orcidReload)
+    }).pipe(
+      switchMap(({ id }) => {
+        const numericId = Number(id);
+        if (!Number.isFinite(numericId)) {
+          return of<PersonOrcidWorks | null>(null);
+        }
+        return this.peopleApi.getOrcidWorks(numericId).pipe(catchError(() => of(null)));
+      })
     ),
     { initialValue: null as PersonOrcidWorks | null }
   );

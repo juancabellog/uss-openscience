@@ -18,6 +18,9 @@ export const DETAIL_SECTION_NAV_STRATEGY = {
 @Component({
   selector: 'os-detail-section-nav',
   hostDirectives: [...I18N_HOST],
+  host: {
+    '[class.is-sticky]': 'sticky()'
+  },
   imports: [...I18N_IMPORTS, RouterLink],
   templateUrl: './detail-section-nav.component.html',
   styleUrl: './detail-section-nav.component.scss',
@@ -29,6 +32,8 @@ export class DetailSectionNavComponent {
 
   readonly items = input.required<readonly DetailSectionNavItem[]>();
   readonly ariaLabel = input('');
+  /** Pins the bar to the top of the detail scroller. The app header sits outside that scroller. */
+  readonly sticky = input(false);
   readonly activeFragment = toSignal(this.route.fragment, { initialValue: null });
 
   constructor() {
